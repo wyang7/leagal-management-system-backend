@@ -12,8 +12,12 @@
     <groupId>com.example</groupId>
     <artifactId>management-system</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>management-system</name>
     <description>Management System Backend</description>
+    <modules>
+        <module>mgmt</module>
+    </modules>
 
     <properties>
         <java.version>1.8</java.version>

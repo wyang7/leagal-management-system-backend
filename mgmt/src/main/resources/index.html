@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理系统</title>
+    <!-- 引入Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 引入Font Awesome图标 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <style>
+        .sidebar {
+            height: 100vh;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+        }
+        .nav-link {
+            color: #333;
+        }
+        .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .content {
+            padding: 20px;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8em;
+        }
+        .status-pending-release {
+            background-color: #ffc107;
+        }
+        .status-pending-receive {
+            background-color: #17a2b8;
+        }
+        .status-received {
+            background-color: #0d6efd;
+        }
+        .status-completed {
+            background-color: #28a745;
+        }
+        .modal-backdrop {
+            z-index: 1040;
+        }
+        .modal {
+            z-index: 1050;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏导航 -->
+            <div class="col-md-2 sidebar p-0">
+                <div class="d-flex flex-column p-3">
+                    <h2 class="text-center mb-4">管理系统</h2>
+                    <ul class="nav nav-pills flex-column mb-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" onclick="loadUserManagementPage()">
+                                <i class="fa fa-users me-2"></i>用户管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" onclick="loadRoleManagementPage()">
+                                <i class="fa fa-key me-2"></i>角色管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" onclick="loadCaseManagementPage()">
+                                <i class="fa fa-gavel me-2"></i>案件管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" onclick="loadTaskManagementPage()">
+                                <i class="fa fa-tasks me-2"></i>任务管理
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主内容区域 -->
+            <main class="col-md-10 content" id="mainContent">
+                <!-- 页面内容将通过JavaScript动态加载 -->
+            </main>
+        </div>
+    </div>
+
+    <!-- 引入Bootstrap JS和Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 引入公共功能脚本 -->
+    <script src="common.js"></script>
+    <!-- 引入各模块脚本 -->
+    <script src="user-management.js"></script>
+    <script src="role-management.js"></script>
+    <script src="case-management.js"></script>
+    <script src="task-management.js"></script>
+    <script>
+        // 页面加载时默认显示案件管理页面
+        window.onload = function() {
+            loadCaseManagementPage();
+        };
+    </script>
+</body>
+</html>
+    
