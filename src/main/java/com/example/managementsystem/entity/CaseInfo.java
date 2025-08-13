@@ -1,0 +1,82 @@
+package com.example.managementsystem.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.io.Serializable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+/**
+ * <p>
+ * 案件表
+ * </p>
+ *
+ * @author example
+ * @since 2023-07-10
+ */
+@Data
+@EqualsAndHashCode(callSuper = false)
+public class CaseInfo implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * 案件ID
+     */
+    @TableId(value = "case_id", type = IdType.AUTO)
+    private Long caseId;
+
+    /**
+     * 案件号
+     */
+    @TableField("case_number")
+    private String caseNumber;
+
+    /**
+     * 案件名
+     */
+    @TableField("case_name")
+    private String caseName;
+
+    /**
+     * 绑定的任务ID
+     */
+    @TableField("task_id")
+    private Long taskId;
+    
+    /**
+     * 任务名称（非数据库字段，用于前端展示）
+     */
+    @TableField(exist = false)
+    private String taskName;
+
+    /**
+     * 案件状态：待发布->待领取->已领取->已完成
+     */
+    private String status;
+
+    /**
+     * 案件绑定用户ID
+     */
+    @TableField("user_id")
+    private Long userId;
+    
+    /**
+     * 用户名（非数据库字段，用于前端展示）
+     */
+    @TableField(exist = false)
+    private String username;
+
+    /**
+     * 创建时间
+     */
+    @TableField("created_time")
+    private String createdTime;
+
+    /**
+     * 更新时间
+     */
+    @TableField("updated_time")
+    private String updatedTime;
+}

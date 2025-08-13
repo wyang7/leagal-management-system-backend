@@ -1,0 +1,46 @@
+package com.example.managementsystem.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.io.Serializable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+/**
+ * <p>
+ * 任务表
+ * </p>
+ *
+ * @author example
+ * @since 2023-07-10
+ */
+@Data
+@EqualsAndHashCode(callSuper = false)
+public class Task implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * 任务ID
+     */
+    @TableId(value = "task_id", type = IdType.AUTO)
+    private Long taskId;
+
+    /**
+     * 任务名
+     */
+    private String taskName;
+
+    /**
+     * 创建时间
+     */
+    @TableField("created_time")
+    private String createdTime;
+
+    /**
+     * 更新时间
+     */
+    @TableField("updated_time")
+    private String updatedTime;
+}
