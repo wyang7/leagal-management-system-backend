@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/management_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root  # 请替换为你的MySQL用户名
+    password: 12345678  # 请替换为你的MySQL密码
+  
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: AUTO
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+server:
+  port: 8090
+  servlet:
+    context-path: /api
