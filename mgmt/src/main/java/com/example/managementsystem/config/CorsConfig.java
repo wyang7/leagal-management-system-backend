@@ -5,9 +5,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class CorsConfig {
+public class CorsConfig implements WebMvcConfigurer {
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:你的前端端口") // 前端页面的地址，不要用*
+                .allowedMethods("GET", "POST", "PUT", "DELETE")
+                .allowCredentials(true) // 关键：允许携带cookie
+                .maxAge(3600);
+    }
 
     @Bean
     public CorsFilter corsFilter() {
@@ -18,6 +28,7 @@ public class CorsConfig {
         config.setAllowCredentials(true);
         // 允许所有请求方法（GET/POST/PUT/DELETE等）
         config.addAllowedMethod("*");
+        config.addAllowedHeader("*");
         // 允许所有请求头
         config.addAllowedHeader("*");
         // 允许暴露响应头（方便前端获取自定义头信息）
