@@ -82,15 +82,15 @@
     }
 
     try {
-      const result = await request('/auth/login', 'POST', { username, password });
-      if (result.success) {
+      const user = await request('/auth/login', 'POST', { username, password });
+      if (user!== null) {
         // 登录成功，跳转到首页
         window.location.href = 'index.html';
       } else {
-        alert(result.msg || '登录失败');
+        alert('登录失败');
       }
     } catch (error) {
-      console.error('登录失败', error);
+      console.error('登录失败2', error);
     }
   }
 

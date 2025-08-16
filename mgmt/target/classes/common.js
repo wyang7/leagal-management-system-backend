@@ -6,38 +6,46 @@
  * @returns {Promise} 返回Promise对象
  */
 async function request(url, method = 'GET', data = null) {
-    // 保持原有请求头和参数配置不变...
+    // 设置请求头
     const headers = {
         'Content-Type': 'application/json'
     };
 
+    // 配置请求参数
     const options = {
         method: method,
         headers: headers,
+        // 处理跨域请求时携带cookie
         credentials: 'include'
     };
 
+    // 如果是POST、PUT等方法，添加请求体
     if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
         options.body = JSON.stringify(data);
     }
 
+    // 处理GET请求的缓存问题
     if (method === 'GET') {
         const separator = url.includes('?') ? '&' : '?';
         url = url + separator + 't=' + new Date().getTime();
     }
 
     try {
+        // 发送请求，确保后端地址正确
+        // 注意：如果后端端口或上下文路径不同，请修改这里
         const baseUrl = 'http://localhost:8090/api';
         const response = await fetch(baseUrl + url, options);
-
+        
+        // 处理响应
         if (!response.ok) {
             throw new Error(`HTTP错误，状态码: ${response.status}`);
         }
 
+        // 解析JSON响应
         const result = await response.json();
-
-        // 关键修改：根据后端实际返回的success字段判断成功与否
-        if (result.success) {  // 这里改为判断success是否为true
+        
+        // 假设后端返回格式为 {code: 200, msg: "success", data: ...}
+        if (result.code === 200) {
             return result.data;
         } else {
             alert(`操作失败: ${result.message}`);
