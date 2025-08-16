@@ -60,7 +60,7 @@ async function request(url, method = 'GET', data = null) {
 
 /**
  * 设置当前激活的导航项
- * @param {string} pageName 页面名称（用户管理、角色管理、案件管理、任务管理）
+ * @param {string} pageName 页面名称（用户管理、角色管理、案件管理、案件包）
  */
 function setActiveNav(pageName) {
     // 移除所有导航项的active类

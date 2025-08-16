@@ -31,7 +31,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      */
     List<CaseInfo> selectByStatus(@Param("status") String status);
 
-    // 添加：根据案件名前缀模糊搜索
+    // 添加：根据案由前缀模糊搜索
     List<CaseInfo> selectByCaseNameLikePrefix(@Param("caseName") String caseName);
 
     // 新增：关联查询案件列表（包含处理人用户名）

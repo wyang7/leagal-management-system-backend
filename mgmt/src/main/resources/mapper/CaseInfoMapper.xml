@@ -20,7 +20,7 @@
         WHERE status = #{status}
     </select>
 
-    <!-- 添加：前缀模糊搜索（只匹配以输入内容开头的案件名） -->
+    <!-- 添加：前缀模糊搜索（只匹配以输入内容开头的案由） -->
     <select id="selectByCaseNameLikePrefix" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT * FROM case_info
         WHERE case_name LIKE CONCAT(#{caseName}, '%')  -- 前缀匹配

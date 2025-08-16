@@ -34,7 +34,7 @@ public class CaseInfo implements Serializable {
     private String caseNumber;
 
     /**
-     * 案件名
+     * 案由
      */
     @TableField("case_name")
     private String caseName;

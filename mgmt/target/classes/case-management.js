@@ -13,7 +13,7 @@ function loadCaseManagementPage() {
         <div class="row mb-3">
             <div class="col-md-6">
                 <div class="input-group">
-                    <input type="text" id="caseSearchInput" class="form-control" placeholder="输入案件名搜索">
+                    <input type="text" id="caseSearchInput" class="form-control" placeholder="输入案由搜索">
                     <button class="btn btn-primary" onclick="searchCases()">
                         <i class="fa fa-search"></i> 搜索
                     </button>
@@ -46,7 +46,7 @@ function loadCaseManagementPage() {
                     <tr>
                         <th>案件ID</th>
                         <th>案件号</th>
-                        <th>案件名</th>
+                        <th>案由</th>
                         <th>关联任务</th>
                         <th>状态</th>
                         <th>处理人</th>
@@ -96,7 +96,7 @@ async function loadCases() {
 }
 
 /**
- * 根据案件名搜索案件
+ * 根据案由搜索案件
  */
 async function searchCases() {
     const caseName = document.getElementById('caseSearchInput').value.trim();
@@ -250,7 +250,7 @@ function createCaseModal(taskOptions) {
                                 <input type="text" id="caseNumber" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label for="caseName">案件名</label>
+                                <label for="caseName">案由</label>
                                 <input type="text" id="caseName" class="form-control" required>
                             </div>
                             <div class="form-group">
@@ -353,7 +353,7 @@ async function saveCase() {
     }
     
     if (!caseName) {
-        alert('请输入案件名');
+        alert('请输入案由');
         return;
     }
     

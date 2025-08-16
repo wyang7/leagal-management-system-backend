@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS task (
 CREATE TABLE IF NOT EXISTS case_info (
     case_id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '案件ID',
     case_number VARCHAR(50) NOT NULL COMMENT '案件号',
-    case_name VARCHAR(100) NOT NULL COMMENT '案件名',
+    case_name VARCHAR(100) NOT NULL COMMENT '案由',
     task_id BIGINT COMMENT '绑定的任务ID',
     status VARCHAR(20) NOT NULL COMMENT '案件状态：待发布->待领取->已领取->已完成',
     user_id BIGINT COMMENT '案件绑定用户ID',

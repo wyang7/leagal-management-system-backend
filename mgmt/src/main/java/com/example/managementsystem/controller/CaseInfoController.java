@@ -48,7 +48,7 @@ public class CaseInfoController {
         return Result.success(caseInfoService.getCasesByStatus(status));
     }
 
-    // 添加：案件名前缀搜索接口
+    // 添加：案由前缀搜索接口
     @GetMapping("/search")
     public Result<List<CaseInfo>> searchCases(@RequestParam String name) {
         // 调用服务层方法，传入前端传递的name参数

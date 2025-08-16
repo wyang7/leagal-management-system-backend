@@ -1,12 +1,12 @@
 /**
- * 加载任务管理页面
+ * 加载案件包页面
  */
 function loadTaskManagementPage() {
-    setActiveNav('任务管理');
+    setActiveNav('案件包');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
         <div class="page-title">
-            <h1>任务管理</h1>
+            <h1>案件包</h1>
         </div>
         
         <!-- 新增任务按钮 -->
