@@ -2,6 +2,7 @@ package com.example.managementsystem.controller;
 
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.dto.LoginDTO;
+import com.example.managementsystem.dto.UserSession;
 import com.example.managementsystem.entity.User;
 import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,23 @@ public class LoginController {
 
     @Autowired
     private IUserService userService;
+
+
+
+    /**
+     * 获取当前登录用户信息
+     */
+    @GetMapping("/currentUser")
+    public Result<UserSession> getCurrentUser(HttpSession session) {
+        // 从session中获取用户信息，假设登录时已将用户信息存入session
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+
+        if (currentUser != null) {
+            return Result.success(currentUser);
+        } else {
+            return Result.fail("未登录或会话已过期");
+        }
+    }
 
     /**
      * 检查登录状态
@@ -55,7 +73,13 @@ public class LoginController {
         }
         
         // 保存登录状态
-        session.setAttribute("loginUser", user);
+        UserSession userSession = new UserSession();
+        userSession.setUserId(user.getUserId());
+        userSession.setUsername(user.getUsername());
+        userSession.setRoleId(user.getRoleId());
+        userSession.setLoginTime(new Date(System.currentTimeMillis()));
+
+        session.setAttribute("currentUser", userSession);
         return Result.success(user);
     }
 

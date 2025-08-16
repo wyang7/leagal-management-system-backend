@@ -35,7 +35,7 @@ async function request(url, method = 'GET', data = null) {
         // 注意：如果后端端口或上下文路径不同，请修改这里
         const baseUrl = 'http://localhost:8090/api';
         const response = await fetch(baseUrl + url, options);
-        
+
         // 处理响应
         if (!response.ok) {
             throw new Error(`HTTP错误，状态码: ${response.status}`);
@@ -43,7 +43,7 @@ async function request(url, method = 'GET', data = null) {
 
         // 解析JSON响应
         const result = await response.json();
-        
+
         // 假设后端返回格式为 {code: 200, msg: "success", data: ...}
         if (result.code === 200) {
             return result.data;
