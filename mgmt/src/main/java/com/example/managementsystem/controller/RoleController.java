@@ -2,6 +2,7 @@ package com.example.managementsystem.controller;
 
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.entity.Role;
+import com.example.managementsystem.entity.User;
 import com.example.managementsystem.service.IRoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -77,5 +78,22 @@ public class RoleController {
         
         boolean success = roleService.assignUsersToRole(roleId, userIds);
         return success ? Result.success() : Result.fail("分配用户失败");
+    }
+
+    // 添加：查询角色下的所有用户
+    @GetMapping("/{roleId}/users")
+    public Result<List<User>> getUsersByRoleId(@PathVariable Long roleId) {
+        List<User> users = roleService.getUsersByRoleId(roleId);
+        return Result.success(users);
+    }
+
+    // 添加：解除用户与角色的关联
+    @DeleteMapping("/{roleId}/users/{userId}")
+    public Result<?> unassignUserFromRole(
+            @PathVariable Long roleId,
+            @PathVariable Long userId
+    ) {
+        boolean success = roleService.unassignUserFromRole(roleId, userId);
+        return success ? Result.success() : Result.fail("解除关联失败");
     }
 }

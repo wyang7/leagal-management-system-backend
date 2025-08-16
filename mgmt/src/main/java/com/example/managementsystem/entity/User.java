@@ -1,5 +1,6 @@
 package com.example.managementsystem.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -35,7 +36,7 @@ public class User implements Serializable {
     /**
      * 关联角色ID
      */
-    @TableField("role_id")
+    @TableField(value ="role_id" , updateStrategy = FieldStrategy.IGNORED)
     private Long roleId;
     
     /**

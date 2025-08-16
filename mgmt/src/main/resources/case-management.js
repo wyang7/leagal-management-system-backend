@@ -176,7 +176,7 @@ function renderCaseTable(cases) {
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
-            <td>${caseInfo.userId || '-'}</td>
+            <td>${caseInfo.username || '-'}</td>
             <td>${caseInfo.createdTime ? new Date(caseInfo.createdTime).toLocaleString() : ''}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="showEditCaseModal(${caseInfo.caseId})">

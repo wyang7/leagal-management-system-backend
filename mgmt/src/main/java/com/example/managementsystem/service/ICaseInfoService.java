@@ -38,4 +38,7 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * 更新案件状态
      */
     boolean updateCaseStatus(Long caseId, String status);
+
+    // 添加：根据案件名前缀搜索
+    List<CaseInfo> searchCasesByCaseNamePrefix(String caseName);
 }

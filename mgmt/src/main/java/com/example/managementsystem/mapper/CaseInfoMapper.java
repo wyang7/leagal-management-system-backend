@@ -30,4 +30,13 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 根据状态查询案件
      */
     List<CaseInfo> selectByStatus(@Param("status") String status);
+
+    // 添加：根据案件名前缀模糊搜索
+    List<CaseInfo> selectByCaseNameLikePrefix(@Param("caseName") String caseName);
+
+    // 新增：关联查询案件列表（包含处理人用户名）
+    List<CaseInfo> selectCasesWithUsername();
+
+    // 新增：根据状态关联查询（用于筛选功能）
+    List<CaseInfo> selectCasesByStatusWithUsername(String status);
 }

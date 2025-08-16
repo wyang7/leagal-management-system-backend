@@ -23,6 +23,12 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         return baseMapper.selectByTaskId(taskId);
     }
 
+    // 替换原有查询所有案件的方法
+    @Override
+    public List<CaseInfo> list() {
+        return baseMapper.selectCasesWithUsername(); // 使用关联查询
+    }
+
     @Override
     public List<CaseInfo> getCasesByUserId(Long userId) {
         return baseMapper.selectByUserId(userId);
@@ -30,7 +36,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
     @Override
     public List<CaseInfo> getCasesByStatus(String status) {
-        return baseMapper.selectByStatus(status);
+        return baseMapper.selectCasesByStatusWithUsername(status); // 使用关联查询
     }
 
     @Override
@@ -63,5 +69,11 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         caseInfo.setCaseId(caseId);
         caseInfo.setStatus(status);
         return updateById(caseInfo);
+    }
+
+    // 添加：实现前缀搜索
+    @Override
+    public List<CaseInfo> searchCasesByCaseNamePrefix(String caseName) {
+        return baseMapper.selectByCaseNameLikePrefix(caseName);
     }
 }

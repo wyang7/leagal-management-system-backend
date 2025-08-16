@@ -271,7 +271,7 @@ async function deleteRole(roleId) {
  */
 async function showRoleUsers(roleId) {
     try {
-        const users = await request(`/user/role/${roleId}`);
+        const users = await request(`/role/${roleId}/users`);
         
         // 创建用户列表HTML
         let userListHtml = '<ul class="list-group">';
@@ -280,7 +280,7 @@ async function showRoleUsers(roleId) {
                 userListHtml += `
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     ${user.username} (ID: ${user.userId})
-                    <button class="btn btn-sm btn-warning" onclick="unassignUserFromRole(${user.userId})">
+                    <button class="btn btn-sm btn-warning" onclick="unassignUserFromRole(${user.userId}, ${roleId})">
                         解除关联
                     </button>
                 </li>
@@ -303,10 +303,6 @@ async function showRoleUsers(roleId) {
                     <div class="modal-body">
                         ${userListHtml}
                         <hr>
-                        <div class="input-group mt-3">
-                            <input type="text" id="userIdToAdd" class="form-control" placeholder="输入用户ID添加关联">
-                            <button class="btn btn-primary" onclick="assignUserToRole(${roleId})">添加</button>
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
@@ -363,14 +359,15 @@ async function assignUserToRole(roleId) {
 /**
  * 解除用户与角色的关联
  * @param {number} userId 用户ID
+ * @param {number} roleId 角色ID
  */
-async function unassignUserFromRole(userId) {
+async function unassignUserFromRole(userId, roleId) {
     if (!confirm('确定要解除该用户的角色关联吗？')) {
         return;
     }
     
     try {
-        await request(`/user/${userId}/role`, 'DELETE');
+        await request(`/role/${roleId}/users/${userId}`, 'DELETE');
         alert('解除关联成功');
         
         // 刷新当前模态框
@@ -385,6 +382,7 @@ async function unassignUserFromRole(userId) {
         }
     } catch (error) {
         // 错误处理已在request函数中完成
+        console.error('解除关联失败:', error);
     }
 }
     
