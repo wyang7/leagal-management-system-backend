@@ -33,4 +33,14 @@ public interface IUserService extends IService<User> {
      * 更新用户及关联角色
      */
     boolean updateUserWithRole(User user);
+
+    /**
+     * 根据用户名和密码查询用户
+     */
+    User getUserByUsernameAndPassword(String username, String password);
+
+    /**
+     * 检查用户名是否存在
+     */
+    boolean existsByUsername(String username);
 }

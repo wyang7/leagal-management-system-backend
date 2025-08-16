@@ -1,10 +1,10 @@
 package com.example.managementsystem.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldStrategy;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
+import java.sql.Date;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -34,6 +34,16 @@ public class User implements Serializable {
     private String username;
 
     /**
+     * 密码（加密存储）
+     */
+    private String password;
+
+    /**
+     * 账号状态（1-正常，0-禁用）
+     */
+    private Integer status;
+
+    /**
      * 关联角色ID
      */
     @TableField(value ="role_id" , updateStrategy = FieldStrategy.IGNORED)
@@ -45,15 +55,11 @@ public class User implements Serializable {
     @TableField(exist = false)
     private String roleName;
 
-    /**
-     * 创建时间
-     */
-    @TableField("created_time")
-    private String createdTime;
+    // 添加自动填充注解，创建时自动生成时间
+    @TableField(value = "created_time", fill = FieldFill.INSERT)
+    private Date createdTime;  // 改为Date类型
 
-    /**
-     * 更新时间
-     */
-    @TableField("updated_time")
-    private String updatedTime;
+    // 添加自动填充注解，创建和更新时自动生成时间
+    @TableField(value = "updated_time", fill = FieldFill.INSERT_UPDATE)
+    private Date updatedTime;  // 改为Date类型
 }

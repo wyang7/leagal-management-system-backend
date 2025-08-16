@@ -47,7 +47,7 @@ function loadCaseManagementPage() {
                         <th>案件ID</th>
                         <th>案件号</th>
                         <th>案由</th>
-                        <th>关联任务</th>
+                        <th>关联案件包</th>
                         <th>状态</th>
                         <th>处理人</th>
                         <th>创建时间</th>
@@ -214,7 +214,7 @@ function renderCaseTable(cases) {
 async function loadTasksForCaseForm() {
     try {
         const tasks = await request('/task');
-        let taskOptions = '<option value="">无（不关联任务）</option>';
+        let taskOptions = '<option value="">无（不关联案件包）</option>';
         tasks.forEach(task => {
             taskOptions += `<option value="${task.taskId}">${task.taskName} (ID: ${task.taskId})</option>`;
         });
@@ -254,7 +254,7 @@ function createCaseModal(taskOptions) {
                                 <input type="text" id="caseName" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label for="caseTaskId">关联任务</label>
+                                <label for="caseTaskId">关联案件包</label>
                                 <select id="caseTaskId" class="form-control">
                                     ${taskOptions}
                                 </select>

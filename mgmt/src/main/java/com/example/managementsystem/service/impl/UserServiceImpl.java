@@ -1,5 +1,6 @@
 package com.example.managementsystem.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.managementsystem.entity.User;
 import com.example.managementsystem.mapper.UserMapper;
 import com.example.managementsystem.service.IUserService;
@@ -38,5 +39,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     public boolean updateUserWithRole(User user) {
         // 直接更新用户，角色ID已在user对象中
         return updateById(user);
+    }
+
+
+    @Override
+    public User getUserByUsernameAndPassword(String username, String password) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("username", username)
+                .eq("password", password);
+        return baseMapper.selectOne(queryWrapper);
+    }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("username", username);
+        return baseMapper.exists(queryWrapper);
     }
 }
