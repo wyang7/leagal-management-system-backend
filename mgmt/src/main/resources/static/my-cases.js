@@ -69,9 +69,21 @@ function loadMyCasesPage() {
 /**
  * 获取当前登录用户ID（实际项目中需从登录信息中获取）
  */
-function getCurrentUserId() {
-    // 示例：实际项目中从localStorage或会话中获取
-    return localStorage.getItem('userId') || 1;
+async function getCurrentUserId() {
+    try {
+        // 复用用项目中已有的的获取当前用户信息接口
+        const userInfo = await request('/auth/currentUser');
+        if (userInfo && userInfo.userId) {
+            return userInfo.userId;
+        }
+        // 如果获取失败，跳转到登录页
+        window.location.href = 'login.html';
+        return null;
+    } catch (error) {
+        console.error('获取当前用户ID失败:', error);
+        window.location.href = 'login.html';
+        return null;
+    }
 }
 
 /**
