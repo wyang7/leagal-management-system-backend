@@ -105,7 +105,7 @@ public class LoginController {
         user.setUpdatedTime(new Date(System.currentTimeMillis()));
         
         boolean success = userService.save(user);
-        return success ? Result.success() : Result.fail("注册失败");
+        return success ? Result.success(true) : Result.fail("注册失败");
     }
 
     /**

@@ -106,7 +106,7 @@
 
     try {
       const result = await request('/auth/register', 'POST', { username, password });
-      if (result.success) {
+      if (result) {
         alert('注册成功，请登录');
         showLoginForm();
       } else {
