@@ -4,8 +4,7 @@
 function loadMyCasesPage() {
     setActiveNav('我的案件');
     const mainContent = document.getElementById('mainContent');
-    // 获取当前登录用户ID（实际项目中从登录信息中获取）
-    const currentUserId = getCurrentUserId(); // 假设此方法可获取当前用户ID
+
 
     mainContent.innerHTML = `
         <div class="page-title">
@@ -74,9 +73,9 @@ async function getCurrentUserId() {
         // 复用用项目中已有的的获取当前用户信息接口
         const userInfo = await request('/auth/currentUser');
         if (userInfo && userInfo.userId) {
-            return userInfo.userId;
+            return userInfo.userId; // 确保返回有效的userId
         }
-        // 如果获取失败，跳转到登录页
+        // 获取失败时跳转登录页
         window.location.href = 'login.html';
         return null;
     } catch (error) {
@@ -90,8 +89,17 @@ async function getCurrentUserId() {
  * 加载我的案件列表
  */
 async function loadMyCases() {
-    const userId = getCurrentUserId();
     try {
+        const userId = await getCurrentUserId();
+        if (!userId) {
+            // 如果userId为空，直接终止（已在getCurrentUserId中处理跳转）
+            document.getElementById('myCaseTableBody').innerHTML = `
+                <tr><td colspan="7" class="text-center text-danger">未获取到用户信息</td></tr>
+            `;
+            return;
+        }
+
+        // 确保userId有效后再发起请求
         const cases = await request(`/case/my-cases?userId=${userId}`);
         renderMyCaseTable(cases);
     } catch (error) {

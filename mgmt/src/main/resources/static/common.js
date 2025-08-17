@@ -59,6 +59,17 @@ async function request(url, method = 'GET', data = null) {
 }
 
 /**
+ * 同步风格的HTTP请求（基于本质仍是异步，但可通过await实现同步代码风格）
+ * @param {string} url 请求地址
+ * @param {string} method 请求方法，默认GET
+ * @param {object} data 请求数据，默认null
+ * @returns {any} 返回响应数据
+ */
+async function requestSync(url, method = 'GET', data = null) {
+    return await request(url, method, data); // 复用现有异步request方法
+}
+
+/**
  * 设置当前激活的导航项
  * @param {string} pageName 页面名称（用户管理、角色管理、案件管理、案件包）
  */
