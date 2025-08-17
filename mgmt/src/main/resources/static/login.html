@@ -106,11 +106,11 @@
 
     try {
       const result = await request('/auth/register', 'POST', { username, password });
-      if (result) {
+      if (result!== null) {
         alert('注册成功，请登录');
         showLoginForm();
       } else {
-        alert(result.msg || '注册失败');
+        alert('注册失败');
       }
     } catch (error) {
       console.error('注册失败', error);

@@ -47,6 +47,7 @@ function loadCaseManagementPage() {
                         <th>案件ID</th>
                         <th>案件号</th>
                         <th>案由</th>
+                        <th>标的额</th>
                         <th>关联案件包</th>
                         <th>状态</th>
                         <th>处理人</th>
@@ -146,7 +147,7 @@ function renderCaseTable(cases) {
     const tableBody = document.getElementById('caseTableBody');
     
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="9" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
     
@@ -174,6 +175,7 @@ function renderCaseTable(cases) {
             <td>${caseInfo.caseId}</td>
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
+            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
@@ -254,6 +256,11 @@ function createCaseModal(taskOptions) {
                                 <input type="text" id="caseName" class="form-control" required>
                             </div>
                             <div class="form-group">
+                                <label for="caseAmount">标的额</label>
+                                <input type="number" id="caseAmount" class="form-control" step="0.01" min="0" 
+                                       placeholder="请输入金额，精确到小数点后两位">
+                            </div>
+                            <div class="form-group">
                                 <label for="caseTaskId">关联案件包</label>
                                 <select id="caseTaskId" class="form-control">
                                     ${taskOptions}
@@ -321,6 +328,7 @@ async function showEditCaseModal(caseId) {
         document.getElementById('caseId').value = caseInfo.caseId;
         document.getElementById('caseNumber').value = caseInfo.caseNumber;
         document.getElementById('caseName').value = caseInfo.caseName;
+        document.getElementById('caseAmount').value = caseInfo.amount;
         document.getElementById('caseTaskId').value = caseInfo.taskId || '';
         document.getElementById('caseStatus').value = caseInfo.status;
         document.getElementById('caseUserId').value = caseInfo.userId || '';
@@ -342,6 +350,7 @@ async function saveCase() {
     const caseId = document.getElementById('caseId').value;
     const caseNumber = document.getElementById('caseNumber').value.trim();
     const caseName = document.getElementById('caseName').value.trim();
+    const amount = parseFloat(document.getElementById('caseAmount').value) || 0;
     const taskId = document.getElementById('caseTaskId').value;
     const status = document.getElementById('caseStatus').value;
     const userId = document.getElementById('caseUserId').value.trim();
@@ -365,6 +374,7 @@ async function saveCase() {
     const caseData = {
         caseNumber: caseNumber,
         caseName: caseName,
+        amount: amount,
         status: status
     };
     

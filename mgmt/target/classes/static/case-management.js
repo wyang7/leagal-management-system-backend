@@ -47,6 +47,7 @@ function loadCaseManagementPage() {
                         <th>案件ID</th>
                         <th>案件号</th>
                         <th>案由</th>
+                        <th>标的额</th>
                         <th>关联案件包</th>
                         <th>状态</th>
                         <th>处理人</th>
@@ -146,7 +147,7 @@ function renderCaseTable(cases) {
     const tableBody = document.getElementById('caseTableBody');
     
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="9" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
     
@@ -174,6 +175,7 @@ function renderCaseTable(cases) {
             <td>${caseInfo.caseId}</td>
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
+            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
@@ -252,6 +254,11 @@ function createCaseModal(taskOptions) {
                             <div class="form-group">
                                 <label for="caseName">案由</label>
                                 <input type="text" id="caseName" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="caseAmount">标的额</label>
+                                <input type="number" id="caseAmount" class="form-control" step="0.01" min="0" 
+                                       placeholder="请输入金额，精确到小数点后两位">
                             </div>
                             <div class="form-group">
                                 <label for="caseTaskId">关联案件包</label>
