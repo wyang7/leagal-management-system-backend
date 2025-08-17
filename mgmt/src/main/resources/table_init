@@ -63,3 +63,9 @@ ALTER TABLE `user` ADD COLUMN `password` varchar(255) NOT NULL COMMENT '密码�
 
 -- 创建索引
 CREATE INDEX idx_username ON `user`(`username`);
+
+ALTER TABLE case_info
+    -> ADD COLUMN amount DECIMAL(10, 2) NULL COMMENT '标的额（精确到小数点后两位）';
+
+ALTER TABLE case_info
+ADD COLUMN completion_notes TEXT NULL COMMENT '案件完成情况说明';

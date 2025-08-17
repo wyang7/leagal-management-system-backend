@@ -39,4 +39,6 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
 
     // 新增：根据状态关联查询（用于筛选功能）
     List<CaseInfo> selectCasesByStatusWithUsername(String status);
+
+    List<CaseInfo> selectMyCasesWithUsername(Long userId);
 }

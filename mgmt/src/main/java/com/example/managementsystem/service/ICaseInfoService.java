@@ -41,4 +41,6 @@ public interface ICaseInfoService extends IService<CaseInfo> {
 
     // 添加：根据案由前缀搜索
     List<CaseInfo> searchCasesByCaseNamePrefix(String caseName);
+
+    List<CaseInfo> getMyCases(Long userId);
 }

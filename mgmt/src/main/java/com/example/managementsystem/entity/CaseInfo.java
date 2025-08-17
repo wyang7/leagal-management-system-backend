@@ -69,6 +69,9 @@ public class CaseInfo implements Serializable {
      */
     @TableField("user_id")
     private Long userId;
+
+    @TableField("completion_notes")
+    private String completionNotes;
     
     /**
      * 用户名（非数据库字段，用于前端展示）

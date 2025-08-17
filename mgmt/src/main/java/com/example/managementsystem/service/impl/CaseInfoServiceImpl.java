@@ -76,4 +76,9 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     public List<CaseInfo> searchCasesByCaseNamePrefix(String caseName) {
         return baseMapper.selectByCaseNameLikePrefix(caseName);
     }
+
+    @Override
+    public List<CaseInfo> getMyCases(Long userId) {
+        return baseMapper.selectMyCasesWithUsername(userId);
+    }
 }

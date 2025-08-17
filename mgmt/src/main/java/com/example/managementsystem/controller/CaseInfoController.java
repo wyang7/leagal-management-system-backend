@@ -109,4 +109,32 @@ public class CaseInfoController {
         boolean success = caseInfoService.updateCaseStatus(caseId, status);
         return success ? Result.success() : Result.fail("更新案件状态失败");
     }
+
+    /**
+     * 获取当前用户的案件
+     */
+    @GetMapping("/my-cases")
+    public Result<List<CaseInfo>> getMyCases(@RequestParam Long userId) {
+        return Result.success(caseInfoService.getMyCases(userId));
+    }
+
+    /**
+     * 完成案件（包含完成情况）
+     */
+    @PostMapping("/complete-with-notes")
+    public Result<?> completeCaseWithNotes(@RequestBody Map<String, Object> params) {
+        Long caseId = Long.parseLong(params.get("caseId").toString());
+        String notes = params.get("notes").toString();
+
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+
+        // 更新状态和完成情况
+        caseInfo.setStatus("已完成");
+        caseInfo.setCompletionNotes(notes);
+        boolean success = caseInfoService.updateById(caseInfo);
+        return success ? Result.success() : Result.fail("更新案件失败");
+    }
 }
