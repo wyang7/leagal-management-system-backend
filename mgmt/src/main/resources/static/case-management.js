@@ -315,8 +315,11 @@ function createCaseModal(taskOptions) {
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="caseUserId">处理人ID（可选）</label>
-                                <input type="number" id="caseUserId" class="form-control" placeholder="案件领取人ID">
+                                <label for="handlerId">调解员（可选）</label>
+                                <select id="handlerId" class="form-control" required>
+                                    <option value="">请选择处理人（调解员）</option>
+                                    <!-- 会通过JS动态加载符合条件的用户 -->
+                                </select>
                             </div>
                         </form>
                     </div>
@@ -333,6 +336,20 @@ function createCaseModal(taskOptions) {
     } else {
         // 更新任务下拉框
         document.getElementById('caseTaskId').innerHTML = taskOptions;
+    }
+}
+
+// 修改案件管理页面的JS逻辑，添加加载调解员的函数
+async function loadMediators() {
+    try {
+        const mediators = await request('/user/role/调解员');
+        let options = '<option value="">请选择处理人（调解员）</option>';
+        mediators.forEach(mediator => {
+            options += `<option value="${mediator.userId}">${mediator.username}</option>`;
+        });
+        document.getElementById('handlerId').innerHTML = options;
+    } catch (error) {
+        console.error('加载调解员失败:', error);
     }
 }
 
@@ -356,7 +373,7 @@ async function loadCaseAssistants() {
 async function showAddCaseModal() {
     const taskOptions = await loadTasksForCaseForm();
     createCaseModal(taskOptions);
-    // 显示模态框后加载案件助理
+    await loadMediators();
     await loadCaseAssistants();
     
     // 重置表单
@@ -379,9 +396,12 @@ async function showEditCaseModal(caseId) {
         const taskOptions = await loadTasksForCaseForm();
         createCaseModal(taskOptions);
         // 显示模态框后加载案件助理
+        await loadMediators();
         await loadCaseAssistants();
         
         // 填充表单数据
+        document.getElementById('handlerId').value = caseInfo.userId;
+        document.getElementById('assistantId').value = caseInfo.assistantId;
         document.getElementById('caseId').value = caseInfo.caseId;
         document.getElementById('caseNumber').value = caseInfo.caseNumber;
         document.getElementById('caseName').value = caseInfo.caseName;
@@ -433,6 +453,7 @@ async function saveCase() {
         caseName: caseName,
         amount: amount,
         status: status,
+        userId: document.getElementById('handlerId').value,  // 从下拉选择获取处理人ID
         caseLocation: document.getElementById('caseLocation').value,
         courtReceiveTime: document.getElementById('courtReceiveTime').value,
         plaintiffName: document.getElementById('plaintiffName').value.trim(),
