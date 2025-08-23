@@ -30,9 +30,11 @@
     </select>
 
     <!-- 分页查询案件 -->
-    <select id="selectCasePage" resultMap="CaseResultMap">
-        SELECT * FROM case_info
-        ORDER BY created_time DESC
+    <select id="selectCasePage" resultType="com.example.managementsystem.entity.CaseInfo">
+        SELECT *,a.username as assistantName FROM case_info c
+                          LEFT JOIN user u ON c.user_id = u.user_id
+                          LEFT JOIN user a ON c.assistant_id = a.user_id
+        ORDER BY c.created_time DESC
             LIMIT #{offset}, #{pageSize}
     </select>
 
