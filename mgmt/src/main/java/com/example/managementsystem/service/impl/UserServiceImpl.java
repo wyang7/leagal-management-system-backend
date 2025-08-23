@@ -1,11 +1,17 @@
 package com.example.managementsystem.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.example.managementsystem.entity.Role;
 import com.example.managementsystem.entity.User;
+import com.example.managementsystem.mapper.RoleMapper;
 import com.example.managementsystem.mapper.UserMapper;
 import com.example.managementsystem.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
 import java.util.List;
 
 /**
@@ -18,6 +24,9 @@ import java.util.List;
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
+
+    @Resource
+    private RoleMapper roleMapper;
 
     @Override
     public List<User> getUsersByRoleId(Long roleId) {
@@ -55,5 +64,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("username", username);
         return baseMapper.exists(queryWrapper);
+    }
+
+    @Override
+    public List<User> list() {
+        List<User> list = this.list(Wrappers.emptyWrapper());
+        if (list != null && !list.isEmpty()) {
+            for (User user : list) {
+                if (user.getRoleId() != null) {
+                    Role role = roleMapper.selectById(user.getRoleId());
+                    if (role != null) {
+                        user.setRoleName(role.getRoleName());
+                    }
+                }
+            }
+        }
+        return list;
     }
 }

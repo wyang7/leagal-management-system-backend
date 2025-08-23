@@ -33,7 +33,7 @@ function loadUserManagementPage() {
                     <tr>
                         <th>用户ID</th>
                         <th>用户名</th>
-                        <th>角色ID</th>
+                        <th>角色名</th>
                         <th>创建时间</th>
                         <th>操作</th>
                     </tr>
@@ -117,7 +117,7 @@ function renderUserTable(users) {
         <tr>
             <td>${user.userId}</td>
             <td>${user.username}</td>
-            <td>${user.roleId}</td>
+            <td>${user.roleName}</td>
             <td>${user.createdTime ? new Date(user.createdTime).toLocaleString() : ''}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="showEditUserModal(${user.userId})">

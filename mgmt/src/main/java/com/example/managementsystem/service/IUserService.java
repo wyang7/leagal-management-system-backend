@@ -18,6 +18,11 @@ public interface IUserService extends IService<User> {
      * 根据角色ID查询用户
      */
     List<User> getUsersByRoleId(Long roleId);
+
+    /**
+     * 获取全量用户
+     */
+    List<User> list();
     
     /**
      * 根据用户名模糊查询
