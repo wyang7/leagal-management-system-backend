@@ -233,9 +233,9 @@ async function filterCases(status) {
  */
 function renderCaseTable(cases) {
     const tableBody = document.getElementById('caseTableBody');
-    
+
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="9" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="14" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
     

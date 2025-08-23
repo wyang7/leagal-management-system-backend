@@ -1,5 +1,7 @@
 package com.example.managementsystem.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.User;
@@ -55,7 +57,21 @@ public class CaseInfoController {
     public Result<Map<String, Object>> getCasePage(@RequestBody Map<String, Object> params) {
         int pageNum = params.get("pageNum") != null ? (int) params.get("pageNum") : 1;
         int pageSize = params.get("pageSize") != null ? (int) params.get("pageSize") : 10;
-        return Result.success(caseInfoService.getCasePage(pageNum, pageSize));
+        String caseName = params.get("caseName") != null ? (String) params.get("caseName") : null;
+
+        Page<CaseInfo> page =
+                new Page<>(pageNum, pageSize);
+        QueryWrapper<CaseInfo> wrapper =
+                new QueryWrapper<>();
+        if (caseName != null && !caseName.trim().isEmpty()) {
+            wrapper.like("case_name", caseName);
+        }
+        caseInfoService.page(page, wrapper);
+
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("records", page.getRecords());
+        result.put("total", page.getRecords().size());
+        return Result.success(result);
     }
 
     /**

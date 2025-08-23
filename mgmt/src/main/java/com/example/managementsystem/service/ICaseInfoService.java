@@ -48,5 +48,4 @@ public interface ICaseInfoService extends IService<CaseInfo> {
 
     String genCaseNumber();
 
-    Map<String, Object> getCasePage(int pageNum, int pageSize);
 }
