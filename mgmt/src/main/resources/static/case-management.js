@@ -48,6 +48,11 @@ function loadCaseManagementPage() {
                         <th>案件号</th>
                         <th>案由</th>
                         <th>标的额</th>
+                        <th>案件归属地</th>
+                        <th>法院收案时间</th>
+                        <th>原告</th>
+                        <th>被告</th>
+                        <th>案件助理</th>
                         <th>关联案件包</th>
                         <th>状态</th>
                         <th>处理人</th>
@@ -176,6 +181,11 @@ function renderCaseTable(cases) {
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
+            <td>${caseInfo.caseLocation || '-'}</td>
+            <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleString() : '-'}</td>
+            <td>${caseInfo.plaintiffName || '-'}</td>
+            <td>${caseInfo.defendantName || '-'}</td>
+            <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
@@ -261,6 +271,35 @@ function createCaseModal(taskOptions) {
                                        placeholder="请输入金额，精确到小数点后两位">
                             </div>
                             <div class="form-group">
+                                <label for="caseLocation">案件归属地</label>
+                                <select id="caseLocation" class="form-control" required>
+                                    <option value="">请选择归属地</option>
+                                    <option value="九堡">九堡</option>
+                                    <option value="彭埠">彭埠</option>
+                                    <option value="笕桥">笕桥</option>
+                                    <option value="本部">本部</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="courtReceiveTime">法院收案时间</label>
+                                <input type="datetime-local" id="courtReceiveTime" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="plaintiffName">原告</label>
+                                <input type="text" id="plaintiffName" class="form-control" required placeholder="请输入原告名称">
+                            </div>
+                            <div class="form-group">
+                                <label for="defendantName">被告</label>
+                                <input type="text" id="defendantName" class="form-control" required placeholder="请输入被告名称">
+                            </div>
+                            <div class="form-group">
+                                <label for="assistantId">案件助理</label>
+                                <select id="assistantId" class="form-control" required>
+                                    <option value="">请选择案件助理</option>
+                                    <!-- 会通过JS动态加载符合条件的用户 -->
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label for="caseTaskId">关联案件包</label>
                                 <select id="caseTaskId" class="form-control">
                                     ${taskOptions}
@@ -297,12 +336,28 @@ function createCaseModal(taskOptions) {
     }
 }
 
+// 加载案件助理（角色为案件助理的用户）
+async function loadCaseAssistants() {
+    try {
+        const assistants = await request('/user/role/案件助理');
+        let options = '<option value="">请选择案件助理</option>';
+        assistants.forEach(assistant => {
+            options += `<option value="${assistant.userId}">${assistant.username}</option>`;
+        });
+        document.getElementById('assistantId').innerHTML = options;
+    } catch (error) {
+        console.error('加载案件助理失败:', error);
+    }
+}
+
 /**
  * 显示新增案件模态框
  */
 async function showAddCaseModal() {
     const taskOptions = await loadTasksForCaseForm();
     createCaseModal(taskOptions);
+    // 显示模态框后加载案件助理
+    await loadCaseAssistants();
     
     // 重置表单
     document.getElementById('caseForm').reset();
@@ -323,6 +378,8 @@ async function showEditCaseModal(caseId) {
         const caseInfo = await request(`/case/${caseId}`);
         const taskOptions = await loadTasksForCaseForm();
         createCaseModal(taskOptions);
+        // 显示模态框后加载案件助理
+        await loadCaseAssistants();
         
         // 填充表单数据
         document.getElementById('caseId').value = caseInfo.caseId;
@@ -370,14 +427,19 @@ async function saveCase() {
         alert('请选择案件状态');
         return;
     }
-    
+    console.log("案件新增1");
     const caseData = {
         caseNumber: caseNumber,
         caseName: caseName,
         amount: amount,
-        status: status
+        status: status,
+        caseLocation: document.getElementById('caseLocation').value,
+        courtReceiveTime: document.getElementById('courtReceiveTime').value,
+        plaintiffName: document.getElementById('plaintiffName').value.trim(),
+        defendantName: document.getElementById('defendantName').value.trim(),
+        assistantId: document.getElementById('assistantId').value
     };
-    
+    console.log("案件新增2"+caseData);
     // 可选字段
     if (taskId) {
         caseData.taskId = parseInt(taskId);
@@ -385,13 +447,14 @@ async function saveCase() {
     if (userId) {
         caseData.userId = parseInt(userId);
     }
-    
+    console.log("案件新增3"+caseData);
     try {
         if (caseId) {
             // 编辑案件
             caseData.caseId = parseInt(caseId);
             await request('/case', 'PUT', caseData);
         } else {
+            console.log("案件新增4"+caseData);
             // 新增案件
             await request('/case', 'POST', caseData);
         }

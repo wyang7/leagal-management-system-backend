@@ -69,3 +69,21 @@ ALTER TABLE case_info
 
 ALTER TABLE case_info
 ADD COLUMN completion_notes TEXT NULL COMMENT '案件完成情况说明';
+
+
+-- 添加案件归属地字段（枚举类型）
+ALTER TABLE case_info ADD COLUMN case_location ENUM('九堡', '彭埠', '笕桥', '本部') COMMENT '案件归属地';
+
+-- 添加法院收案时间字段（时间戳）
+ALTER TABLE case_info ADD COLUMN court_receive_time DATETIME COMMENT '法院收案时间';
+
+-- 添加原告字段
+ALTER TABLE case_info ADD COLUMN plaintiff_name VARCHAR(255) COMMENT '原告';
+
+-- 添加被告字段
+ALTER TABLE case_info ADD COLUMN defendant_name VARCHAR(255) COMMENT '被告';
+
+-- 添加案件助理ID字段（关联用户表）
+ALTER TABLE case_info ADD COLUMN assistant_id BIGINT COMMENT '案件助理ID（关联user表user_id）';
+
+-- 添加案件助理姓名字段（非数据库存储，用于前端展示，无需SQL）

@@ -30,11 +30,12 @@
     <select id="selectCasesWithUsername" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT
             c.*,
-            u.username
+            u.username,
+            a.username as assistantName
         FROM
             case_info c
-                LEFT JOIN
-            user u ON c.user_id = u.user_id
+                LEFT JOIN user u ON c.user_id = u.user_id
+                LEFT JOIN user a ON c.assistant_id = a.user_id
     </select>
 
     <!-- 根据状态关联查询（包含处理人用户名） -->
@@ -61,5 +62,7 @@
         WHERE
             c.user_id = #{userId}
     </select>
+
+
 
 </mapper>

@@ -3,6 +3,7 @@ package com.example.managementsystem.controller;
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.service.ICaseInfoService;
+import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -22,6 +23,9 @@ public class CaseInfoController {
 
     @Autowired
     private ICaseInfoService caseInfoService;
+
+    @Autowired
+    private IUserService userService;
 
     /**
      * 查询所有案件
@@ -60,6 +64,14 @@ public class CaseInfoController {
      */
     @PostMapping
     public Result<?> addCase(@RequestBody CaseInfo caseInfo) {
+
+        // 校验案件助理角色
+        if (caseInfo.getAssistantId() != null) {
+            boolean isAssistant = userService.checkUserRole(caseInfo.getAssistantId(), "案件助理");
+            if (!isAssistant) {
+                return Result.fail("所选用户不是案件助理角色");
+            }
+        }
         // 新增案件默认状态为"待发布"
         if (caseInfo.getStatus() == null || caseInfo.getStatus().isEmpty()) {
             caseInfo.setStatus("待发布");
@@ -73,6 +85,15 @@ public class CaseInfoController {
      */
     @PutMapping
     public Result<?> updateCase(@RequestBody CaseInfo caseInfo) {
+
+        // 校验案件助理角色
+        if (caseInfo.getAssistantId() != null) {
+            boolean isAssistant = userService.checkUserRole(caseInfo.getAssistantId(), "案件助理");
+            if (!isAssistant) {
+                return Result.fail("所选用户不是案件助理角色");
+            }
+        }
+
         boolean success = caseInfoService.updateById(caseInfo);
         return success ? Result.success() : Result.fail("更新案件失败");
     }

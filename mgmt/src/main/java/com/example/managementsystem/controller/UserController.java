@@ -22,6 +22,12 @@ public class UserController {
     @Autowired
     private IUserService userService;
 
+
+    @GetMapping("/role/{roleName}")
+    public Result<List<User>> getUsersByRole(@PathVariable String roleName) {
+        return Result.success(userService.getUsersByRoleName(roleName));
+    }
+
     /**
      * 查询所有用户
      */

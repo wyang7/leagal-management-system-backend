@@ -44,6 +44,11 @@ function loadMyCasesPage() {
                         <th>案件号</th>
                         <th>案由</th>
                         <th>标的额</th> <!-- 之前添加的标的额字段 -->
+                        <th>案件归属地</th>
+                        <th>法院收案时间</th>
+                        <th>原告</th>
+                        <th>被告</th>
+                        <th>案件助理</th>
                         <th>关联案件包</th>
                         <th>状态</th>
                         <th>创建时间</th>
@@ -191,6 +196,11 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td> <!-- 标的额展示 -->
+            <td>${caseInfo.caseLocation || '-'}</td>
+            <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleString() : '-'}</td>
+            <td>${caseInfo.plaintiffName || '-'}</td>
+            <td>${caseInfo.defendantName || '-'}</td>
+            <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.createdTime ? new Date(caseInfo.createdTime).toLocaleString() : ''}</td>

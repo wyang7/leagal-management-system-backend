@@ -72,6 +72,42 @@ public class CaseInfo implements Serializable {
 
     @TableField("completion_notes")
     private String completionNotes;
+
+    /**
+     * 案件归属地
+     */
+    @TableField("case_location")
+    private String caseLocation;
+
+    /**
+     * 法院收案时间
+     */
+    @TableField("court_receive_time")
+    private String courtReceiveTime;
+
+    /**
+     * 原告
+     */
+    @TableField("plaintiff_name")
+    private String plaintiffName;
+
+    /**
+     * 被告
+     */
+    @TableField("defendant_name")
+    private String defendantName;
+
+    /**
+     * 案件助理ID
+     */
+    @TableField("assistant_id")
+    private Long assistantId;
+
+    /**
+     * 案件助理姓名（非数据库字段）
+     */
+    @TableField(exist = false)
+    private String assistantName;
     
     /**
      * 用户名（非数据库字段，用于前端展示）

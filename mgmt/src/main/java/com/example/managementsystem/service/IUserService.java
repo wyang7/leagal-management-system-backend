@@ -48,4 +48,15 @@ public interface IUserService extends IService<User> {
      * 检查用户名是否存在
      */
     boolean existsByUsername(String username);
+
+
+    /**
+     * 检查用户是否拥有指定角色
+     */
+    boolean checkUserRole(Long userId, String roleName);
+
+    /**
+     * 根据角色名称查询用户
+     */
+    List<User> getUsersByRoleName(String roleName);
 }
