@@ -52,26 +52,30 @@ public class CaseInfoController {
         CaseInfo caseInfo = caseInfoService.getById(id);
         return caseInfo != null ? Result.success(caseInfo) : Result.fail("案件不存在");
     }
+    /**
+     * 分页查询案件列表
+     * 支持前端请求格式: /case/page?pageNum=1&pageSize=10&t=1755945819649
+     */
+    @GetMapping("/page")
+    public Result<Map<String, Object>> getCasePage(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            // 忽略时间戳参数t，不做处理
+            @RequestParam(required = false) Long t) {
 
-    @PostMapping("/page")
-    public Result<Map<String, Object>> getCasePage(@RequestBody Map<String, Object> params) {
-        int pageNum = params.get("pageNum") != null ? (int) params.get("pageNum") : 1;
-        int pageSize = params.get("pageSize") != null ? (int) params.get("pageSize") : 10;
-        String caseName = params.get("caseName") != null ? (String) params.get("caseName") : null;
-
-        Page<CaseInfo> page =
-                new Page<>(pageNum, pageSize);
-        QueryWrapper<CaseInfo> wrapper =
-                new QueryWrapper<>();
-        if (caseName != null && !caseName.trim().isEmpty()) {
-            wrapper.like("case_name", caseName);
+        // 校验分页参数合法性
+        if (pageNum < 1) {
+            pageNum = 1;
         }
-        caseInfoService.page(page, wrapper);
+        if (pageSize < 1 || pageSize > 100) {
+            pageSize = 10; // 限制最大每页100条
+        }
 
-        Map<String, Object> result = new java.util.HashMap<>();
-        result.put("records", page.getRecords());
-        result.put("total", page.getRecords().size());
-        return Result.success(result);
+        // 调用服务层获取分页数据
+        Map<String, Object> pageResult = caseInfoService.getCasePage(pageNum, pageSize);
+
+        // 返回统一格式的响应
+        return Result.success(pageResult);
     }
 
     /**
@@ -81,6 +85,7 @@ public class CaseInfoController {
     public Result<List<CaseInfo>> getCasesByStatus(@PathVariable String status) {
         return Result.success(caseInfoService.getCasesByStatus(status));
     }
+
 
     // 添加：案由前缀搜索接口
     @GetMapping("/search")

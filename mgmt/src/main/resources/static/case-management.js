@@ -78,8 +78,12 @@ function loadCaseManagementPage() {
     
     // 创建案件模态框容器
     createCaseModalContainer();
-    // 加载案件列表
-    loadCases();
+    mainContent.innerHTML += `
+        <!-- 分页容器 -->
+        <div id="paginationContainer" class="mt-3"></div>
+    `;
+    // 加载案件列表（默认第一页）
+    loadCases(1, 10);
 }
 
 /**
@@ -93,23 +97,19 @@ function createCaseModalContainer() {
     }
 }
 
-let pageNum = 1;
-let pageSize = 10;
-
 /**
- * 加载案件列表
+ * 加载案件列表（支持分页）
  */
-async function loadCases() {
+async function loadCases(pageNum = 1, pageSize = 10) {
     try {
-        request('/case/page', 'POST', { pageNum, pageSize }).then(res => {
-            if (res.code === 200) {
-                renderCaseTable(res.data.records);
-                renderPagination(res.data.total, pageNum, pageSize);
-            }
-        });
+        // 发起分页查询请求
+        const response = await request(`/case/page?pageNum=${pageNum}&pageSize=${pageSize}`);
+        // 渲染表格和分页组件
+        renderCaseTable(response.records);
+        renderPagination(response.total, pageNum, pageSize, loadCases);
     } catch (error) {
         document.getElementById('caseTableBody').innerHTML = `
-            <tr><td colspan="8" class="text-center text-danger">加载案件失败</td></tr>
+            <tr><td colspan="9" class="text-center text-danger">加载案件失败</td></tr>
         `;
     }
 }
@@ -119,13 +119,44 @@ function gotoPage(num) {
     loadCases();
 }
 
-function renderPagination(total, current, size) {
-    const totalPages = Math.ceil(total / size);
-    let html = '';
-    for (let i = 1; i <= totalPages; i++) {
-        html += `<button onclick="gotoPage(${i})" ${i === current ? 'disabled' : ''}>${i}</button>`;
+/**
+ * 渲染分页组件
+ * @param {number} total 总条数
+ * @param {number} currentPage 当前页
+ * @param {number} pageSize 每页条数
+ * @param {Function} callback 分页回调函数
+ */
+function renderPagination(total, currentPage, pageSize, callback) {
+    const totalPages = Math.ceil(total / pageSize);
+    const paginationContainer = document.createElement('nav');
+    paginationContainer.innerHTML = `
+        <ul class="pagination justify-content-center">
+            <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage > 1 ? `callback(${currentPage - 1}, ${pageSize})` : ''}">上一页</a>
+            </li>
+            ${Array.from({ length: totalPages }, (_, i) => i + 1)
+        .map(page => `
+                <li class="page-item ${currentPage === page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); callback(${page}, ${pageSize})">${page}</a>
+                </li>
+            `).join('')}
+            <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage < totalPages ? `callback(${currentPage + 1}, ${pageSize})` : ''}">下一页</a>
+            </li>
+        </ul>
+        <div class="text-center mt-2 text-muted">
+            共 ${total} 条记录，当前第 ${currentPage}/${totalPages} 页
+        </div>
+    `;
+
+    // 添加或替换分页组件
+    const existingPagination = document.getElementById('paginationContainer');
+    if (existingPagination) {
+        existingPagination.replaceWith(paginationContainer);
+    } else {
+        paginationContainer.id = 'paginationContainer';
+        document.getElementById('mainContent').appendChild(paginationContainer);
     }
-    document.getElementById('pagination').innerHTML = html;
 }
 
 async function importCasesFromExcel(event) {
@@ -184,38 +215,39 @@ async function importCasesFromExcel(event) {
 }
 
 /**
- * 根据案由搜索案件
+ * 根据案由搜索案件（支持分页）
  */
-async function searchCases() {
+async function searchCases(pageNum = 1, pageSize = 10) {
     const caseName = document.getElementById('caseSearchInput').value.trim();
-    pageNum = 1; // 搜索时重置为第1页
     try {
-        const params = { pageNum, pageSize };
-        if (caseName) params.caseName = caseName;
-        const res = await request('/case/page', 'POST', params);
-        if (res.code === 200) {
-            renderCaseTable(res.data.records);
-            renderPagination(res.data.total, pageNum, pageSize);
+        let response;
+        if (caseName) {
+            response = await request(`/case/search/page?name=${encodeURIComponent(caseName)}&pageNum=${pageNum}&pageSize=${pageSize}`);
+        } else {
+            response = await request(`/case/page?pageNum=${pageNum}&pageSize=${pageSize}`);
         }
+        renderCaseTable(response.records);
+        renderPagination(response.total, pageNum, pageSize, searchCases);
     } catch (error) {
-        // 错误处理
+        console.error('搜索失败:', error);
     }
 }
 
 /**
- * 根据状态筛选案件
+ * 根据状态筛选案件（支持分页）
  */
-async function filterCases(status) {
+async function filterCases(status, pageNum = 1, pageSize = 10) {
     try {
-        let cases;
+        let response;
         if (status === 'all') {
-            cases = await request('/case');
+            response = await request(`/case/page?pageNum=${pageNum}&pageSize=${pageSize}`);
         } else {
-            cases = await request(`/case/status/${status}`);
+            response = await request(`/case/status/${status}/page?pageNum=${pageNum}&pageSize=${pageSize}`);
         }
-        renderCaseTable(cases);
-        
-        // 更新按钮样式
+        renderCaseTable(response.records);
+        renderPagination(response.total, pageNum, pageSize, (p, s) => filterCases(status, p, s));
+
+        // 更新按钮样式（保持不变）
         document.querySelectorAll('.btn-group .btn').forEach(btn => {
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-outline-primary');
@@ -223,7 +255,7 @@ async function filterCases(status) {
         event.currentTarget.classList.remove('btn-outline-primary');
         event.currentTarget.classList.add('btn-primary');
     } catch (error) {
-        // 错误处理已在request函数中完成
+        console.error('筛选失败:', error);
     }
 }
 

@@ -2,6 +2,19 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.managementsystem.mapper.CaseInfoMapper">
 
+
+    <!-- 查询所有案件总数 -->
+    <select id="countAllCases" resultType="int">
+        SELECT COUNT(*) FROM case_info
+    </select>
+
+    <!-- 分页查询案件 -->
+    <select id="selectCasePage" resultMap="CaseResultMap">
+        SELECT * FROM case_info
+        ORDER BY created_time DESC
+            LIMIT #{offset}, #{pageSize}
+    </select>
+
     <!-- 根据任务ID查询案件 -->
     <select id="selectByTaskId" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT * FROM case_info

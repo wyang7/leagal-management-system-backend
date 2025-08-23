@@ -75,15 +75,20 @@
         .logout-btn:hover {
             text-decoration: underline;
         }
-        #pagination {
-            position: fixed;
-            right: 40px;
-            bottom: 40px;
-            z-index: 2000;
-            background: #fff;
-            padding: 10px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        .pagination {
+            margin-top: 20px;
+        }
+        .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .page-link {
+            color: #0d6efd;
+        }
+
+        .page-link:hover {
+            color: #0a58ca;
         }
     </style>
 </head>

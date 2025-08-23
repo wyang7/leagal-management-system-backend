@@ -41,4 +41,18 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     List<CaseInfo> selectCasesByStatusWithUsername(String status);
 
     List<CaseInfo> selectMyCasesWithUsername(Long userId);
+
+
+    /**
+     * 查询所有案件总数
+     */
+    int countAllCases();
+
+    /**
+     * 分页查询案件
+     * @param offset 起始位置
+     * @param pageSize 每页条数
+     */
+    List<CaseInfo> selectCasePage(@Param("offset") int offset, @Param("pageSize") int pageSize);
+
 }
