@@ -93,18 +93,94 @@ function createCaseModalContainer() {
     }
 }
 
+let pageNum = 1;
+let pageSize = 10;
+
 /**
  * 加载案件列表
  */
 async function loadCases() {
     try {
-        const cases = await request('/case');
-        renderCaseTable(cases);
+        request('/case/page', 'POST', { pageNum, pageSize }).then(res => {
+            if (res.code === 200) {
+                renderCaseTable(res.data.records);
+                renderPagination(res.data.total, pageNum, pageSize);
+            }
+        });
     } catch (error) {
         document.getElementById('caseTableBody').innerHTML = `
             <tr><td colspan="8" class="text-center text-danger">加载案件失败</td></tr>
         `;
     }
+}
+
+function gotoPage(num) {
+    pageNum = num;
+    loadCases();
+}
+
+function renderPagination(total, current, size) {
+    const totalPages = Math.ceil(total / size);
+    let html = '';
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button onclick="gotoPage(${i})" ${i === current ? 'disabled' : ''}>${i}</button>`;
+    }
+    document.getElementById('pagination').innerHTML = html;
+}
+
+async function importCasesFromExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
+        // 校验数据量
+        if (rows.length - 1 > 5000) {
+            alert('单次导入数据不能超过5000条');
+            return;
+        }
+        const expected = ['案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额'];
+        if (rows[0].join() !== expected.join()) {
+            alert('Excel表头格式不正确');
+            return;
+        }
+        const caseList = [];
+        const dateRegFull = /^\d{4}\.\d{1,2}\.\d{1,2}$/; // 2025.8.15
+        const dateRegNoYear = /^\d{1,2}\.\d{1,2}$/;      // 8.15
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            // 校验字段缺失
+            if (!row || row.length < 6 || row.some(cell => cell === undefined || cell === null || cell === '')) {
+                alert(`第${i+1}行存在字段缺失`);
+                return;
+            }
+            // 校验日期格式
+            const dateStr = row[1] + '';
+            if (!dateRegFull.test(dateStr) && !dateRegNoYear.test(dateStr)) {
+                alert(`第${i+1}行法院收案时间格式错误，需为2025.8.15或8.15`);
+                return;
+            }
+            caseList.push({
+                caseLocation: row[0],
+                courtReceiveTime: row[1],
+                plaintiffName: row[2],
+                defendantName: row[3],
+                caseName: row[4],
+                amount: parseFloat(row[5]) || 0
+            });
+        }
+        try {
+            await request('/case/import-excel', 'POST', caseList);
+            alert('导入成功');
+            loadCases();
+        } catch (e) {
+            alert('导入失败');
+        }
+    };
+    reader.readAsArrayBuffer(file);
 }
 
 /**

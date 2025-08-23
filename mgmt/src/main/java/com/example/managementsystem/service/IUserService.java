@@ -64,5 +64,4 @@ public interface IUserService extends IService<User> {
 
     User getAssistantByCaseLocation(String caseLocation);
 
-    String genCaseNumber();
 }

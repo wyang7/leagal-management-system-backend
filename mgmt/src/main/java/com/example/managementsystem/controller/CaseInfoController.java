@@ -8,6 +8,11 @@ import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +51,13 @@ public class CaseInfoController {
         return caseInfo != null ? Result.success(caseInfo) : Result.fail("案件不存在");
     }
 
+    @PostMapping("/page")
+    public Result<Map<String, Object>> getCasePage(@RequestBody Map<String, Object> params) {
+        int pageNum = params.get("pageNum") != null ? (int) params.get("pageNum") : 1;
+        int pageSize = params.get("pageSize") != null ? (int) params.get("pageSize") : 10;
+        return Result.success(caseInfoService.getCasePage(pageNum, pageSize));
+    }
+
     /**
      * 根据状态查询案件
      */
@@ -59,6 +71,48 @@ public class CaseInfoController {
     public Result<List<CaseInfo>> searchCases(@RequestParam String name) {
         // 调用服务层方法，传入前端传递的name参数
         return Result.success(caseInfoService.searchCasesByCaseNamePrefix(name));
+    }
+
+    @PostMapping("/import-excel")
+    public Result<?> importCasesFromExcel(@RequestBody List<CaseInfo> caseList) {
+        DateTimeFormatter fullFormatter = DateTimeFormatter.ofPattern("yyyy.M.d");
+        DateTimeFormatter noYearFormatter = DateTimeFormatter.ofPattern("M.d");
+        DateTimeFormatter dbFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        for (CaseInfo caseInfo : caseList) {
+            // 案件号自动生成
+            caseInfo.setCaseNumber(caseInfoService.genCaseNumber());
+            // 校验案件助理角色
+            String caseLocation = caseInfo.getCaseLocation();
+            User assistantByCaseLocation = userService.getAssistantByCaseLocation(caseLocation);
+            if (assistantByCaseLocation != null) {
+                caseInfo.setAssistantId(assistantByCaseLocation.getUserId());
+            }
+            // 处理法院收案时间
+            String courtReceiveTime = caseInfo.getCourtReceiveTime();
+            LocalDate date;
+            if (courtReceiveTime != null) {
+                try {
+                    if (courtReceiveTime.matches("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}$")) {
+                        date = LocalDate.parse(courtReceiveTime, fullFormatter);
+                    } else if (courtReceiveTime.matches("^\\d{1,2}\\.\\d{1,2}$")) {
+                        int year = LocalDate.now().getYear();
+                        date = LocalDate.parse(year + "." + courtReceiveTime, fullFormatter);
+                    } else {
+                        return Result.fail("法院收案时间格式错误: " + courtReceiveTime);
+                    }
+                    caseInfo.setCourtReceiveTime(date.format(dbFormatter));
+                } catch (DateTimeParseException e) {
+                    return Result.fail("法院收案时间解析失败: " + courtReceiveTime);
+                }
+            }
+            // 状态默认“待发布”
+            caseInfo.setStatus("待发布");
+            // 创建时间
+            caseInfo.setCreatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            caseInfoService.save(caseInfo);
+        }
+        return Result.success();
     }
 
     /**
@@ -81,7 +135,7 @@ public class CaseInfoController {
             }
         }
         if (StringUtils.isEmpty(caseInfo.getCaseNumber())) {
-            caseInfo.setCaseNumber(userService.genCaseNumber());
+            caseInfo.setCaseNumber(caseInfoService.genCaseNumber());
         }
 
         // 新增案件默认状态为"待发布"

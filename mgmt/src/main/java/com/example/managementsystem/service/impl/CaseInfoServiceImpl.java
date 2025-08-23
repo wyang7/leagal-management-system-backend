@@ -1,11 +1,16 @@
 package com.example.managementsystem.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -80,5 +85,40 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public List<CaseInfo> getMyCases(Long userId) {
         return baseMapper.selectMyCasesWithUsername(userId);
+    }
+
+
+    @Override
+    public String genCaseNumber() {
+        // 生成规则：yyyy.MM.dd-序号（两位，不足补0）
+        java.time.LocalDate today = java.time.LocalDate.now();
+        String datePrefix = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        // 查询当天最大编号
+        QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.likeRight("case_number", datePrefix)
+                .orderByDesc("case_number")
+                .last("limit 1");
+        CaseInfo lastCase = baseMapper.selectOne(queryWrapper);
+        int sequenceNumber = 1;
+        if (lastCase != null && lastCase.getCaseNumber() != null) {
+            String[] parts = lastCase.getCaseNumber().split("-");
+            if (parts.length == 2) {
+                try {
+                    sequenceNumber = Integer.parseInt(parts[1]) + 1;
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        String sequenceStr = String.format("%02d", sequenceNumber);
+        return datePrefix + "-" + sequenceStr;
+    }
+
+    @Override
+    public Map<String, Object> getCasePage(int pageNum, int pageSize) {
+        Page<CaseInfo> page = new Page<>(pageNum, pageSize);
+        this.page(page);
+        Map<String, Object> result = new HashMap<>();
+        result.put("records", page.getRecords());
+        result.put("total", page.getTotal());
+        return result;
     }
 }

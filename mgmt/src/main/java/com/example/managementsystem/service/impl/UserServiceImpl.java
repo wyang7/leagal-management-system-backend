@@ -194,28 +194,5 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return matchAssistants.get(index);
     }
 
-    @Override
-    public String genCaseNumber() {
-        // 生成规则：yyyy.MM.dd-序号（两位，不足补0）
-        java.time.LocalDate today = java.time.LocalDate.now();
-        String datePrefix = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd"));
-        // 查询当天最大编号
-        QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.likeRight("case_number", datePrefix)
-                .orderByDesc("case_number")
-                .last("limit 1");
-        CaseInfo lastCase = caseInfoMapper.selectOne(queryWrapper);
-        int sequenceNumber = 1;
-        if (lastCase != null && lastCase.getCaseNumber() != null) {
-            String[] parts = lastCase.getCaseNumber().split("-");
-            if (parts.length == 2) {
-                try {
-                    sequenceNumber = Integer.parseInt(parts[1]) + 1;
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-        String sequenceStr = String.format("%02d", sequenceNumber);
-        return datePrefix + "-" + sequenceStr;
-    }
 
 }

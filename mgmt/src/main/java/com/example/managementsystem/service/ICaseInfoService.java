@@ -3,6 +3,7 @@ package com.example.managementsystem.service;
 import com.example.managementsystem.entity.CaseInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -43,4 +44,9 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     List<CaseInfo> searchCasesByCaseNamePrefix(String caseName);
 
     List<CaseInfo> getMyCases(Long userId);
+
+
+    String genCaseNumber();
+
+    Map<String, Object> getCasePage(int pageNum, int pageSize);
 }
