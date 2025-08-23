@@ -259,7 +259,7 @@ function createCaseModal(taskOptions, assistantOptions) {
                         <form id="caseForm">
                             <input type="hidden" id="caseId">
                             <div class="form-group">
-                                <label for="caseNumber">案件号</label>
+                                <label for="caseNumber">案件号（可选）</label>
                                 <input type="text" id="caseNumber" class="form-control" required>
                             </div>
                             <div class="form-group">
@@ -294,13 +294,13 @@ function createCaseModal(taskOptions, assistantOptions) {
                                 <input type="text" id="defendantName" class="form-control" required placeholder="请输入被告名称">
                             </div>
                             <div class="form-group">
-                                <label for="caseAssistantId">案件助理</label>
+                                <label for="caseAssistantId">案件助理（可选）</label>
                                 <select id="caseAssistantId" class="form-control">
                                     ${assistantOptions}
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="caseTaskId">关联案件包</label>
+                                <label for="caseTaskId">关联案件包（可选）</label>
                                 <select id="caseTaskId" class="form-control">
                                     ${taskOptions}
                                 </select>
@@ -329,6 +329,7 @@ function createCaseModal(taskOptions, assistantOptions) {
     } else {
         // 更新任务下拉框
         document.getElementById('caseTaskId').innerHTML = taskOptions;
+        document.getElementById('caseAssistantId').innerHTML = assistantOptions;
     }
 }
 
@@ -387,6 +388,7 @@ async function showEditCaseModal(caseId) {
         document.getElementById('caseName').value = caseInfo.caseName;
         document.getElementById('caseAmount').value = caseInfo.amount;
         document.getElementById('caseTaskId').value = caseInfo.taskId || '';
+        document.getElementById('caseAssistantId').value = caseInfo.assistantId || '';
         document.getElementById('caseStatus').value = caseInfo.status;
         document.getElementById('caseUserId').value = caseInfo.userId || '';
         document.getElementById('caseModalTitle').textContent = '编辑案件';
@@ -409,6 +411,7 @@ async function saveCase() {
     const caseName = document.getElementById('caseName').value.trim();
     const amount = parseFloat(document.getElementById('caseAmount').value) || 0;
     const taskId = document.getElementById('caseTaskId').value;
+    const caseAssistantId = document.getElementById('caseAssistantId').value;
     const status = document.getElementById('caseStatus').value;
     
     // 简单验证
@@ -436,7 +439,7 @@ async function saveCase() {
         courtReceiveTime: document.getElementById('courtReceiveTime').value,
         plaintiffName: document.getElementById('plaintiffName').value.trim(),
         defendantName: document.getElementById('defendantName').value.trim(),
-        assistantId: document.getElementById('userId').value
+        assistantId: caseAssistantId
     };
     console.log("案件新增2"+caseData);
     // 可选字段

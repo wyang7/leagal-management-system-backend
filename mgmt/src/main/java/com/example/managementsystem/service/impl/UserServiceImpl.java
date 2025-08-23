@@ -115,14 +115,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         // 2. 查询指定角色名称对应的角色ID
         QueryWrapper<Role> roleQuery = new QueryWrapper<>();
-        roleQuery.eq("role_name", roleName);
-        Role role = roleMapper.selectOne(roleQuery);
-        if (role == null) {
-            return false; // 角色不存在
-        }
-
-        // 3. 校验用户的角色ID是否与目标角色ID一致
-        return user.getRoleId().equals(role.getRoleId());
+        roleQuery.eq("role_type", roleName);
+        List<Role> role = roleMapper.selectList(roleQuery);
+        return CollectionUtils.isNotEmpty(role) ;
     }
 
 
