@@ -597,7 +597,6 @@ async function saveCase() {
         alert('请选择案件状态');
         return;
     }
-    console.log("案件新增1");
     const caseData = {
         caseNumber: caseNumber,
         caseName: caseName,
@@ -609,19 +608,16 @@ async function saveCase() {
         defendantName: defendantName,
         assistantId: caseAssistantId
     };
-    console.log("案件新增2"+caseData);
     // 可选字段
     if (taskId) {
         caseData.taskId = parseInt(taskId);
     }
-    console.log("案件新增3"+caseData);
     try {
         if (caseId) {
             // 编辑案件
             caseData.caseId = parseInt(caseId);
             await request('/case', 'PUT', caseData);
         } else {
-            console.log("案件新增4"+caseData);
             // 新增案件
             await request('/case', 'POST', caseData);
         }
