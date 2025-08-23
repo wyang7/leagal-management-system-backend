@@ -51,7 +51,6 @@ function loadMyCasesPage() {
                         <th>案件助理</th>
                         <th>关联案件包</th>
                         <th>状态</th>
-                        <th>创建时间</th>
                         <th>操作</th>
                     </tr>
                 </thead>

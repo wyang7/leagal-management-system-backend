@@ -62,7 +62,6 @@ function loadCaseManagementPage() {
                         <th>关联案件包</th>
                         <th>状态</th>
                         <th>处理人</th>
-                        <th>创建时间</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -344,7 +343,6 @@ function renderCaseTable(cases) {
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
-            <td>${caseInfo.createdTime ? new Date(caseInfo.createdTime).toLocaleString() : ''}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="showEditCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-edit"></i> 编辑

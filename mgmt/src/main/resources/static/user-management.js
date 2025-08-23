@@ -34,7 +34,6 @@ function loadUserManagementPage() {
                         <th>用户ID</th>
                         <th>用户名</th>
                         <th>角色名</th>
-                        <th>创建时间</th>
                         <th>操作</th>
                     </tr>
                 </thead>
