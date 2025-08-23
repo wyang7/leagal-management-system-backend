@@ -60,8 +60,8 @@ public class CaseInfoController {
     public Result<Map<String, Object>> getCasePage(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            // 忽略时间戳参数t，不做处理
-            @RequestParam(required = false) Long t) {
+            @RequestParam(required = false) String caseName,
+            @RequestParam(required = false) String status) {
 
         // 校验分页参数合法性
         if (pageNum < 1) {
@@ -72,19 +72,12 @@ public class CaseInfoController {
         }
 
         // 调用服务层获取分页数据
-        Map<String, Object> pageResult = caseInfoService.getCasePage(pageNum, pageSize);
+        Map<String, Object> pageResult = caseInfoService.getCasePage(caseName,status,pageNum, pageSize);
 
         // 返回统一格式的响应
         return Result.success(pageResult);
     }
 
-    /**
-     * 根据状态查询案件
-     */
-    @GetMapping("/status/{status}")
-    public Result<List<CaseInfo>> getCasesByStatus(@PathVariable String status) {
-        return Result.success(caseInfoService.getCasesByStatus(status));
-    }
 
 
     // 添加：案由前缀搜索接口

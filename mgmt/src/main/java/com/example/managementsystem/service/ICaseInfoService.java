@@ -55,6 +55,6 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * @param pageSize 每页条数
      * @return 包含总条数和当前页数据的Map
      */
-    Map<String, Object> getCasePage(Integer pageNum, Integer pageSize);
+    Map<String, Object> getCasePage(String caseName,String status,Integer pageNum, Integer pageSize);
 
 }

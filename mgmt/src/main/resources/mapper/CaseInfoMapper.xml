@@ -27,6 +27,13 @@
     <!-- 查询所有案件总数 -->
     <select id="countAllCases" resultType="int">
         SELECT COUNT(*) FROM case_info
+        WHERE 1=1
+        <if test="caseName != null and caseName != ''">
+            AND case_name LIKE CONCAT(#{caseName}, '%')
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
     </select>
 
     <!-- 分页查询案件 -->
@@ -34,6 +41,13 @@
         SELECT *,a.username as assistantName FROM case_info c
                           LEFT JOIN user u ON c.user_id = u.user_id
                           LEFT JOIN user a ON c.assistant_id = a.user_id
+        WHERE 1=1
+        <if test="caseName != null and caseName != ''">
+            AND case_name LIKE CONCAT(#{caseName}, '%')
+        </if>
+        <if test="status != null and status != ''">
+            AND c.status = #{status}
+        </if>
         ORDER BY c.created_time DESC
             LIMIT #{offset}, #{pageSize}
     </select>

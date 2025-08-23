@@ -182,7 +182,14 @@ function renderPagination(pageInfo) {
     const pages= Math.ceil(total / pageSize);
     if (pages <= 1) {
         // 只有一页时不显示分页
-        document.getElementById('paginationContainer')?.remove();
+        const paginationContainer = document.getElementById('paginationContainer');
+        if (paginationContainer) {
+            paginationContainer.innerHTML = `
+                <div class="d-flex justify-content-center mt-2 text-secondary">
+                    共 ${total} 条记录
+                </div>
+            `;
+        }
         return;
     }
 
@@ -206,6 +213,9 @@ function renderPagination(pageInfo) {
     }
 
     let paginationHtml = `
+    <div class="d-flex justify-content-center mb-2 text-secondary">
+        共 ${total} 条记录，当前第 ${pageNum}/${pages} 页
+    </div>
     <nav aria-label="案件列表分页">
         <ul class="pagination">
             <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
@@ -214,6 +224,8 @@ function renderPagination(pageInfo) {
                 </a>
             </li>
     `;
+
+
 
     // 添加第一页按钮（当当前页不在前5页时）
     if (startPage > 1) {
@@ -263,7 +275,7 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
         if (status === 'all') {
             response = await request(`/case/page?pageNum=${pageNum}&pageSize=${pageSize}`);
         } else {
-            response = await request(`/case/status/${status}/page?pageNum=${pageNum}&pageSize=${pageSize}`);
+            response = await request(`/case/page?status=${status}&pageNum=${pageNum}&pageSize=${pageSize}`);
         }
         renderCaseTable(response.records);
 
