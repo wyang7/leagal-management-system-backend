@@ -19,6 +19,12 @@ function loadCaseManagementPage() {
                     </button>
                 </div>
             </div>
+            <div class="col-md-6">
+                <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="importCasesFromExcel(event)">
+                <button class="btn btn-secondary" onclick="document.getElementById('excelFileInput').click()">
+                    <i class="fa fa-upload"></i> 导入Excel
+                </button>
+            </div>
             <div class="col-md-6 text-end">
                 <button class="btn btn-success" onclick="showAddCaseModal()">
                     <i class="fa fa-plus"></i> 新增案件
@@ -408,6 +414,10 @@ async function saveCase() {
     // 获取表单数据
     const caseId = document.getElementById('caseId').value;
     const caseNumber = document.getElementById('caseNumber').value.trim();
+    const plaintiffName = document.getElementById('plaintiffName').value.trim();
+    const caseLocation = document.getElementById('caseLocation').value.trim();
+    const courtReceiveTime = document.getElementById('courtReceiveTime').value.trim();
+    const defendantName = document.getElementById('defendantName').value.trim();
     const caseName = document.getElementById('caseName').value.trim();
     const amount = parseFloat(document.getElementById('caseAmount').value) || 0;
     const taskId = document.getElementById('caseTaskId').value;
@@ -415,8 +425,20 @@ async function saveCase() {
     const status = document.getElementById('caseStatus').value;
     
     // 简单验证
-    if (!caseNumber) {
-        alert('请输入案件号');
+    if (!plaintiffName) {
+        alert('请输入原告');
+        return;
+    }
+    if (!defendantName) {
+        alert('请输入被告');
+        return;
+    }
+    if (!courtReceiveTime) {
+        alert('请输入收案时间');
+        return;
+    }
+    if (!caseLocation) {
+        alert('请输入归属地');
         return;
     }
     
@@ -435,10 +457,10 @@ async function saveCase() {
         caseName: caseName,
         amount: amount,
         status: status,
-        caseLocation: document.getElementById('caseLocation').value,
-        courtReceiveTime: document.getElementById('courtReceiveTime').value,
-        plaintiffName: document.getElementById('plaintiffName').value.trim(),
-        defendantName: document.getElementById('defendantName').value.trim(),
+        caseLocation: caseLocation,
+        courtReceiveTime: courtReceiveTime,
+        plaintiffName: plaintiffName,
+        defendantName: defendantName,
         assistantId: caseAssistantId
     };
     console.log("案件新增2"+caseData);

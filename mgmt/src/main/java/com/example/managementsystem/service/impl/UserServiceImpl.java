@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.Role;
 import com.example.managementsystem.entity.User;
+import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.mapper.RoleMapper;
 import com.example.managementsystem.mapper.UserMapper;
 import com.example.managementsystem.service.IUserService;
@@ -29,6 +31,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Resource
     private RoleMapper roleMapper;
+
+    @Resource
+    private CaseInfoMapper caseInfoMapper;
 
     @Override
     public List<User> getUsersByRoleId(Long roleId) {
@@ -141,6 +146,76 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             userList.addAll(getUsersByRoleId(role.getRoleId()));
         });
         return userList;
+    }
+
+    @Override
+    public User getAssistantByCaseLocation(String caseLocation) {
+
+        //根据caseLocation查询角色
+        // 1. 根据角色类型查询角色ID
+        QueryWrapper<Role> roleQuery = new QueryWrapper<>();
+        roleQuery.eq("role_type", "案件助理"); // 假设角色表中角色类型字段为 role_type
+        List<Role> roleList = roleMapper.selectList(roleQuery);
+        if (CollectionUtils.isEmpty(roleList)) {
+            return null; // 角色不存在，返回空列表
+        }
+        List<User> matchAssistants = new ArrayList<>();
+        for (Role role : roleList) {
+            if (role.getRoleName().contains(caseLocation)) {
+                List<User> assistants = getUsersByRoleId(role.getRoleId());
+                if (!assistants.isEmpty()) {
+                    matchAssistants.addAll(assistants);
+                }
+            }
+        }
+        if (CollectionUtils.isEmpty(matchAssistants)) {
+            return null;
+        }
+
+        // 3. 按数据库编号升序排序
+        matchAssistants.sort((a, b) -> a.getUserId().compareTo(b.getUserId()));
+
+        // 4. 查询上一个案件分配的助理ID
+        QueryWrapper<CaseInfo> caseQuery = new QueryWrapper<>();
+        caseQuery.orderByDesc("case_id").last("limit 1");
+        CaseInfo lastCase = caseInfoMapper.selectOne(caseQuery);
+        Long lastAssistantId = lastCase != null ? lastCase.getAssistantId() : null;
+
+        // 5. 轮询分配
+        int index = 0;
+        if (lastAssistantId != null) {
+            for (int i = 0; i < matchAssistants.size(); i++) {
+                if (matchAssistants.get(i).getUserId().equals(lastAssistantId)) {
+                    index = (i + 1) % matchAssistants.size();
+                    break;
+                }
+            }
+        }
+        return matchAssistants.get(index);
+    }
+
+    @Override
+    public String genCaseNumber() {
+        // 生成规则：yyyy.MM.dd-序号（两位，不足补0）
+        java.time.LocalDate today = java.time.LocalDate.now();
+        String datePrefix = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        // 查询当天最大编号
+        QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.likeRight("case_number", datePrefix)
+                .orderByDesc("case_number")
+                .last("limit 1");
+        CaseInfo lastCase = caseInfoMapper.selectOne(queryWrapper);
+        int sequenceNumber = 1;
+        if (lastCase != null && lastCase.getCaseNumber() != null) {
+            String[] parts = lastCase.getCaseNumber().split("-");
+            if (parts.length == 2) {
+                try {
+                    sequenceNumber = Integer.parseInt(parts[1]) + 1;
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        String sequenceStr = String.format("%02d", sequenceNumber);
+        return datePrefix + "-" + sequenceStr;
     }
 
 }

@@ -2,9 +2,11 @@ package com.example.managementsystem.controller;
 
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.entity.CaseInfo;
+import com.example.managementsystem.entity.User;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +73,17 @@ public class CaseInfoController {
             if (!isAssistant) {
                 return Result.fail("所选用户不是案件助理角色");
             }
+        }else {
+            String caseLocation = caseInfo.getCaseLocation();
+            User assistantByCaseLocation = userService.getAssistantByCaseLocation(caseLocation);
+            if (assistantByCaseLocation != null) {
+                caseInfo.setAssistantId(assistantByCaseLocation.getUserId());
+            }
         }
+        if (StringUtils.isEmpty(caseInfo.getCaseNumber())) {
+            caseInfo.setCaseNumber(userService.genCaseNumber());
+        }
+
         // 新增案件默认状态为"待发布"
         if (caseInfo.getStatus() == null || caseInfo.getStatus().isEmpty()) {
             caseInfo.setStatus("待发布");

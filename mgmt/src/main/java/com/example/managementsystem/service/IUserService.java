@@ -61,4 +61,8 @@ public interface IUserService extends IService<User> {
     List<User> getUsersByRoleName(String roleName);
 
     List<User> getAssistants(String roleType);
+
+    User getAssistantByCaseLocation(String caseLocation);
+
+    String genCaseNumber();
 }
