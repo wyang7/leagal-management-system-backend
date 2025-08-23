@@ -78,10 +78,6 @@ function loadCaseManagementPage() {
     
     // 创建案件模态框容器
     createCaseModalContainer();
-    mainContent.innerHTML += `
-        <!-- 分页容器 -->
-        <div id="paginationContainer" class="mt-3"></div>
-    `;
     // 加载案件列表（默认第一页）
     loadCases(1, 10);
 }
