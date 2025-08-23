@@ -188,16 +188,17 @@ async function importCasesFromExcel(event) {
  */
 async function searchCases() {
     const caseName = document.getElementById('caseSearchInput').value.trim();
+    pageNum = 1; // 搜索时重置为第1页
     try {
-        let cases;
-        if (caseName) {
-            cases = await request(`/case/search?name=${encodeURIComponent(caseName)}`);
-        } else {
-            cases = await request('/case');
+        const params = { pageNum, pageSize };
+        if (caseName) params.caseName = caseName;
+        const res = await request('/case/page', 'POST', params);
+        if (res.code === 200) {
+            renderCaseTable(res.data.records);
+            renderPagination(res.data.total, pageNum, pageSize);
         }
-        renderCaseTable(cases);
     } catch (error) {
-        // 错误处理已在request函数中完成
+        // 错误处理
     }
 }
 

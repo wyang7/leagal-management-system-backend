@@ -115,7 +115,10 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public Map<String, Object> getCasePage(int pageNum, int pageSize) {
         Page<CaseInfo> page = new Page<>(pageNum, pageSize);
-        this.page(page);
+        // 推荐用 QueryWrapper 支持条件查询
+        QueryWrapper<CaseInfo> wrapper = new QueryWrapper<>();
+        // 可加条件 wrapper.like("case_name", ...);
+        this.page(page, wrapper);
         Map<String, Object> result = new HashMap<>();
         result.put("records", page.getRecords());
         result.put("total", page.getTotal());
