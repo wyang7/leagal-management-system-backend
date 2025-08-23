@@ -177,7 +177,6 @@ async function importCasesFromExcel(event) {
  */
 function renderPagination(pageInfo) {
     const { total, pageNum, pageSize } = pageInfo;
-    console.log(pageInfo);
     const pages= Math.ceil(total / pageSize);
     if (pages <= 1) {
         // 只有一页时不显示分页
