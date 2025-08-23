@@ -33,7 +33,7 @@ public class Role implements Serializable {
     private String roleName;
 
     /**
-     * 角色类型（管理员、调解员）
+     * 角色类型（管理员、调解员、案件助理、财务专员）
      */
     @TableField("role_type")
     private String roleType;

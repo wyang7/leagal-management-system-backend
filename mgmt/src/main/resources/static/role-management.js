@@ -140,6 +140,8 @@ function createRoleModal() {
                                 <select id="roleType" class="form-control" required>
                                     <option value="">请选择角色类型</option>
                                     <option value="管理员">管理员</option>
+                                    <option value="案件助理">案件助理</option>
+                                    <option value="财务专员">财务专员</option>
                                     <option value="调解员">调解员</option>
                                 </select>
                             </div>

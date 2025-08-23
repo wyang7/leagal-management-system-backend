@@ -7,7 +7,7 @@ USE management_system;
 CREATE TABLE IF NOT EXISTS role (
     role_id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '角色ID',
     role_name VARCHAR(50) NOT NULL COMMENT '角色名',
-    role_type VARCHAR(20) NOT NULL COMMENT '角色类型（管理员、调解员）',
+    role_type VARCHAR(20) NOT NULL COMMENT '角色类型',
     created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_role_name (role_name)
