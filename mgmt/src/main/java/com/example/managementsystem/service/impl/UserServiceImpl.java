@@ -2,6 +2,7 @@ package com.example.managementsystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.example.managementsystem.entity.Role;
 import com.example.managementsystem.entity.User;
@@ -123,4 +124,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         // 3. 校验用户的角色ID是否与目标角色ID一致
         return user.getRoleId().equals(role.getRoleId());
     }
+
+
+    /**
+     * 获取所有案件助理角色的用户
+     * @return 案件助理用户列表
+     */
+    public List<User> getAssistants(String roleType){
+        // 1. 根据角色类型查询角色ID
+        QueryWrapper<Role> roleQuery = new QueryWrapper<>();
+        roleQuery.eq("role_type", roleType); // 假设角色表中角色类型字段为 role_type
+
+        List<Role> roleList = roleMapper.selectList(roleQuery);
+        if (CollectionUtils.isEmpty(roleList)) {
+            return new ArrayList<>(); // 角色不存在，返回空列表
+        }
+
+        // 2. 根据角色ID查询用户（复用已有的 getUsersByRoleId 方法）
+        List<User> userList = new ArrayList<>();
+        roleList.forEach(role -> {
+            userList.addAll(getUsersByRoleId(role.getRoleId()));
+        });
+        return userList;
+    }
+
 }

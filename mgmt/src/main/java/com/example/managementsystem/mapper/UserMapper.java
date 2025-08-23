@@ -3,6 +3,7 @@ package com.example.managementsystem.mapper;
 import com.example.managementsystem.entity.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -25,4 +26,5 @@ public interface UserMapper extends BaseMapper<User> {
      * 根据用户名模糊查询
      */
     List<User> selectByUsernameLike(@Param("username") String username);
+
 }

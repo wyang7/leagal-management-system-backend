@@ -59,4 +59,6 @@ public interface IUserService extends IService<User> {
      * 根据角色名称查询用户
      */
     List<User> getUsersByRoleName(String roleName);
+
+    List<User> getAssistants(String roleType);
 }

@@ -240,8 +240,9 @@ async function loadTasksForCaseForm() {
 /**
  * 创建案件表单模态框
  * @param {string} taskOptions 任务下拉框选项HTML
+ * @param {string} assistantOptions 任务下拉框选项HTML
  */
-function createCaseModal(taskOptions) {
+function createCaseModal(taskOptions, assistantOptions) {
     const modalContainer = document.getElementById('caseModalContainer');
     
     if (!document.getElementById('caseModal')) {
@@ -293,10 +294,9 @@ function createCaseModal(taskOptions) {
                                 <input type="text" id="defendantName" class="form-control" required placeholder="请输入被告名称">
                             </div>
                             <div class="form-group">
-                                <label for="assistantId">案件助理</label>
-                                <select id="assistantId" class="form-control" required>
-                                    <option value="">请选择案件助理</option>
-                                    <!-- 会通过JS动态加载符合条件的用户 -->
+                                <label for="caseAssistantId">案件助理</label>
+                                <select id="caseAssistantId" class="form-control">
+                                    ${assistantOptions}
                                 </select>
                             </div>
                             <div class="form-group">
@@ -312,13 +312,6 @@ function createCaseModal(taskOptions) {
                                     <option value="待领取">待领取</option>
                                     <option value="已领取">已领取</option>
                                     <option value="已完成">已完成</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="handlerId">调解员（可选）</label>
-                                <select id="handlerId" class="form-control" required>
-                                    <option value="">请选择处理人（调解员）</option>
-                                    <!-- 会通过JS动态加载符合条件的用户 -->
                                 </select>
                             </div>
                         </form>
@@ -339,31 +332,19 @@ function createCaseModal(taskOptions) {
     }
 }
 
-// 修改案件管理页面的JS逻辑，添加加载调解员的函数
-async function loadMediators() {
-    try {
-        const mediators = await request('/user/role/调解员');
-        let options = '<option value="">请选择处理人（调解员）</option>';
-        mediators.forEach(mediator => {
-            options += `<option value="${mediator.userId}">${mediator.username}</option>`;
-        });
-        document.getElementById('handlerId').innerHTML = options;
-    } catch (error) {
-        console.error('加载调解员失败:', error);
-    }
-}
 
 // 加载案件助理（角色为案件助理的用户）
 async function loadCaseAssistants() {
     try {
-        const assistants = await request('/user/role/案件助理');
-        let options = '<option value="">请选择案件助理</option>';
+        const assistants = await request('/user/assistants');
+        let assistantOptions = '<option value="">请选择案件助理</option>';
         assistants.forEach(assistant => {
-            options += `<option value="${assistant.userId}">${assistant.username}</option>`;
+            assistantOptions += `<option value="${assistant.userId}">${assistant.username}</option>`;
         });
-        document.getElementById('assistantId').innerHTML = options;
+        return assistantOptions;
     } catch (error) {
         console.error('加载案件助理失败:', error);
+        return '<option value="">加载失败</option>';
     }
 }
 
@@ -372,8 +353,8 @@ async function loadCaseAssistants() {
  */
 async function showAddCaseModal() {
     const taskOptions = await loadTasksForCaseForm();
-    createCaseModal(taskOptions);
-    await loadMediators();
+    const assistantOptions = await loadCaseAssistants();
+    createCaseModal(taskOptions, assistantOptions);
     await loadCaseAssistants();
     
     // 重置表单
@@ -394,9 +375,8 @@ async function showEditCaseModal(caseId) {
     try {
         const caseInfo = await request(`/case/${caseId}`);
         const taskOptions = await loadTasksForCaseForm();
-        createCaseModal(taskOptions);
-        // 显示模态框后加载案件助理
-        await loadMediators();
+        const assistantOptions = await loadCaseAssistants();
+        createCaseModal(taskOptions,assistantOptions);
         await loadCaseAssistants();
         
         // 填充表单数据
@@ -430,7 +410,6 @@ async function saveCase() {
     const amount = parseFloat(document.getElementById('caseAmount').value) || 0;
     const taskId = document.getElementById('caseTaskId').value;
     const status = document.getElementById('caseStatus').value;
-    const userId = document.getElementById('caseUserId').value.trim();
     
     // 简单验证
     if (!caseNumber) {
@@ -453,20 +432,16 @@ async function saveCase() {
         caseName: caseName,
         amount: amount,
         status: status,
-        userId: document.getElementById('handlerId').value,  // 从下拉选择获取处理人ID
         caseLocation: document.getElementById('caseLocation').value,
         courtReceiveTime: document.getElementById('courtReceiveTime').value,
         plaintiffName: document.getElementById('plaintiffName').value.trim(),
         defendantName: document.getElementById('defendantName').value.trim(),
-        assistantId: document.getElementById('assistantId').value
+        assistantId: document.getElementById('userId').value
     };
     console.log("案件新增2"+caseData);
     // 可选字段
     if (taskId) {
         caseData.taskId = parseInt(taskId);
-    }
-    if (userId) {
-        caseData.userId = parseInt(userId);
     }
     console.log("案件新增3"+caseData);
     try {

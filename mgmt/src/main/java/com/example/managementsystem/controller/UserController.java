@@ -28,6 +28,13 @@ public class UserController {
         return Result.success(userService.getUsersByRoleName(roleName));
     }
 
+    @GetMapping("/assistants")
+    public Result<List<User>> getCaseAssistants() {
+        // 查询所有案件助理角色的用户
+        List<User> assistants = userService.getAssistants("案件助理");
+        return Result.success(assistants);
+    }
+
     /**
      * 查询所有用户
      */
