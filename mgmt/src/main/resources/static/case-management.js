@@ -14,7 +14,7 @@ function loadCaseManagementPage() {
             <div class="col-md-6">
                 <div class="input-group">
                     <input type="text" id="caseSearchInput" class="form-control" placeholder="输入案由搜索">
-                    <button class="btn btn-primary" onclick="searchCases()">
+                    <button class="btn btn-primary" onclick="loadCases()">
                         <i class="fa fa-search"></i> 搜索
                     </button>
                 </div>
@@ -99,59 +99,22 @@ function createCaseModalContainer() {
 async function loadCases(pageNum = 1, pageSize = 10) {
     try {
         // 发起分页查询请求
-        const response = await request(`/case/page?pageNum=${pageNum}&pageSize=${pageSize}`);
+        const caseName = document.getElementById('caseSearchInput').value.trim();
+        const response = await request(`/case/page?caseName=${encodeURIComponent(caseName)}&pageNum=${pageNum}&pageSize=${pageSize}`);
         // 渲染表格和分页组件
         renderCaseTable(response.records);
-        renderPagination(response.total, pageNum, pageSize, loadCases);
+        // 渲染分页组件（假设后端返回的分页信息包含total、pageNum、pageSize、pages等字段）
+        renderPagination({
+            total: response.total,      // 总记录数
+            pageNum: response.pageNum,  // 当前页码
+            pageSize: response.pageSize// 每页条数
+        });
     } catch (error) {
         document.getElementById('caseTableBody').innerHTML = `
-            <tr><td colspan="9" class="text-center text-danger">加载案件失败</td></tr>
+            <tr><td colspan="14" class="text-center text-danger">加载案件失败</td></tr>
         `;
-    }
-}
-
-function gotoPage(num) {
-    pageNum = num;
-    loadCases();
-}
-
-/**
- * 渲染分页组件
- * @param {number} total 总条数
- * @param {number} currentPage 当前页
- * @param {number} pageSize 每页条数
- * @param {Function} callback 分页回调函数
- */
-function renderPagination(total, currentPage, pageSize, callback) {
-    const totalPages = Math.ceil(total / pageSize);
-    const paginationContainer = document.createElement('nav');
-    paginationContainer.innerHTML = `
-        <ul class="pagination justify-content-center">
-            <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage > 1 ? `callback(${currentPage - 1}, ${pageSize})` : ''}">上一页</a>
-            </li>
-            ${Array.from({ length: totalPages }, (_, i) => i + 1)
-        .map(page => `
-                <li class="page-item ${currentPage === page ? 'active' : ''}">
-                    <a class="page-link" href="#" onclick="event.preventDefault(); callback(${page}, ${pageSize})">${page}</a>
-                </li>
-            `).join('')}
-            <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage < totalPages ? `callback(${currentPage + 1}, ${pageSize})` : ''}">下一页</a>
-            </li>
-        </ul>
-        <div class="text-center mt-2 text-muted">
-            共 ${total} 条记录，当前第 ${currentPage}/${totalPages} 页
-        </div>
-    `;
-
-    // 添加或替换分页组件
-    const existingPagination = document.getElementById('paginationContainer');
-    if (existingPagination) {
-        existingPagination.replaceWith(paginationContainer);
-    } else {
-        paginationContainer.id = 'paginationContainer';
-        document.getElementById('mainContent').appendChild(paginationContainer);
+        // 清除分页组件
+        document.getElementById('paginationContainer')?.remove();
     }
 }
 
@@ -209,24 +172,86 @@ async function importCasesFromExcel(event) {
     };
     reader.readAsArrayBuffer(file);
 }
-
 /**
- * 根据案由搜索案件（支持分页）
+ * 渲染分页组件
+ * @param {Object} pageInfo 分页信息对象，包含total、pageNum、pageSize、pages等
  */
-async function searchCases(pageNum = 1, pageSize = 10) {
-    const caseName = document.getElementById('caseSearchInput').value.trim();
-    try {
-        let response;
-        if (caseName) {
-            response = await request(`/case/search/page?name=${encodeURIComponent(caseName)}&pageNum=${pageNum}&pageSize=${pageSize}`);
-        } else {
-            response = await request(`/case/page?pageNum=${pageNum}&pageSize=${pageSize}`);
-        }
-        renderCaseTable(response.records);
-        renderPagination(response.total, pageNum, pageSize, searchCases);
-    } catch (error) {
-        console.error('搜索失败:', error);
+function renderPagination(pageInfo) {
+    const { total, pageNum, pageSize } = pageInfo;
+    console.log(pageInfo);
+    const pages= Math.ceil(total / pageSize);
+    if (pages <= 1) {
+        // 只有一页时不显示分页
+        document.getElementById('paginationContainer')?.remove();
+        return;
     }
+
+    // 创建分页容器（如果不存在）
+    let paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) {
+        paginationContainer = document.createElement('div');
+        paginationContainer.id = 'paginationContainer';
+        paginationContainer.className = 'd-flex justify-content-center mt-4';
+        // 插入到表格下方
+        document.querySelector('.table-responsive').after(paginationContainer);
+    }
+
+    // 计算显示的页码范围
+    let startPage = Math.max(1, pageNum - 2);
+    let endPage = Math.min(pages, startPage + 4);
+
+    // 调整页码范围，确保显示5个页码
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    let paginationHtml = `
+    <nav aria-label="案件列表分页">
+        <ul class="pagination">
+            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+    `;
+
+    // 添加第一页按钮（当当前页不在前5页时）
+    if (startPage > 1) {
+        paginationHtml += `
+            <li class="page-item"><a class="page-link" href="#" onclick="loadCases(1, ${pageSize})">1</a></li>
+            ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+        `;
+    }
+
+    // 添加中间页码
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `
+            <li class="page-item ${i === pageNum ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadCases(${i}, ${pageSize})">${i}</a>
+            </li>
+        `;
+    }
+
+    // 添加最后一页按钮（当当前页不在后5页时）
+    if (endPage < pages) {
+        paginationHtml += `
+            ${endPage < pages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+            <li class="page-item"><a class="page-link" href="#" onclick="loadCases(${pages}, ${pageSize})">${pages}</a></li>
+        `;
+    }
+
+    // 下一页按钮
+    paginationHtml += `
+            <li class="page-item ${pageNum === pages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadCases(${pageNum + 1}, ${pageSize})" aria-label="下一页">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    `;
+
+    paginationContainer.innerHTML = paginationHtml;
 }
 
 /**
@@ -241,7 +266,13 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
             response = await request(`/case/status/${status}/page?pageNum=${pageNum}&pageSize=${pageSize}`);
         }
         renderCaseTable(response.records);
-        renderPagination(response.total, pageNum, pageSize, (p, s) => filterCases(status, p, s));
+
+        // 渲染分页组件
+        renderPagination({
+            total: response.total,
+            pageNum: response.pageNum,
+            pageSize: response.pageSize
+        });
 
         // 更新按钮样式（保持不变）
         document.querySelectorAll('.btn-group .btn').forEach(btn => {
@@ -252,6 +283,7 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
         event.currentTarget.classList.add('btn-primary');
     } catch (error) {
         console.error('筛选失败:', error);
+        document.getElementById('paginationContainer')?.remove();
     }
 }
 

@@ -127,6 +127,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);
         result.put("records", records);
+        result.put("pageNum", pageNum);
+        result.put("pageSize", pageSize);
 
         return result;
     }
