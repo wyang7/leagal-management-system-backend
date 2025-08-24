@@ -30,6 +30,11 @@ function loadCaseManagementPage() {
                     <i class="fa fa-plus"></i> 新增案件
                 </button>
             </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-success" onclick="showBatchAssignTaskModal()">
+                    <i class="fa fa-plus"></i> 批量关联案件包
+                </button>
+            </div>
         </div>
         
         <!-- 案件状态筛选 -->
@@ -50,6 +55,7 @@ function loadCaseManagementPage() {
             <table class="table table-striped table-hover">
                 <thead class="table-dark">
                     <tr>
+                        <th><input type="checkbox" id="selectAllCases"></th>
                         <th>案件ID</th>
                         <th>案件号</th>
                         <th>案由</th>
@@ -297,6 +303,46 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
     }
 }
 
+// 全选/取消全选功能实现
+function initCheckboxListener() {
+    // 获取表头全选复选框
+    const selectAllCheckbox = document.getElementById('selectAllCases');
+
+    // 为全选复选框添加点击事件监听
+    selectAllCheckbox.addEventListener('change', function(e) {
+        // 获取所有案件行的复选框
+        const caseCheckboxes = document.querySelectorAll('.case-checkbox');
+
+        // 遍历所有复选框，设置与全选框相同的选中状态
+        caseCheckboxes.forEach(checkbox => {
+            // 设置复选框状态
+            checkbox.checked = e.target.checked;
+
+            // 触发change事件以更新UI（某些情况下可能需要）
+            const event = new Event('change', { bubbles: true });
+            checkbox.dispatchEvent(event);
+        });
+    });
+
+    // 为每个案件复选框添加事件，实现反选逻辑
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('case-checkbox')) {
+            updateSelectAllStatus();
+        }
+    });
+}
+
+// 更新全选框状态（当所有子项都选中时全选框也选中，否则不选中）
+function updateSelectAllStatus() {
+    const selectAllCheckbox = document.getElementById('selectAllCases');
+    const caseCheckboxes = document.querySelectorAll('.case-checkbox');
+    const checkedBoxes = document.querySelectorAll('.case-checkbox:checked');
+
+    // 当所有子复选框都被选中时，全选框才选中
+    selectAllCheckbox.checked = caseCheckboxes.length > 0 &&
+        caseCheckboxes.length === checkedBoxes.length;
+}
+
 /**
  * 渲染案件表格
  * @param {Array} cases 案件数组
@@ -330,6 +376,7 @@ function renderCaseTable(cases) {
         
         html += `
         <tr>
+            <td><input type="checkbox" class="case-checkbox" value="${caseInfo.caseId}"></td>
             <td>${caseInfo.caseId}</td>
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
@@ -339,10 +386,13 @@ function renderCaseTable(cases) {
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
-            <td>${caseInfo.taskId || '-'}</td>
+            <td>${caseInfo.taskName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>
+                <button class="btn btn-sm btn-secondary" onclick="showAssignTaskModal(${caseInfo.caseId}, ${caseInfo.taskId || 'null'})">
+                    <i class="fa fa-link"></i> 关联案件包
+                </button>
                 <button class="btn btn-sm btn-primary" onclick="showEditCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-edit"></i> 编辑
                 </button>
@@ -370,6 +420,240 @@ function renderCaseTable(cases) {
     });
     
     tableBody.innerHTML = html;
+
+    // 渲染完成后初始化复选框监听
+    initCheckboxListener();
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 加载案件数据
+    loadCases();
+
+    // 初始化复选框联动
+    initCheckboxListener();
+});
+
+
+// 创建批量关联案件包模态框
+function createBatchAssignTaskModal() {
+    const modalContainer = document.getElementById('caseModalContainer');
+
+    if (!document.getElementById('batchAssignTaskModal')) {
+        const modalHtml = `
+        <div class="modal fade" id="batchAssignTaskModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">批量关联案件包</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="batchAssignTaskForm">
+                            <div class="form-group mb-3">
+                                <label>已选择 <span id="selectedCaseCount">0</span> 个案件</label>
+                            </div>
+                            <div class="form-group">
+                                <label for="batchTaskSelect">选择案件包</label>
+                                <select id="batchTaskSelect" class="form-control" required>
+                                    <option value="">-- 请选择案件包 --</option>
+                                    <option value="0">取消关联</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="submitBatchTaskAssignment()">提交</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+
+        modalContainer.innerHTML += modalHtml;
+    }
+}
+
+
+// 显示批量关联案件包模态框
+async function showBatchAssignTaskModal() {
+    // 获取选中的案件ID
+    const selectedCaseIds = getSelectedCaseIds();
+
+    if (selectedCaseIds.length === 0) {
+        alert('请先选择需要关联的案件');
+        return;
+    }
+
+    createBatchAssignTaskModal();
+
+    // 更新选中数量显示
+    document.getElementById('selectedCaseCount').textContent = selectedCaseIds.length;
+
+    try {
+        // 获取所有案件包
+        const tasks = await request('/task');
+        const taskSelect = document.getElementById('batchTaskSelect');
+
+        // 清空现有选项（保留第一个）
+        while (taskSelect.options.length > 1) {
+            taskSelect.remove(1);
+        }
+
+        // 添加案件包选项
+        tasks.forEach(task => {
+            const option = document.createElement('option');
+            option.value = task.taskId;
+            option.textContent = task.taskName;
+            taskSelect.appendChild(option);
+        });
+
+        // 显示模态框
+        const modal = new bootstrap.Modal(document.getElementById('batchAssignTaskModal'));
+        modal.show();
+    } catch (error) {
+        alert('加载案件包失败');
+    }
+}
+
+
+// 获取选中的案件ID
+function getSelectedCaseIds() {
+    const checkboxes = document.querySelectorAll('.case-checkbox:checked');
+    return Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
+}
+
+
+// 提交批量案件包关联
+async function submitBatchTaskAssignment() {
+    const selectedCaseIds = getSelectedCaseIds();
+    const taskId = document.getElementById('batchTaskSelect').value;
+
+    if (selectedCaseIds.length === 0) {
+        alert('没有选中的案件');
+        return;
+    }
+
+    try {
+        await request('/case/batch-update-task', 'POST', {
+            caseIds: selectedCaseIds,
+            taskId: taskId === '0' ? null : parseInt(taskId)
+        });
+
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('batchAssignTaskModal'));
+        modal.hide();
+
+        // 重新加载案件列表
+        loadCases();
+
+        // 取消全选状态
+        document.getElementById('selectAllCases').checked = false;
+
+        alert(`成功关联 ${selectedCaseIds.length} 个案件`);
+    } catch (error) {
+        alert('批量关联失败');
+    }
+}
+
+
+// 添加关联案件包模态框
+function createAssignTaskModal() {
+    const modalContainer = document.getElementById('caseModalContainer');
+
+    if (!document.getElementById('assignTaskModal')) {
+        const modalHtml = `
+        <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">关联案件包</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="assignTaskForm">
+                            <input type="hidden" id="assignCaseId">
+                            <div class="form-group">
+                                <label for="taskSelect">选择案件包</label>
+                                <select id="taskSelect" class="form-control" required>
+                                    <option value="">-- 请选择案件包 --</option>
+                                    <option value="0">取消关联</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="submitTaskAssignment()">提交</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+
+        modalContainer.innerHTML += modalHtml;
+    }
+}
+
+// 显示关联案件包模态框
+async function showAssignTaskModal(caseId, currentTaskId) {
+    createAssignTaskModal();
+
+    // 保存当前案件ID
+    document.getElementById('assignCaseId').value = caseId;
+
+    try {
+        // 获取所有案件包
+        const tasks = await request('/task');
+        const taskSelect = document.getElementById('taskSelect');
+
+        // 清空现有选项（保留第一个）
+        while (taskSelect.options.length > 1) {
+            taskSelect.remove(1);
+        }
+
+        // 添加案件包选项
+        tasks.forEach(task => {
+            const option = document.createElement('option');
+            option.value = task.taskId;
+            option.textContent = task.taskName;
+            if (currentTaskId && task.taskId === currentTaskId) {
+                option.selected = true;
+            }
+            taskSelect.appendChild(option);
+        });
+
+        // 显示模态框
+        const modal = new bootstrap.Modal(document.getElementById('assignTaskModal'));
+        modal.show();
+    } catch (error) {
+        alert('加载案件包失败');
+    }
+}
+
+// 提交案件包关联
+async function submitTaskAssignment() {
+    const caseId = document.getElementById('assignCaseId').value;
+    const taskId = document.getElementById('taskSelect').value;
+
+    try {
+        await request('/case/update-task', 'POST', {
+            caseId: parseInt(caseId),
+            taskId: taskId === '0' ? null : parseInt(taskId)
+        });
+
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
+        modal.hide();
+
+        // 重新加载案件列表
+        loadCases();
+
+        alert('关联成功');
+    } catch (error) {
+        alert('关联失败');
+    }
 }
 
 /**

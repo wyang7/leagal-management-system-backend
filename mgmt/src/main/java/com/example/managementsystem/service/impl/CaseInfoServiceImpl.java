@@ -8,6 +8,9 @@ import com.example.managementsystem.service.ICaseInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,6 +134,18 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         result.put("pageSize", pageSize);
 
         return result;
+    }
+
+    @Override
+    public int batchUpdateTaskId(List<Long> caseIds, Long taskId) {
+        CaseInfo caseInfo = new CaseInfo();
+        caseInfo.setTaskId(taskId);
+        caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+        QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("case_id", caseIds);
+
+        return baseMapper.update(caseInfo, queryWrapper);
     }
 
 }

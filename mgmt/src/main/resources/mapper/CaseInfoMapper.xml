@@ -38,9 +38,10 @@
 
     <!-- 分页查询案件 -->
     <select id="selectCasePage" resultType="com.example.managementsystem.entity.CaseInfo">
-        SELECT *,a.username as assistantName FROM case_info c
+        SELECT *,a.username as assistantName, t.task_name as taskName  FROM case_info c
                           LEFT JOIN user u ON c.user_id = u.user_id
                           LEFT JOIN user a ON c.assistant_id = a.user_id
+                          LEFT JOIN task t ON c.task_id = t.task_id
         WHERE 1=1
         <if test="caseName != null and caseName != ''">
             AND case_name LIKE CONCAT(#{caseName}, '%')

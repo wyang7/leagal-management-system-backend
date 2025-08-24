@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -78,6 +79,45 @@ public class CaseInfoController {
         return Result.success(pageResult);
     }
 
+    /**
+     * 更新案件关联的案件包
+     */
+    @PostMapping("/update-task")
+    public Result<?> updateCaseTask(@RequestBody Map<String, Object> params) {
+        Long caseId = Long.parseLong(params.get("caseId").toString());
+        Object taskIdObj = params.get("taskId");
+        Long taskId = taskIdObj != null ? Long.parseLong(taskIdObj.toString()) : null;
+
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+
+        caseInfo.setTaskId(taskId);
+        boolean success = caseInfoService.updateById(caseInfo);
+        return success ? Result.success() : Result.fail("更新案件包关联失败");
+    }
+
+    /**
+     * 批量更新案件关联的案件包
+     */
+    @PostMapping("/batch-update-task")
+    public Result<?> batchUpdateCaseTask(@RequestBody Map<String, Object> params) {
+        List<Long> caseIds = (List<Long>) params.get("caseIds");
+        Object taskIdObj = params.get("taskId");
+        Long taskId = taskIdObj != null ? Long.parseLong(taskIdObj.toString()) : null;
+
+        if (caseIds == null || caseIds.isEmpty()) {
+            return Result.fail("请选择案件");
+        }
+
+        // 批量更新案件的任务ID
+        int successCount = caseInfoService.batchUpdateTaskId(caseIds, taskId);
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("successCount", successCount);
+        resultMap.put("totalCount", caseIds.size());
+        return Result.success(resultMap);
+    }
 
 
     // 添加：案由前缀搜索接口

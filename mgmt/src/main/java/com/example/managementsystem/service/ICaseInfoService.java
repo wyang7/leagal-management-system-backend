@@ -57,4 +57,12 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      */
     Map<String, Object> getCasePage(String caseName,String status,Integer pageNum, Integer pageSize);
 
+
+    /**
+     * 批量更新案件的任务ID
+     * @param caseIds 案件ID列表
+     * @param taskId 任务ID，可为null表示取消关联
+     * @return 成功更新的数量
+     */
+    int batchUpdateTaskId(List<Long> caseIds, Long taskId);
 }
