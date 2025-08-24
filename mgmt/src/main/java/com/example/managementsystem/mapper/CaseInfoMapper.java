@@ -25,6 +25,11 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 根据用户ID查询案件
      */
     List<CaseInfo> selectByUserId(@Param("userId") Long userId);
+
+    /**
+     * 移除案件包
+     */
+    int removeTaskId(@Param("caseId") Long caseId);
     
     /**
      * 根据状态查询案件
