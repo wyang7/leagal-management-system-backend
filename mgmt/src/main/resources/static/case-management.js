@@ -303,44 +303,25 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
     }
 }
 
-// 全选/取消全选功能实现
-function initCheckboxListener() {
-    // 获取表头全选复选框
+// 页面加载完成后初始化全选功能
+document.addEventListener('DOMContentLoaded', function() {
+    // 为全选复选框添加事件监听
     const selectAllCheckbox = document.getElementById('selectAllCases');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', handleSelectAllChange);
+    }
+});
 
-    // 为全选复选框添加点击事件监听
-    selectAllCheckbox.addEventListener('change', function(e) {
-        // 获取所有案件行的复选框
-        const caseCheckboxes = document.querySelectorAll('.case-checkbox');
-
-        // 遍历所有复选框，设置与全选框相同的选中状态
-        caseCheckboxes.forEach(checkbox => {
-            // 设置复选框状态
-            checkbox.checked = e.target.checked;
-
-            // 触发change事件以更新UI（某些情况下可能需要）
-            const event = new Event('change', { bubbles: true });
-            checkbox.dispatchEvent(event);
-        });
-    });
-
-    // 为每个案件复选框添加事件，实现反选逻辑
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('case-checkbox')) {
-            updateSelectAllStatus();
-        }
-    });
-}
-
-// 更新全选框状态（当所有子项都选中时全选框也选中，否则不选中）
-function updateSelectAllStatus() {
+// 处理全选复选框变化事件
+function handleSelectAllChange() {
     const selectAllCheckbox = document.getElementById('selectAllCases');
+    // 获取所有行复选框
     const caseCheckboxes = document.querySelectorAll('.case-checkbox');
-    const checkedBoxes = document.querySelectorAll('.case-checkbox:checked');
 
-    // 当所有子复选框都被选中时，全选框才选中
-    selectAllCheckbox.checked = caseCheckboxes.length > 0 &&
-        caseCheckboxes.length === checkedBoxes.length;
+    // 同步所有行复选框状态与全选框一致
+    caseCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
 }
 
 /**
@@ -421,18 +402,17 @@ function renderCaseTable(cases) {
     
     tableBody.innerHTML = html;
 
-    // 渲染完成后初始化复选框监听
-    initCheckboxListener();
+    // 重新绑定全选事件（因为表格内容已刷新）
+    const selectAllCheckbox = document.getElementById('selectAllCases');
+    if (selectAllCheckbox) {
+        // 先移除可能存在的旧事件监听
+        selectAllCheckbox.removeEventListener('change', handleSelectAllChange);
+        // 添加新的事件监听
+        selectAllCheckbox.addEventListener('change', handleSelectAllChange);
+    }
+
 }
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 加载案件数据
-    loadCases();
-
-    // 初始化复选框联动
-    initCheckboxListener();
-});
 
 
 // 创建批量关联案件包模态框
@@ -548,8 +528,6 @@ async function submitBatchTaskAssignment() {
         // 重新加载案件列表
         loadCases();
 
-        // 取消全选状态
-        document.getElementById('selectAllCases').checked = false;
 
         alert(`成功关联 ${selectedCaseIds.length} 个案件`);
     } catch (error) {

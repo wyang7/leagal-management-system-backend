@@ -148,4 +148,14 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         return baseMapper.update(caseInfo, queryWrapper);
     }
 
+    @Override
+    public int removeTaskId(Long caseId) {
+        CaseInfo caseInfo = new CaseInfo();
+        caseInfo.setCaseId(caseId);
+        caseInfo.setTaskId(null);
+        // 可选：更新时间
+        caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        return baseMapper.updateById(caseInfo);
+    }
+
 }

@@ -65,4 +65,6 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * @return 成功更新的数量
      */
     int batchUpdateTaskId(List<Long> caseIds, Long taskId);
+
+    int removeTaskId(Long caseId);
 }

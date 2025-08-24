@@ -274,7 +274,7 @@ async function showAssignCasesToTaskModal(taskId) {
             unassignedCases.forEach(caseInfo => {
                 casesHtml += `
                 <div class="list-group-item d-flex justify-content-between align-items-center">
-                    ${caseInfo.caseName} (ID: ${caseInfo.caseId})
+                     (ID: ${caseInfo.caseId}) ${caseInfo.caseName} (标的额: ${caseInfo.amount})
                     <button class="btn btn-sm btn-primary" onclick="assignCaseToTask(${caseInfo.caseId}, ${taskId})">
                         <i class="fa fa-plus"></i>
                     </button>
@@ -297,7 +297,7 @@ async function showAssignCasesToTaskModal(taskId) {
             assignedCases.forEach(caseInfo => {
                 casesHtml += `
                 <div class="list-group-item d-flex justify-content-between align-items-center">
-                    ${caseInfo.caseName} (ID: ${caseInfo.caseId})
+                    (ID: ${caseInfo.caseId}) ${caseInfo.caseName} (标的额: ${caseInfo.amount})
                     <button class="btn btn-sm btn-danger" onclick="unassignCaseFromTask(${caseInfo.caseId})">
                         <i class="fa fa-minus"></i>
                     </button>
@@ -368,9 +368,7 @@ async function assignCaseToTask(caseId, taskId) {
         // 刷新关联列表
         const modal = bootstrap.Modal.getInstance(document.getElementById('assignCasesToTaskModal'));
         modal.hide();
-        setTimeout(() => {
-            showAssignCasesToTaskModal(taskId);
-        }, 300);
+        loadTasks();
         
         alert('案件关联成功');
     } catch (error) {
@@ -386,18 +384,14 @@ async function unassignCaseFromTask(caseId) {
     try {
         // 获取案件信息
         const caseInfo = await request(`/case/${caseId}`);
-        const taskId = document.getElementById('currentTaskId').value;
         // 移除任务ID
         caseInfo.taskId = null;
-        await request('/case', 'PUT', caseInfo);
+        await request('/case/remove-task', 'PUT', caseInfo);
         
         // 刷新关联列表
         const modal = bootstrap.Modal.getInstance(document.getElementById('assignCasesToTaskModal'));
         modal.hide();
-        setTimeout(() => {
-            showAssignCasesToTaskModal(taskId);
-        }, 300);
-        
+        loadTasks();
         alert('案件已解除关联');
     } catch (error) {
         // 错误处理已在request函数中完成

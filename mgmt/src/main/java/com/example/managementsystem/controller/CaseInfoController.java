@@ -217,6 +217,17 @@ public class CaseInfoController {
         boolean success = caseInfoService.updateById(caseInfo);
         return success ? Result.success() : Result.fail("更新案件失败");
     }
+    /**
+     * 更新案件
+     */
+    @PutMapping("/remove-task")
+    public Result<?> removeCaseTaskId(@RequestBody CaseInfo caseInfo) {
+
+
+
+        int success = caseInfoService.removeTaskId(caseInfo.getCaseId());
+        return success>0 ? Result.success() : Result.fail("更新案件失败");
+    }
 
     /**
      * 删除案件
