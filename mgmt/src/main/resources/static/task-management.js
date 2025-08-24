@@ -9,11 +9,11 @@ function loadTaskManagementPage() {
             <h1>案件包</h1>
         </div>
         
-        <!-- 新增任务按钮 -->
+        <!-- 新增案件包按钮 -->
         <div class="row mb-3">
             <div class="col-md-12 text-end">
                 <button class="btn btn-success" onclick="showAddTaskModal()">
-                    <i class="fa fa-plus"></i> 新增任务
+                    <i class="fa fa-plus"></i> 新增案件包
                 </button>
             </div>
         </div>
@@ -123,7 +123,7 @@ function createTaskModal() {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="taskModalTitle">新增任务</h5>
+                        <h5 class="modal-title" id="taskModalTitle">新增案件包</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -149,7 +149,7 @@ function createTaskModal() {
 }
 
 /**
- * 显示新增任务模态框
+ * 显示新增案件包模态框
  */
 function showAddTaskModal() {
     createTaskModal();
@@ -157,7 +157,7 @@ function showAddTaskModal() {
     // 重置表单
     document.getElementById('taskForm').reset();
     document.getElementById('taskId').value = '';
-    document.getElementById('taskModalTitle').textContent = '新增任务';
+    document.getElementById('taskModalTitle').textContent = '新增案件包';
     
     // 显示模态框
     const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
@@ -207,11 +207,11 @@ async function saveTask() {
     
     try {
         if (taskId) {
-            // 编辑任务
+            // 编辑案件包
             taskData.taskId = parseInt(taskId);
             await request('/task', 'PUT', taskData);
         } else {
-            // 新增任务
+            // 新增案件包
             await request('/task', 'POST', taskData);
         }
         

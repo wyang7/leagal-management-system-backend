@@ -46,7 +46,7 @@ public class TaskController {
     @PostMapping
     public Result<?> addTask(@RequestBody Task task) {
         boolean success = taskService.save(task);
-        return success ? Result.success() : Result.fail("新增任务失败");
+        return success ? Result.success() : Result.fail("新增案件包失败");
     }
 
     /**
