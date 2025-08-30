@@ -33,6 +33,11 @@ public class Task implements Serializable {
     private String taskName;
 
     /**
+     * 任务状态
+     */
+    private String status;
+
+    /**
      * 创建时间
      */
     @TableField("created_time")

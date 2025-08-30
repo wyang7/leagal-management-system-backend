@@ -4,6 +4,7 @@ import com.example.managementsystem.entity.Task;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.managementsystem.entity.CaseInfo;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -24,4 +25,13 @@ public interface ITaskService extends IService<Task> {
      * 为任务关联案件
      */
     boolean assignCasesToTask(Long taskId, List<Long> caseIds);
+
+    // 新增方法：分派案件包给指定用户
+    boolean assignTask(Long taskId, Long userId);
+
+    // 新增方法：领取案件包
+    boolean receiveTask(Long taskId, Long userId);
+
+    // 新增方法：获取案件包及状态信息
+    Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName);
 }

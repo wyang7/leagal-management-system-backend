@@ -8,7 +8,11 @@ import com.example.managementsystem.service.ITaskService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -48,5 +52,80 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
             caseInfoService.updateById(caseInfo);
         }
         return true;
+    }
+
+    /**
+     * 分派案件包给指定用户
+     */
+    @Override
+    @Transactional
+    public boolean assignTask(Long taskId, Long userId) {
+        Task task = getById(taskId);
+        if (task == null) {
+            return false;
+        }
+
+        // 更新案件包状态为待领取
+        task.setStatus("待领取");
+        boolean taskUpdated = updateById(task);
+
+        return taskUpdated;
+    }
+
+    /**
+     * 领取案件包
+     */
+    @Override
+    @Transactional
+    public boolean receiveTask(Long taskId, Long userId) {
+        Task task = getById(taskId);
+        if (task == null || !"待领取".equals(task.getStatus())) {
+            return false;
+        }
+
+        // 1. 更新案件包状态为已领取
+        task.setStatus("已领取");
+        boolean taskUpdated = updateById(task);
+
+        if (!taskUpdated) {
+            return false;
+        }
+
+        // 2. 获取该案件包下的所有案件
+        List<CaseInfo> cases = caseInfoService.getCasesByTaskId(taskId);
+        if (cases.isEmpty()) {
+            return true; // 没有案件也视为成功
+        }
+
+        // 3. 批量更新案件的处理人
+        for (CaseInfo caseInfo : cases) {
+            caseInfo.setUserId(userId);
+            caseInfo.setStatus("已领取");
+        }
+
+        return caseInfoService.updateBatchById(cases);
+    }
+
+    /**
+     * 分页查询案件包列表（包含状态）
+     */
+    @Override
+    public Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName) {
+        int offset = (pageNum - 1) * pageSize;
+
+        // 查询总条数
+        int total = baseMapper.countAllTasks(taskName);
+
+        // 查询当前页数据
+        List<Task> records = baseMapper.selectTaskPage(offset, pageSize,taskName);
+
+        // 封装分页结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("records", records);
+        result.put("pageNum", pageNum);
+        result.put("pageSize", pageSize);
+
+        return result;
     }
 }

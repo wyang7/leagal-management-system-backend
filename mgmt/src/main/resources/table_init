@@ -86,4 +86,5 @@ ALTER TABLE case_info ADD COLUMN defendant_name VARCHAR(255) COMMENT '被告';
 -- 添加案件助理ID字段（关联用户表）
 ALTER TABLE case_info ADD COLUMN assistant_id BIGINT COMMENT '案件助理ID（关联user表user_id）';
 
--- 添加案件助理姓名字段（非数据库存储，用于前端展示，无需SQL）
+
+ALTER TABLE task ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT '待领取' COMMENT '案件包状态：待领取、已领取';

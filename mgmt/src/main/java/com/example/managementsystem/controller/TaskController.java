@@ -78,4 +78,39 @@ public class TaskController {
         boolean success = taskService.assignCasesToTask(taskId, caseIds);
         return success ? Result.success() : Result.fail("关联案件失败");
     }
+
+    /**
+     * 分页查询案件包列表
+     */
+    @GetMapping("/page")
+    public Result<Map<String, Object>> getTaskPage(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String taskName) {
+        return Result.success(taskService.getTaskPage(pageNum, pageSize,taskName));
+    }
+
+    /**
+     * 分派案件包给用户
+     */
+    @PostMapping("/assign")
+    public Result<?> assignTask(@RequestBody Map<String, Object> params) {
+        Long taskId = Long.parseLong(params.get("taskId").toString());
+        Long userId = Long.parseLong(params.get("userId").toString());
+
+        boolean success = taskService.assignTask(taskId, userId);
+        return success ? Result.success() : Result.fail("分派案件包失败");
+    }
+
+    /**
+     * 领取案件包
+     */
+    @PostMapping("/receive")
+    public Result<?> receiveTask(@RequestBody Map<String, Object> params) {
+        Long taskId = Long.parseLong(params.get("taskId").toString());
+        Long userId = Long.parseLong(params.get("userId").toString());
+
+        boolean success = taskService.receiveTask(taskId, userId);
+        return success ? Result.success() : Result.fail("领取案件包失败，可能案件包状态不是待领取");
+    }
 }

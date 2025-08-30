@@ -382,7 +382,7 @@ function renderCaseTable(cases) {
                 </button>
                 ${caseInfo.status === '待领取' ? `
                 <button class="btn btn-sm btn-success" onclick="showReceiveCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-handshake-o"></i> 领取
+                    <i class="fa fa-handshake-o"></i> 分派案件
                 </button>
                 ` : ''}
                 ${caseInfo.status === '已领取' ? `
@@ -940,7 +940,7 @@ function showReceiveCaseModal(caseId) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmReceiveCase()">确认领取</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmReceiveCase()">确认分派案件</button>
                 </div>
             </div>
         </div>
@@ -986,7 +986,7 @@ async function confirmReceiveCase() {
         
         // 重新加载案件列表
         loadCases();
-        alert('案件领取成功');
+        alert('案件分派成功');
     } catch (error) {
         // 错误处理已在request函数中完成
     }

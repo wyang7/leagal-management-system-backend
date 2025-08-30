@@ -27,23 +27,24 @@ function loadTaskManagementPage() {
                         <th>任务名</th>
                         <th>创建时间</th>
                         <th>关联案件数</th>
+                        <th>状态</th>
                         <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="taskTableBody">
                     <!-- 任务数据将通过JavaScript动态加载 -->
                     <tr>
-                        <td colspan="5" class="text-center">加载中...</td>
+                        <td colspan="6" class="text-center">加载中...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     `;
-    
+
     // 创建任务模态框容器
     createTaskModalContainer();
-    // 加载任务列表
-    loadTasks();
+    // 加载任务列表（分页）
+    loadTasks(1, 10);
 }
 
 /**
@@ -60,37 +61,53 @@ function createTaskModalContainer() {
 /**
  * 加载任务列表
  */
-async function loadTasks() {
+async function loadTasks(pageNum = 1, pageSize = 10) {
+    // try {
+    //     const tasks = await request('/task');
+    //     renderTaskTable(tasks);
+    // } catch (error) {
+    //     document.getElementById('taskTableBody').innerHTML = `
+    //         <tr><td colspan="5" class="text-center text-danger">加载任务失败</td></tr>
+    //     `;
+    // }
     try {
-        const tasks = await request('/task');
-        renderTaskTable(tasks);
+        const response = await request(`/task/page?pageNum=${pageNum}&pageSize=${pageSize}`);
+        renderTaskTable(response.records);
+        renderTaskPagination({
+            total: response.total,
+            pageNum: response.pageNum,
+            pageSize: response.pageSize
+        });
     } catch (error) {
         document.getElementById('taskTableBody').innerHTML = `
-            <tr><td colspan="5" class="text-center text-danger">加载任务失败</td></tr>
+            <tr><td colspan="6" class="text-center text-danger">加载任务失败</td></tr>
         `;
     }
 }
 
 /**
  * 渲染任务表格
- * @param {Array} tasks 任务数组
  */
 function renderTaskTable(tasks) {
     const tableBody = document.getElementById('taskTableBody');
-    
+
     if (!tasks || tasks.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center">没有找到任务数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center">没有找到任务数据</td></tr>`;
         return;
     }
-    
+
     let html = '';
     tasks.forEach(task => {
+        // 状态样式
+        let statusClass = task.status === '待领取' ? 'text-warning' : 'text-success';
+
         html += `
         <tr>
             <td>${task.taskId}</td>
             <td>${task.taskName}</td>
             <td>${task.createdTime ? new Date(task.createdTime).toLocaleString() : ''}</td>
             <td>${task.caseCount || 0}</td>
+            <td><span class="${statusClass}">${task.status}</span></td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="showEditTaskModal(${task.taskId})">
                     <i class="fa fa-edit"></i> 编辑
@@ -101,11 +118,14 @@ function renderTaskTable(tasks) {
                 <button class="btn btn-sm btn-info" onclick="showAssignCasesToTaskModal(${task.taskId})">
                     <i class="fa fa-gavel"></i> 关联案件
                 </button>
+                <button class="btn btn-sm btn-secondary" onclick="showAssignTaskToUserModal(${task.taskId})">
+                    <i class="fa fa-user"></i> 分派
+                </button>
             </td>
         </tr>
         `;
     });
-    
+
     tableBody.innerHTML = html;
 }
 
@@ -187,6 +207,78 @@ async function showEditTaskModal(taskId) {
     }
 }
 
+/**
+ * 显示分派案件包给用户的模态框
+ */
+function showAssignTaskToUserModal(taskId) {
+    const modalContainer = document.getElementById('taskModalContainer');
+
+    const modalHtml = `
+    <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">分派案件包给用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="assignTaskForm">
+                        <input type="hidden" id="assignTaskId" value="${taskId}">
+                        <div class="form-group">
+                            <label for="assignUserId">用户ID</label>
+                            <input type="number" id="assignUserId" class="form-control" required placeholder="请输入要分派的用户ID">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmAssignTask()">确认分派</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    modalContainer.innerHTML = modalHtml;
+    const assignModal = new bootstrap.Modal(document.getElementById('assignTaskModal'));
+    assignModal.show();
+}
+
+/**
+ * 确认分派案件包
+ */
+async function confirmAssignTask() {
+    const taskId = document.getElementById('assignTaskId').value;
+    const userId = document.getElementById('assignUserId').value.trim();
+
+    if (!userId) {
+        alert('请输入用户ID');
+        return;
+    }
+
+    try {
+        await request('/task/assign', 'POST', {
+            taskId: taskId,
+            userId: userId
+        });
+
+        // 关闭模态框并刷新列表
+        const assignModal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
+        assignModal.hide();
+        loadTasks();
+        alert('案件包分派成功');
+    } catch (error) {
+        alert('分派失败：' + (error.message || '未知错误'));
+    }
+}
+
+// 添加分页渲染函数
+function renderTaskPagination(pageInfo) {
+    const { total, pageNum, pageSize } = pageInfo;
+    const pages = Math.ceil(total / pageSize);
+    // 分页渲染逻辑类似案件管理页面的分页实现
+    // 省略具体实现，可参考case-management.js中的renderPagination方法
+}
 /**
  * 保存任务（新增或编辑）
  */
