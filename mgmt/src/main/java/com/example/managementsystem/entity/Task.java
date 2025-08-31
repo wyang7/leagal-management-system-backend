@@ -36,6 +36,14 @@ public class Task implements Serializable {
      * 任务状态
      */
     private String status;
+    /**
+     * 任务个数
+     */
+    @TableField(exist = false)
+    private int caseCount;
+
+    @TableField("owner_id")
+    private Long ownerId;
 
     /**
      * 创建时间

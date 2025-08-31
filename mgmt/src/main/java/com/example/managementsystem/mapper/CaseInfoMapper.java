@@ -53,6 +53,12 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      */
     int countAllCases(@Param("caseName") String caseName,@Param("status") String status);
 
+    /*
+     * 根据taskid查询案件数量
+     */
+    int countByTaskId(@Param("taskId") Long taskId);
+
+
     /**
      * 分页查询案件
      * @param offset 起始位置
@@ -61,4 +67,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     List<CaseInfo> selectCasePage(@Param("offset") int offset, @Param("pageSize") int pageSize
     ,@Param("caseName") String caseName,@Param("status") String status);
 
+
+    List<CaseInfo> selectByStatusList(@Param("statusList") List<String> statusList,
+                                      @Param("taskId") Integer taskId);
 }

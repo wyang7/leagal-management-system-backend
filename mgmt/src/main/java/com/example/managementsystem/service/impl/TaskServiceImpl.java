@@ -1,7 +1,9 @@
 package com.example.managementsystem.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.Task;
+import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.mapper.TaskMapper;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.ITaskService;
@@ -27,6 +29,9 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 
     @Autowired
     private ICaseInfoService caseInfoService;
+
+    @Autowired
+    private CaseInfoMapper caseInfoMapper;
 
     @Override
     public Task getTaskWithCases(Long taskId) {
@@ -66,10 +71,8 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
         }
 
         // 更新案件包状态为待领取
-        task.setStatus("待领取");
-        boolean taskUpdated = updateById(task);
-
-        return taskUpdated;
+        task.setOwnerId(userId);
+        return updateById(task);
     }
 
     /**
@@ -85,6 +88,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 
         // 1. 更新案件包状态为已领取
         task.setStatus("已领取");
+        task.setOwnerId(userId);
         boolean taskUpdated = updateById(task);
 
         if (!taskUpdated) {
@@ -110,14 +114,22 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
      * 分页查询案件包列表（包含状态）
      */
     @Override
-    public Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName) {
+    public Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName,String taskStatus) {
         int offset = (pageNum - 1) * pageSize;
 
         // 查询总条数
-        int total = baseMapper.countAllTasks(taskName);
+        int total = baseMapper.countAllTasks(taskName, taskStatus);
 
         // 查询当前页数据
-        List<Task> records = baseMapper.selectTaskPage(offset, pageSize,taskName);
+        List<Task> records = baseMapper.selectTaskPage(offset, pageSize,taskName, taskStatus);
+
+        if (CollectionUtils.isNotEmpty(records)) {
+            // 为每个任务设置关联的案件数量
+            for (Task task : records) {
+                int caseCount = caseInfoMapper.countByTaskId(task.getTaskId());
+                task.setCaseCount(caseCount);
+            }
+        }
 
         // 封装分页结果
         Map<String, Object> result = new HashMap<>();

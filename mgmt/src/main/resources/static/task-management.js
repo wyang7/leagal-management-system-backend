@@ -28,6 +28,7 @@ function loadTaskManagementPage() {
                         <th>创建时间</th>
                         <th>关联案件数</th>
                         <th>状态</th>
+                        <th>领取人</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -62,14 +63,7 @@ function createTaskModalContainer() {
  * 加载任务列表
  */
 async function loadTasks(pageNum = 1, pageSize = 10) {
-    // try {
-    //     const tasks = await request('/task');
-    //     renderTaskTable(tasks);
-    // } catch (error) {
-    //     document.getElementById('taskTableBody').innerHTML = `
-    //         <tr><td colspan="5" class="text-center text-danger">加载任务失败</td></tr>
-    //     `;
-    // }
+
     try {
         const response = await request(`/task/page?pageNum=${pageNum}&pageSize=${pageSize}`);
         renderTaskTable(response.records);
@@ -108,6 +102,7 @@ function renderTaskTable(tasks) {
             <td>${task.createdTime ? new Date(task.createdTime).toLocaleString() : ''}</td>
             <td>${task.caseCount || 0}</td>
             <td><span class="${statusClass}">${task.status}</span></td>
+            <td>${task.ownerId || '-'}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="showEditTaskModal(${task.taskId})">
                     <i class="fa fa-edit"></i> 编辑
@@ -346,7 +341,7 @@ async function deleteTask(taskId) {
 async function showAssignCasesToTaskModal(taskId) {
     try {
         // 获取所有案件
-        const cases = await request('/case');
+        const cases = await request(`/case/filter-by-status?statusList=待领取&statusList=已完成&taskId=${taskId}`);
         // 获取当前任务信息
         const task = await request(`/task/${taskId}`);
         

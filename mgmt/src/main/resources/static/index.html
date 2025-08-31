@@ -109,38 +109,41 @@
         <!-- 侧边栏导航 -->
         <div class="col-md-2 sidebar p-0">
             <div class="d-flex flex-column p-3">
-                <ul class="nav nav-pills flex-column mb-auto">
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="loadUserManagementPage()">
-                            <i class="fa fa-users me-2"></i>用户管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="loadRoleManagementPage()">
-                            <i class="fa fa-key me-2"></i>角色管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="loadCaseManagementPage()">
-                            <i class="fa fa-gavel me-2"></i>案件管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="loadMyCasesPage()">
-                            <i class="fa fa-inbox me-2"></i>我的案件
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="loadTaskManagementPage()">
-                            <i class="fa fa-tasks me-2"></i>案件包管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
-                            <i class="fa fa-inbox me-2"></i>领取案件
-                        </a>
-                    </li>
+                <ul class="nav nav-pills flex-column mb-auto" id="sidebarNav">
+                    <!-- 导航项将通过JavaScript动态生成 -->
                 </ul>
+<!--                <ul class="nav nav-pills flex-column mb-auto">-->
+<!--                    <li class="nav-item">-->
+<!--                        <a href="#" class="nav-link" onclick="loadUserManagementPage()">-->
+<!--                            <i class="fa fa-users me-2"></i>用户管理-->
+<!--                        </a>-->
+<!--                    </li>-->
+<!--                    <li class="nav-item">-->
+<!--                        <a href="#" class="nav-link" onclick="loadRoleManagementPage()">-->
+<!--                            <i class="fa fa-key me-2"></i>角色管理-->
+<!--                        </a>-->
+<!--                    </li>-->
+<!--                    <li class="nav-item">-->
+<!--                        <a href="#" class="nav-link" onclick="loadCaseManagementPage()">-->
+<!--                            <i class="fa fa-gavel me-2"></i>案件管理-->
+<!--                        </a>-->
+<!--                    </li>-->
+<!--                    <li class="nav-item">-->
+<!--                        <a href="#" class="nav-link" onclick="loadMyCasesPage()">-->
+<!--                            <i class="fa fa-inbox me-2"></i>我的案件-->
+<!--                        </a>-->
+<!--                    </li>-->
+<!--                    <li class="nav-item">-->
+<!--                        <a href="#" class="nav-link" onclick="loadTaskManagementPage()">-->
+<!--                            <i class="fa fa-tasks me-2"></i>案件包管理-->
+<!--                        </a>-->
+<!--                    </li>-->
+<!--                    <li class="nav-item">-->
+<!--                        <a href="#" class="nav-link" onclick="loadTaskReceivePage()">-->
+<!--                            <i class="fa fa-inbox me-2"></i>领取案件-->
+<!--                        </a>-->
+<!--                    </li>-->
+<!--                </ul>-->
             </div>
         </div>
 
@@ -171,13 +174,13 @@
     // 检查登录状态并获取用户信息
     async function checkLoginStatus() {
         try {
-            // 假设后端提供了获取当前登录用户信息的接口
+            // 调用后端获取当前用户信息
             const userInfo = await request('/auth/currentUser');
             if (userInfo && userInfo.username) {
                 // 显示用户名
                 document.getElementById('loginUsername').textContent = userInfo.username;
-                // 加载默认页面
-                loadCaseManagementPage();
+                // 加载侧边栏导航（根据用户角色）
+                await loadSidebarNav(userInfo);
             } else {
                 // 未登录，跳转到登录页
                 window.location.href = 'login.html';
@@ -187,6 +190,74 @@
             document.getElementById('loginUsername').textContent = '未登录';
             window.location.href = 'login.html';
         }
+    }
+
+    // 加载侧边栏导航（根据用户角色权限）
+    async function loadSidebarNav(userInfo) {
+        const sidebarNav = document.getElementById('sidebarNav');
+        let navHtml = '';
+
+        // 所有用户都能看到的基础导航
+        navHtml += `
+        <li class="nav-item">
+            <a href="#" class="nav-link" onclick="loadMyCasesPage()">
+                <i class="fa fa-inbox me-2"></i>我的案件
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
+                <i class="fa fa-inbox me-2"></i>领取案件
+            </a>
+        </li>
+    `;
+
+        // 判断是否为系统管理员（通过roleId关联角色表查询角色名称）
+        // 由于UserSession中只有roleId，需要额外查询角色信息
+        let isSystemAdmin = false;
+        try {
+            // 获取角色信息
+            const roles = await request('/role');
+            // 找到当前用户的角色
+            const userRole = roles.find(role => role.roleId === userInfo.roleId);
+            // 检查角色名称是否包含"系统管理员"
+            if (userRole && userRole.roleName && userRole.roleName.includes('系统管理员')) {
+                isSystemAdmin = true;
+            }
+        } catch (error) {
+            console.error('获取角色信息失败:', error);
+        }
+
+        // 系统管理员额外可见菜单
+        if (isSystemAdmin) {
+            navHtml += `
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadUserManagementPage()">
+                    <i class="fa fa-users me-2"></i>用户管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadRoleManagementPage()">
+                    <i class="fa fa-key me-2"></i>角色管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadCaseManagementPage()">
+                    <i class="fa fa-gavel me-2"></i>案件管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadTaskManagementPage()">
+                    <i class="fa fa-tasks me-2"></i>案件包管理
+                </a>
+            </li>
+        `;
+        }
+
+        sidebarNav.innerHTML = navHtml;
+        // 设置默认选中"我的案件"
+        setActiveNav('我的案件');
+        // 加载默认页面
+        loadMyCasesPage();
     }
 
     // 退出登录功能

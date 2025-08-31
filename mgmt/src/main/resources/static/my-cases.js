@@ -175,9 +175,6 @@ function renderMyCaseTable(cases) {
         // 状态样式类
         let statusClass = '';
         switch (caseInfo.status) {
-            case '待发布':
-                statusClass = 'status-pending-release';
-                break;
             case '待领取':
                 statusClass = 'status-pending-receive';
                 break;

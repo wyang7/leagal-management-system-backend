@@ -51,26 +51,6 @@ function loadTaskReceivePage() {
 }
 
 /**
- * 加载待领取案件包列表
- */
-async function loadReceiveTasks(pageNum = 1, pageSize = 10) {
-    try {
-        const taskName = document.getElementById('receiveTaskSearchInput').value.trim();
-        const response = await request(`/task/page?taskName=${encodeURIComponent(taskName)}&status=待领取&pageNum=${pageNum}&pageSize=${pageSize}`);
-        renderReceiveTaskTable(response.records);
-        renderReceiveTaskPagination({
-            total: response.total,
-            pageNum: response.pageNum,
-            pageSize: response.pageSize
-        });
-    } catch (error) {
-        document.getElementById('receiveTaskTableBody').innerHTML = `
-            <tr><td colspan="5" class="text-center text-danger">加载案件包失败</td></tr>
-        `;
-    }
-}
-
-/**
  * 渲染待领取案件包表格
  */
 function renderReceiveTaskTable(tasks) {
@@ -298,7 +278,8 @@ async function loadReceiveTasks(pageNum = 1, pageSize = 10, taskName = '') {
     try {
         // 构建请求URL，包含分页参数和搜索条件
         const url = `/task/page?pageNum=${pageNum}&pageSize=${pageSize}` +
-            (taskName ? `&taskName=${encodeURIComponent(taskName)}` : '');
+            (taskName ? `&taskName=${encodeURIComponent(taskName)}` : '')+
+            (`&taskStatus=待领取`);
 
         const response = await request(url);
 

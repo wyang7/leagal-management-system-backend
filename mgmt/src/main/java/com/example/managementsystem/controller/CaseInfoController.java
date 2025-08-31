@@ -38,6 +38,15 @@ public class CaseInfoController {
     private IUserService userService;
 
     /**
+     * 根据状态筛选案件（支持多个状态）
+     */
+    @GetMapping("/filter-by-status")
+    public Result<List<CaseInfo>> filterCasesByStatus(@RequestParam List<String> statusList
+    ,@RequestParam Integer taskId) {
+        return Result.success(caseInfoService.getCasesByStatusList(statusList,taskId));
+    }
+
+    /**
      * 查询所有案件
      */
     @GetMapping
@@ -160,8 +169,8 @@ public class CaseInfoController {
                     return Result.fail("法院收案时间解析失败: " + courtReceiveTime);
                 }
             }
-            // 状态默认“待发布”
-            caseInfo.setStatus("待发布");
+            // 状态默认“待领取”
+            caseInfo.setStatus("待领取");
             // 创建时间
             caseInfo.setCreatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             caseInfoService.save(caseInfo);
@@ -192,9 +201,9 @@ public class CaseInfoController {
             caseInfo.setCaseNumber(caseInfoService.genCaseNumber());
         }
 
-        // 新增案件默认状态为"待发布"
+        // 新增案件默认状态为"待领取"
         if (caseInfo.getStatus() == null || caseInfo.getStatus().isEmpty()) {
-            caseInfo.setStatus("待发布");
+            caseInfo.setStatus("待领取");
         }
         boolean success = caseInfoService.save(caseInfo);
         return success ? Result.success() : Result.fail("新增案件失败");
@@ -205,14 +214,6 @@ public class CaseInfoController {
      */
     @PutMapping
     public Result<?> updateCase(@RequestBody CaseInfo caseInfo) {
-
-        // 校验案件助理角色
-        if (caseInfo.getAssistantId() != null) {
-            boolean isAssistant = userService.checkUserRole(caseInfo.getAssistantId(), "案件助理");
-            if (!isAssistant) {
-                return Result.fail("所选用户不是案件助理角色");
-            }
-        }
 
         boolean success = caseInfoService.updateById(caseInfo);
         return success ? Result.success() : Result.fail("更新案件失败");

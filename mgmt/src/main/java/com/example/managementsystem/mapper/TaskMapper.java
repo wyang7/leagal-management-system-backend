@@ -19,7 +19,8 @@ public interface TaskMapper extends BaseMapper<Task> {
     /**
      * 查询所有任务总数
      */
-    int countAllTasks(@Param("taskName") String taskName);
+    int countAllTasks(@Param("taskName") String taskName
+            ,@Param("taskStatus") String taskStatus);
 
     /**
      * 分页查询任务
@@ -28,6 +29,7 @@ public interface TaskMapper extends BaseMapper<Task> {
      */
     List<Task> selectTaskPage(@Param("offset") int offset,
                               @Param("pageSize") int pageSize,
-                              @Param("taskName") String taskName);
+                              @Param("taskName") String taskName,
+                              @Param("taskStatus") String taskStatus);
 
 }

@@ -22,6 +22,15 @@
         </if>
     </select>
 
+    <!-- 查询所有案件总数 -->
+    <select id="countByTaskId" resultType="int">
+        SELECT COUNT(*) FROM case_info
+        WHERE 1=1
+        <if test="taskId != null and taskId != ''">
+            AND task_id = #{taskId}
+        </if>
+    </select>
+
     <!-- 分页查询案件 -->
     <select id="selectCasePage" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT *,a.username as assistantName, t.task_name as taskName  FROM case_info c
@@ -99,6 +108,22 @@
         WHERE
             c.user_id = #{userId}
     </select>
+
+
+    <select id="selectByStatusList" resultType="com.example.managementsystem.entity.CaseInfo">
+        SELECT * FROM case_info
+        WHERE status IN
+        <foreach collection="statusList" item="status" open="(" separator="," close=")">
+            #{status}
+        </foreach>
+        <if test="taskId != null and taskId != ''">
+            OR (status='已领取' AND task_id=#{taskId})
+        </if>
+
+    </select>
+
+
+
 
 
 

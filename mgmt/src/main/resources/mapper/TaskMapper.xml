@@ -9,6 +9,9 @@
         <if test="taskName != null and taskName != ''">
             AND task_name LIKE CONCAT('%', #{taskName}, '%')
         </if>
+        <if test="taskStatus != null and taskStatus != ''">
+            AND status = #{taskStatus}
+        </if>
     </select>
 
     <!-- 分页查询任务 -->
@@ -17,6 +20,9 @@
         WHERE 1=1
         <if test="taskName != null and taskName != ''">
             AND task_name LIKE CONCAT('%', #{taskName}, '%')
+        </if>
+        <if test="taskStatus != null and taskStatus != ''">
+            AND status = #{taskStatus}
         </if>
         ORDER BY created_time DESC
         LIMIT #{offset}, #{pageSize}

@@ -67,4 +67,6 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     int batchUpdateTaskId(List<Long> caseIds, Long taskId);
 
     int removeTaskId(Long caseId);
+
+    List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId);
 }

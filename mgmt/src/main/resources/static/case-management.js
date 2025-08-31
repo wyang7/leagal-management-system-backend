@@ -42,7 +42,6 @@ function loadCaseManagementPage() {
             <div class="col-md-12">
                 <div class="btn-group" role="group">
                     <button class="btn btn-outline-primary" onclick="filterCases('all')">全部</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('待发布')">待发布</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('待领取')">待领取</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
@@ -341,9 +340,6 @@ function renderCaseTable(cases) {
         // 状态样式类
         let statusClass = '';
         switch (caseInfo.status) {
-            case '待发布':
-                statusClass = 'status-pending-release';
-                break;
             case '待领取':
                 statusClass = 'status-pending-receive';
                 break;
@@ -388,11 +384,6 @@ function renderCaseTable(cases) {
                 ${caseInfo.status === '已领取' ? `
                 <button class="btn btn-sm btn-info" onclick="completeCase(${caseInfo.caseId})">
                     <i class="fa fa-check"></i> 完成
-                </button>
-                ` : ''}
-                ${caseInfo.status === '待发布' ? `
-                <button class="btn btn-sm btn-warning" onclick="publishCase(${caseInfo.caseId})">
-                    <i class="fa fa-paper-plane"></i> 发布
                 </button>
                 ` : ''}
             </td>
@@ -722,7 +713,6 @@ function createCaseModal(taskOptions, assistantOptions) {
                             <div class="form-group">
                                 <label for="caseStatus">案件状态</label>
                                 <select id="caseStatus" class="form-control" required>
-                                    <option value="待发布">待发布</option>
                                     <option value="待领取">待领取</option>
                                     <option value="已领取">已领取</option>
                                     <option value="已完成">已完成</option>

@@ -68,7 +68,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public boolean updateCaseStatus(Long caseId, String status) {
         // 验证状态是否合法
-        if (!"待发布".equals(status) && !"待领取".equals(status) && 
+        if ( !"待领取".equals(status) &&
             !"已领取".equals(status) && !"已完成".equals(status)) {
             return false;
         }
@@ -151,6 +151,11 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public int removeTaskId(Long caseId) {
         return baseMapper.removeTaskId(caseId);
+    }
+
+    @Override
+    public List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId) {
+        return baseMapper.selectByStatusList(statusList,taskId);
     }
 
 }

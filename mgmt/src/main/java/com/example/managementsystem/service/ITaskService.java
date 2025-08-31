@@ -33,5 +33,5 @@ public interface ITaskService extends IService<Task> {
     boolean receiveTask(Long taskId, Long userId);
 
     // 新增方法：获取案件包及状态信息
-    Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName);
+    Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName,String taskStatus);
 }

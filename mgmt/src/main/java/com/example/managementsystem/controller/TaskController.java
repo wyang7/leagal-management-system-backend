@@ -86,8 +86,9 @@ public class TaskController {
     public Result<Map<String, Object>> getTaskPage(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String taskName) {
-        return Result.success(taskService.getTaskPage(pageNum, pageSize,taskName));
+            @RequestParam(required = false) String taskName,
+            @RequestParam(required = false) String taskStatus) {
+        return Result.success(taskService.getTaskPage(pageNum, pageSize,taskName,taskStatus));
     }
 
     /**

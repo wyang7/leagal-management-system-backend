@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS case_info (
     case_number VARCHAR(50) NOT NULL COMMENT '案件号',
     case_name VARCHAR(100) NOT NULL COMMENT '案由',
     task_id BIGINT COMMENT '绑定的任务ID',
-    status VARCHAR(20) NOT NULL COMMENT '案件状态：待发布->待领取->已领取->已完成',
+    status VARCHAR(20) NOT NULL COMMENT '案件状态：待领取->已领取->已完成',
     user_id BIGINT COMMENT '案件绑定用户ID',
     created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -88,3 +88,7 @@ ALTER TABLE case_info ADD COLUMN assistant_id BIGINT COMMENT '案件助理ID（�
 
 
 ALTER TABLE task ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT '待领取' COMMENT '案件包状态：待领取、已领取';
+
+
+ALTER TABLE `task`
+ADD COLUMN `owner_id` BIGINT(20) NULL COMMENT '归属人ID' AFTER `status`;
