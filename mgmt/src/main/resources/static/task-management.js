@@ -102,7 +102,7 @@ function renderTaskTable(tasks) {
             <td>${task.createdTime ? new Date(task.createdTime).toLocaleString() : ''}</td>
             <td>${task.caseCount || 0}</td>
             <td><span class="${statusClass}">${task.status}</span></td>
-            <td>${task.ownerId || '-'}</td>
+            <td>${task.ownerName || '-'}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="showEditTaskModal(${task.taskId})">
                     <i class="fa fa-edit"></i> 编辑
@@ -201,12 +201,14 @@ async function showEditTaskModal(taskId) {
         // 错误处理已在request函数中完成
     }
 }
-
 /**
  * 显示分派案件包给用户的模态框
  */
 function showAssignTaskToUserModal(taskId) {
     const modalContainer = document.getElementById('taskModalContainer');
+
+    // 先加载用户列表数据
+    loadUsersForDropdown();
 
     const modalHtml = `
     <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
@@ -220,8 +222,10 @@ function showAssignTaskToUserModal(taskId) {
                     <form id="assignTaskForm">
                         <input type="hidden" id="assignTaskId" value="${taskId}">
                         <div class="form-group">
-                            <label for="assignUserId">用户ID</label>
-                            <input type="number" id="assignUserId" class="form-control" required placeholder="请输入要分派的用户ID">
+                            <label for="assignUserId">选择用户</label>
+                            <select id="assignUserId" class="form-select" required>
+                                <option value="">加载用户中...</option>
+                            </select>
                         </div>
                     </form>
                 </div>
@@ -238,6 +242,47 @@ function showAssignTaskToUserModal(taskId) {
     const assignModal = new bootstrap.Modal(document.getElementById('assignTaskModal'));
     assignModal.show();
 }
+
+/**
+ * 加载用户列表到下拉框
+ */
+async function loadUsersForDropdown() {
+    try {
+        // 假设后端提供获取用户列表的接口
+        const users = await request('/user');
+        const userSelect = document.getElementById('assignUserId');
+
+        // 清空现有选项
+        userSelect.innerHTML = '';
+
+        // 添加默认选项
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '请选择用户';
+        userSelect.appendChild(defaultOption);
+
+        // 添加用户选项
+        if (users && users.length > 0) {
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.userId; // 提交时使用用户ID
+                option.textContent = user.username; // 显示用户名
+                userSelect.appendChild(option);
+            });
+        } else {
+            const noUserOption = document.createElement('option');
+            noUserOption.value = '';
+            noUserOption.textContent = '没有可用用户';
+            noUserOption.disabled = true;
+            userSelect.appendChild(noUserOption);
+        }
+    } catch (error) {
+        console.error('加载用户列表失败:', error);
+        const userSelect = document.getElementById('assignUserId');
+        userSelect.innerHTML = '<option value="">加载用户失败</option>';
+    }
+}
+
 
 /**
  * 确认分派案件包
@@ -335,107 +380,252 @@ async function deleteTask(taskId) {
 }
 
 /**
- * 显示关联案件给任务的模态框
- * @param {number} taskId 任务ID
+ * 显示关联案件到案件包的模态框
  */
-async function showAssignCasesToTaskModal(taskId) {
-    try {
-        // 获取所有案件
-        const cases = await request(`/case/filter-by-status?statusList=待领取&statusList=已完成&taskId=${taskId}`);
-        // 获取当前任务信息
-        const task = await request(`/task/${taskId}`);
-        
-        // 分离已关联和未关联的案件
-        const assignedCases = cases.filter(c => c.taskId === taskId);
-        const unassignedCases = cases.filter(c => !c.taskId || c.taskId !== taskId);
-        
-        // 创建案件列表HTML
-        let casesHtml = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6>未关联案件</h6>
-                <div class="list-group" style="max-height: 300px; overflow-y: auto;">
-        `;
-        
-        if (unassignedCases.length > 0) {
-            unassignedCases.forEach(caseInfo => {
-                casesHtml += `
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                     (ID: ${caseInfo.caseId}) ${caseInfo.caseName} (标的额: ${caseInfo.amount})
-                    <button class="btn btn-sm btn-primary" onclick="assignCaseToTask(${caseInfo.caseId}, ${taskId})">
-                        <i class="fa fa-plus"></i>
-                    </button>
-                </div>
-                `;
-            });
-        } else {
-            casesHtml += `<div class="list-group-item text-muted">没有可关联的案件</div>`;
-        }
-        
-        casesHtml += `
-                </div>
-            </div>
-            <div class="col-md-6">
-                <h6>已关联案件</h6>
-                <div class="list-group" style="max-height: 300px; overflow-y: auto;">
-        `;
-        
-        if (assignedCases.length > 0) {
-            assignedCases.forEach(caseInfo => {
-                casesHtml += `
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                    (ID: ${caseInfo.caseId}) ${caseInfo.caseName} (标的额: ${caseInfo.amount})
-                    <button class="btn btn-sm btn-danger" onclick="unassignCaseFromTask(${caseInfo.caseId})">
-                        <i class="fa fa-minus"></i>
-                    </button>
-                </div>
-                `;
-            });
-        } else {
-            casesHtml += `<div class="list-group-item text-muted">该任务暂无关联案件</div>`;
-        }
-        
-        casesHtml += `
-                </div>
-            </div>
-        </div>
-        `;
-        
-        // 创建模态框
+function showAssignCasesToTaskModal(taskId) {
+    const modalContainer = document.getElementById('taskModalContainer');
+
+    // 创建模态框并加载数据
+    function createAndLoadModal() {
         const modalHtml = `
-        <div class="modal fade" id="assignCasesToTaskModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
+        <div class="modal fade" id="assignCasesModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">关联案件 - ${task.taskName}</h5>
+                        <h5 class="modal-title">关联案件到案件包</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" id="currentTaskId" value="${taskId}">
-                        ${casesHtml}
+                        <div class="row">
+                            <!-- 左侧：可选案件 -->
+                            <div class="col-md-6">
+                                <h6>可选案件</h6>
+                                <div class="input-group mb-3">
+                                    <input type="text" id="availableCasesSearch" class="form-control" placeholder="搜索案由...">
+                                    <button class="btn btn-primary" onclick="searchAvailableCases(${taskId})">搜索</button>
+                                </div>
+                                <div class="overflow-auto" style="max-height: 400px;">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th><input type="checkbox" id="selectAllAvailable"></th>
+                                                <th>案件ID</th>
+                                                <th>案件号</th>
+                                                <th>案由</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="availableCasesTableBody">
+                                            <!-- 加载中 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- 右侧：已关联案件 -->
+                            <div class="col-md-6">
+                                <h6>已关联案件</h6>
+                                <div class="overflow-auto" style="max-height: 400px;">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th><input type="checkbox" id="selectAllAssigned"></th>
+                                                <th>案件ID</th>
+                                                <th>案件号</th>
+                                                <th>案由</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="assignedCasesTableBody">
+                                            <!-- 加载中 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-primary" onclick="confirmAssignCasesToTask()">确认关联</button>
+                        <button type="button" class="btn btn-danger" onclick="removeAssignedCases()">移除选中</button>
                     </div>
                 </div>
             </div>
         </div>
         `;
-        
-        // 添加到页面并显示
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = modalHtml;
-        document.body.appendChild(tempContainer);
-        
-        const assignModal = new bootstrap.Modal(document.getElementById('assignCasesToTaskModal'));
-        assignModal.show();
-        
-        // 模态框关闭后移除元素
-        document.getElementById('assignCasesToTaskModal').addEventListener('hidden.bs.modal', function() {
-            tempContainer.remove();
+
+        modalContainer.innerHTML = modalHtml;
+
+        // 加载案件数据
+        loadAvailableCases(taskId);
+        loadAssignedCases(taskId);
+
+        // 全选功能
+        document.getElementById('selectAllAvailable').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('#availableCasesTableBody input[type="checkbox"]');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
         });
+
+        document.getElementById('selectAllAssigned').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('#assignedCasesTableBody input[type="checkbox"]');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        });
+    }
+
+    // 检查模态框是否已存在
+    const existingModal = document.getElementById('assignCasesModal');
+    if (existingModal) {
+        // 关闭现有模态框并重新创建
+        const modalInstance = bootstrap.Modal.getInstance(existingModal);
+        modalInstance.hide();
+        // 等待模态框关闭后再重新创建
+        setTimeout(() => {
+            createAndLoadModal();
+            const newModal = new bootstrap.Modal(document.getElementById('assignCasesModal'));
+            newModal.show();
+        }, 300);
+    } else {
+        createAndLoadModal();
+        const modal = new bootstrap.Modal(document.getElementById('assignCasesModal'));
+        modal.show();
+    }
+}
+
+/**
+ * 加载可选案件（未关联到当前任务的案件）
+ */
+async function loadAvailableCases(taskId) {
+    try {
+        const searchTerm = document.getElementById('availableCasesSearch')?.value.trim() || '';
+        // 获取所有案件
+        const cases = await request(`/case/filter-by-status?statusList=待领取&statusList=已完成&taskId=${taskId}&caseName=${encodeURIComponent(searchTerm)}`);
+        const unassignedCases = cases.filter(c => !c.taskId);
+        const tableBody = document.getElementById('availableCasesTableBody');
+
+        if (!unassignedCases || unassignedCases.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="text-center">没有可关联的案件</td></tr>';
+            return;
+        }
+
+        let html = '';
+        unassignedCases.forEach(caseInfo => {
+            html += `
+            <tr>
+                <td><input type="checkbox" class="case-checkbox" value="${caseInfo.caseId}"></td>
+                <td>${caseInfo.caseId}</td>
+                <td>${caseInfo.caseNumber}</td>
+                <td>${caseInfo.caseName}</td>
+            </tr>
+            `;
+        });
+        tableBody.innerHTML = html;
     } catch (error) {
-        alert('加载案件列表失败');
+        document.getElementById('availableCasesTableBody').innerHTML =
+            '<tr><td colspan="4" class="text-center text-danger">加载失败</td></tr>';
+    }
+}
+
+
+/**
+ * 加载已关联案件
+ */
+async function loadAssignedCases(taskId) {
+    try {
+        const cases = await request(`/case/filter-by-status?statusList=待领取&statusList=已完成&taskId=${taskId}`);
+        const assignedCases = cases.filter(c => {
+            console.log("taskId"+c.taskId);
+           return  c.taskId === taskId
+        });
+        const tableBody = document.getElementById('assignedCasesTableBody');
+        if (!assignedCases || assignedCases.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="text-center">暂无关联案件</td></tr>';
+            return;
+        }
+
+        let html = '';
+        assignedCases.forEach(caseInfo => {
+            html += `
+            <tr>
+                <td><input type="checkbox" class="assigned-case-checkbox" value="${caseInfo.caseId}"></td>
+                <td>${caseInfo.caseId}</td>
+                <td>${caseInfo.caseNumber}</td>
+                <td>${caseInfo.caseName}</td>
+            </tr>
+            `;
+        });
+        tableBody.innerHTML = html;
+    } catch (error) {
+        document.getElementById('assignedCasesTableBody').innerHTML =
+            '<tr><td colspan="4" class="text-center text-danger">加载失败</td></tr>';
+    }
+}
+
+/**
+ * 搜索可选案件
+ */
+function searchAvailableCases(taskId) {
+    loadAvailableCases(taskId);
+}
+
+
+/**
+ * 确认关联案件到案件包
+ */
+async function confirmAssignCasesToTask() {
+    const taskId = parseInt(document.getElementById('currentTaskId').value);
+    const checkboxes = document.querySelectorAll('#availableCasesTableBody input[type="checkbox"]:checked');
+
+    if (checkboxes.length === 0) {
+        alert('请选择要关联的案件');
+        return;
+    }
+
+    const caseIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    try {
+        // 使用Promise.all等待所有关联操作完成
+        await Promise.all(
+            caseIds.map(caseId => assignCaseToTask(caseId, taskId))
+        );
+
+        // 所有关联操作完成后再刷新数据
+        await loadAvailableCases(taskId);
+        await loadAssignedCases(taskId);
+
+        // 显示成功提示
+        alert('案件关联成功');
+    } catch (error) {
+        alert('关联失败：' + (error.message || '未知错误'));
+    }
+}
+
+/**
+ * 移除已关联的案件
+ */
+async function removeAssignedCases() {
+    const taskId = parseInt(document.getElementById('currentTaskId').value);
+    const checkboxes = document.querySelectorAll('#assignedCasesTableBody input[type="checkbox"]:checked');
+
+    if (checkboxes.length === 0) {
+        alert('请选择要移除的案件');
+        return;
+    }
+
+    const caseIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    try {
+        // 使用Promise.all等待所有移除操作完成
+        await Promise.all(
+            caseIds.map(caseId => unassignCaseFromTask(caseId))
+        );
+
+        // 所有移除操作完成后再刷新数据
+        await loadAvailableCases(taskId);
+        await loadAssignedCases(taskId);
+
+        // 显示成功提示
+        alert('案件移除成功');
+    } catch (error) {
+        alert('移除失败：' + (error.message || '未知错误'));
     }
 }
 
@@ -450,14 +640,7 @@ async function assignCaseToTask(caseId, taskId) {
         const caseInfo = await request(`/case/${caseId}`);
         // 更新案件的任务ID
         caseInfo.taskId = taskId;
-        await request('/case', 'PUT', caseInfo);
-        
-        // 刷新关联列表
-        const modal = bootstrap.Modal.getInstance(document.getElementById('assignCasesToTaskModal'));
-        modal.hide();
-        loadTasks();
-        
-        alert('案件关联成功');
+        return await request('/case', 'PUT', caseInfo);
     } catch (error) {
         // 错误处理已在request函数中完成
     }
@@ -473,13 +656,7 @@ async function unassignCaseFromTask(caseId) {
         const caseInfo = await request(`/case/${caseId}`);
         // 移除任务ID
         caseInfo.taskId = null;
-        await request('/case/remove-task', 'PUT', caseInfo);
-        
-        // 刷新关联列表
-        const modal = bootstrap.Modal.getInstance(document.getElementById('assignCasesToTaskModal'));
-        modal.hide();
-        loadTasks();
-        alert('案件已解除关联');
+        return await request('/case/remove-task', 'PUT', caseInfo);
     } catch (error) {
         // 错误处理已在request函数中完成
     }

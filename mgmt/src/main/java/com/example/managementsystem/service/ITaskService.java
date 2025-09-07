@@ -26,8 +26,6 @@ public interface ITaskService extends IService<Task> {
      */
     boolean assignCasesToTask(Long taskId, List<Long> caseIds);
 
-    // 新增方法：分派案件包给指定用户
-    boolean assignTask(Long taskId, Long userId);
 
     // 新增方法：领取案件包
     boolean receiveTask(Long taskId, Long userId);

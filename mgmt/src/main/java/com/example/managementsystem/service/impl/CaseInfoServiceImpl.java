@@ -48,16 +48,18 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
+    public CaseInfo getCaseById(Long caseId) {
+        return baseMapper.selectById(caseId);
+    }
+
+    @Override
     public boolean receiveCase(Long caseId, Long userId) {
         CaseInfo caseInfo = getById(caseId);
         if (caseInfo == null) {
             return false;
         }
         
-        // 检查案件当前状态是否为"待领取"
-        if (!"待领取".equals(caseInfo.getStatus())) {
-            return false;
-        }
+
         
         // 更新案件状态为"已领取"并绑定用户
         caseInfo.setStatus("已领取");
@@ -154,8 +156,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId) {
-        return baseMapper.selectByStatusList(statusList,taskId);
+    public List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName) {
+        return baseMapper.selectByStatusList(statusList,taskId,caseName);
     }
 
 }

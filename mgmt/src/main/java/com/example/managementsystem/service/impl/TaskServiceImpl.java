@@ -3,8 +3,10 @@ package com.example.managementsystem.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.Task;
+import com.example.managementsystem.entity.User;
 import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.mapper.TaskMapper;
+import com.example.managementsystem.mapper.UserMapper;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.ITaskService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -33,6 +35,9 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
     @Autowired
     private CaseInfoMapper caseInfoMapper;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     public Task getTaskWithCases(Long taskId) {
         Task task = getById(taskId);
@@ -59,21 +64,6 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
         return true;
     }
 
-    /**
-     * 分派案件包给指定用户
-     */
-    @Override
-    @Transactional
-    public boolean assignTask(Long taskId, Long userId) {
-        Task task = getById(taskId);
-        if (task == null) {
-            return false;
-        }
-
-        // 更新案件包状态为待领取
-        task.setOwnerId(userId);
-        return updateById(task);
-    }
 
     /**
      * 领取案件包
@@ -82,7 +72,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
     @Transactional
     public boolean receiveTask(Long taskId, Long userId) {
         Task task = getById(taskId);
-        if (task == null || !"待领取".equals(task.getStatus())) {
+        if (task == null) {
             return false;
         }
 
@@ -128,6 +118,10 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
             for (Task task : records) {
                 int caseCount = caseInfoMapper.countByTaskId(task.getTaskId());
                 task.setCaseCount(caseCount);
+                User user = userMapper.selectById(task.getOwnerId());
+                if (user != null) {
+                    task.setOwnerName(user.getUsername());
+                }
             }
         }
 

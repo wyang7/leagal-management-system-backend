@@ -45,6 +45,9 @@ public class Task implements Serializable {
     @TableField("owner_id")
     private Long ownerId;
 
+    @TableField(exist = false)
+    private String ownerName;
+
     /**
      * 创建时间
      */

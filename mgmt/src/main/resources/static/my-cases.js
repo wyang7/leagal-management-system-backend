@@ -199,7 +199,6 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
-            <td>${caseInfo.createdTime ? new Date(caseInfo.createdTime).toLocaleString() : ''}</td>
             <td>
                 <!-- 只有已领取状态显示完成按钮 -->
                 ${caseInfo.status === '已领取' ? `

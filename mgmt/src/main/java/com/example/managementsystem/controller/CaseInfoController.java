@@ -41,9 +41,11 @@ public class CaseInfoController {
      * 根据状态筛选案件（支持多个状态）
      */
     @GetMapping("/filter-by-status")
-    public Result<List<CaseInfo>> filterCasesByStatus(@RequestParam List<String> statusList
-    ,@RequestParam Integer taskId) {
-        return Result.success(caseInfoService.getCasesByStatusList(statusList,taskId));
+    public Result<List<CaseInfo>> filterCasesByStatus(
+            @RequestParam List<String> statusList,
+            @RequestParam Integer taskId,
+            @RequestParam(required = false) String caseName) {
+        return Result.success(caseInfoService.getCasesByStatusList(statusList,taskId,caseName));
     }
 
     /**
@@ -242,13 +244,27 @@ public class CaseInfoController {
     }
 
     /**
+     * 分派案件
+     */
+    @PostMapping("/assign")
+    public Result<?> assignCase(@RequestBody Map<String, Object> params) {
+        Long caseId = Long.parseLong(params.get("caseId").toString());
+        Long userId = Long.parseLong(params.get("userId").toString());
+        
+        boolean success = caseInfoService.receiveCase(caseId, userId);
+        return success ? Result.success() : Result.fail("领取案件失败，可能案件状态不是待领取");
+    }
+    /**
      * 领取案件
      */
     @PostMapping("/receive")
     public Result<?> receiveCase(@RequestBody Map<String, Object> params) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         Long userId = Long.parseLong(params.get("userId").toString());
-        
+        CaseInfo caseById = caseInfoService.getCaseById(caseId);
+        if (caseById == null||!"待领取".equals(caseById.getStatus())) {
+            return Result.fail("案件不存在或不是待领取状态");
+        }
         boolean success = caseInfoService.receiveCase(caseId, userId);
         return success ? Result.success() : Result.fail("领取案件失败，可能案件状态不是待领取");
     }

@@ -29,7 +29,13 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * 根据状态查询案件
      */
     List<CaseInfo> getCasesByStatus(String status);
-    
+
+
+    /**
+     * 通过caseId查询案件
+     */
+    CaseInfo getCaseById(Long caseId);
+
     /**
      * 领取案件
      */
@@ -68,5 +74,5 @@ public interface ICaseInfoService extends IService<CaseInfo> {
 
     int removeTaskId(Long caseId);
 
-    List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId);
+    List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName);
 }

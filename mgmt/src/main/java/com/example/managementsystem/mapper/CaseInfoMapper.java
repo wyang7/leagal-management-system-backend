@@ -69,5 +69,6 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
 
 
     List<CaseInfo> selectByStatusList(@Param("statusList") List<String> statusList,
-                                      @Param("taskId") Integer taskId);
+                                      @Param("taskId") Integer taskId,
+                                      @Param("caseName") String caseName);
 }

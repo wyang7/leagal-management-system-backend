@@ -376,11 +376,9 @@ function renderCaseTable(cases) {
                 <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseInfo.caseId})">
                     <i class="fa fa-trash"></i> 删除
                 </button>
-                ${caseInfo.status === '待领取' ? `
                 <button class="btn btn-sm btn-success" onclick="showReceiveCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-handshake-o"></i> 分派案件
                 </button>
-                ` : ''}
                 ${caseInfo.status === '已领取' ? `
                 <button class="btn btn-sm btn-info" onclick="completeCase(${caseInfo.caseId})">
                     <i class="fa fa-check"></i> 完成
@@ -705,12 +703,6 @@ function createCaseModal(taskOptions, assistantOptions) {
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="caseTaskId">关联案件包（可选）</label>
-                                <select id="caseTaskId" class="form-control">
-                                    ${taskOptions}
-                                </select>
-                            </div>
-                            <div class="form-group">
                                 <label for="caseStatus">案件状态</label>
                                 <select id="caseStatus" class="form-control" required>
                                     <option value="待领取">待领取</option>
@@ -779,28 +771,31 @@ async function showAddCaseModal() {
 async function showEditCaseModal(caseId) {
     try {
         const caseInfo = await request(`/case/${caseId}`);
+        // 确保caseInfo是一个对象，避免后续访问时报错
+        const safeCaseInfo = caseInfo || {};
         const taskOptions = await loadTasksForCaseForm();
         const assistantOptions = await loadCaseAssistants();
         createCaseModal(taskOptions,assistantOptions);
         await loadCaseAssistants();
         
         // 填充表单数据
-        document.getElementById('handlerId').value = caseInfo.userId;
-        document.getElementById('assistantId').value = caseInfo.assistantId;
-        document.getElementById('caseId').value = caseInfo.caseId;
-        document.getElementById('caseNumber').value = caseInfo.caseNumber;
-        document.getElementById('caseName').value = caseInfo.caseName;
-        document.getElementById('caseAmount').value = caseInfo.amount;
-        document.getElementById('caseTaskId').value = caseInfo.taskId || '';
-        document.getElementById('caseAssistantId').value = caseInfo.assistantId || '';
-        document.getElementById('caseStatus').value = caseInfo.status;
-        document.getElementById('caseUserId').value = caseInfo.userId || '';
+        document.getElementById('caseAssistantId').value = safeCaseInfo.assistantId ?? '';
+        document.getElementById('caseId').value = safeCaseInfo.caseId ?? '';
+        document.getElementById('caseNumber').value = safeCaseInfo.caseNumber ?? '';
+        document.getElementById('caseName').value = safeCaseInfo.caseName ?? '';
+        document.getElementById('caseAmount').value = safeCaseInfo.amount ?? '';
+        document.getElementById('caseLocation').value = safeCaseInfo.caseLocation ?? '';
+        document.getElementById('courtReceiveTime').value = safeCaseInfo.courtReceiveTime ?? '';
+        document.getElementById('defendantName').value = safeCaseInfo.defendantName ?? '';
+        document.getElementById('plaintiffName').value = safeCaseInfo.plaintiffName ?? '';
+        document.getElementById('caseStatus').value = safeCaseInfo.status ?? '';
         document.getElementById('caseModalTitle').textContent = '编辑案件';
         
         // 显示模态框
         const caseModal = new bootstrap.Modal(document.getElementById('caseModal'));
         caseModal.show();
     } catch (error) {
+        console.error("异常:", error);
         // 错误处理已在request函数中完成
     }
 }
@@ -911,6 +906,9 @@ async function deleteCase(caseId) {
  * @param {number} caseId 案件ID
  */
 function showReceiveCaseModal(caseId) {
+    // 先加载用户列表数据
+    loadUsersForReceiveDropdown();
+
     // 创建领取案件模态框
     const modalHtml = `
     <div class="modal fade" id="receiveCaseModal" tabindex="-1" aria-hidden="true">
@@ -923,29 +921,31 @@ function showReceiveCaseModal(caseId) {
                 <div class="modal-body">
                     <input type="hidden" id="receiveCaseId" value="${caseId}">
                     <div class="form-group">
-                        <label for="receiveUserId">用户ID</label>
-                        <input type="number" id="receiveUserId" class="form-control" required placeholder="请输入领取案件的用户ID">
+                        <label for="receiveUserId">选择领取用户</label>
+                        <select id="receiveUserId" class="form-select" required>
+                            <option value="">加载用户中...</option>
+                        </select>
                     </div>
-                    <p class="text-muted mt-2">请输入要领取此案件的用户ID，领取后案件状态将变为"已领取"</p>
+                    <p class="text-muted mt-2">请选择要领取此案件的用户，领取后案件状态将变为"已领取"</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmReceiveCase()">确认分派案件</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmAssignCase()">确认分派案件</button>
                 </div>
             </div>
         </div>
     </div>
     `;
-    
+
     // 添加到页面
     const tempContainer = document.createElement('div');
     tempContainer.innerHTML = modalHtml;
     document.body.appendChild(tempContainer);
-    
+
     // 显示模态框
     const receiveModal = new bootstrap.Modal(document.getElementById('receiveCaseModal'));
     receiveModal.show();
-    
+
     // 模态框关闭后移除
     document.getElementById('receiveCaseModal').addEventListener('hidden.bs.modal', function() {
         tempContainer.remove();
@@ -953,9 +953,54 @@ function showReceiveCaseModal(caseId) {
 }
 
 /**
- * 确认领取案件
+ * 加载可领取案件的用户列表到下拉框
  */
-async function confirmReceiveCase() {
+async function loadUsersForReceiveDropdown() {
+    try {
+        // 调用获取用户列表的接口（与案件包分配共用同一接口或专用接口）
+        const users = await request('/user');
+        const userSelect = document.getElementById('receiveUserId');
+
+        if (!userSelect) return; // 防止DOM未加载完成的情况
+
+        // 清空现有选项
+        userSelect.innerHTML = '';
+
+        // 添加默认选项
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '请选择领取用户';
+        userSelect.appendChild(defaultOption);
+
+        // 添加用户选项
+        if (users && users.length > 0) {
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.userId; // 提交时使用用户ID
+                option.textContent = user.username; // 显示用户名
+                userSelect.appendChild(option);
+            });
+        } else {
+            const noUserOption = document.createElement('option');
+            noUserOption.value = '';
+            noUserOption.textContent = '没有可用用户';
+            noUserOption.disabled = true;
+            userSelect.appendChild(noUserOption);
+        }
+    } catch (error) {
+        console.error('加载领取用户列表失败:', error);
+        const userSelect = document.getElementById('receiveUserId');
+        if (userSelect) {
+            userSelect.innerHTML = '<option value="">加载用户失败</option>';
+        }
+    }
+}
+
+
+/**
+ * 确认分派案件
+ */
+async function confirmAssignCase() {
     const caseId = document.getElementById('receiveCaseId').value;
     const userId = document.getElementById('receiveUserId').value.trim();
     
@@ -965,7 +1010,7 @@ async function confirmReceiveCase() {
     }
     
     try {
-        await request('/case/receive', 'POST', {
+        await request('/case/assign', 'POST', {
             caseId: parseInt(caseId),
             userId: parseInt(userId)
         });

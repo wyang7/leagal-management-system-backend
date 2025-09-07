@@ -112,12 +112,18 @@
 
     <select id="selectByStatusList" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT * FROM case_info
-        WHERE status IN
+        WHERE 1=1
+        AND (
+        status IN
         <foreach collection="statusList" item="status" open="(" separator="," close=")">
             #{status}
         </foreach>
         <if test="taskId != null and taskId != ''">
             OR (status='已领取' AND task_id=#{taskId})
+        </if>
+        )
+        <if test="caseName != null and caseName != ''">
+           AND case_name LIKE CONCAT('%', #{caseName}, '%')
         </if>
 
     </select>
