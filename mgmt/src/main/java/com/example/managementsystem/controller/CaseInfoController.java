@@ -232,7 +232,17 @@ public class CaseInfoController {
         return success>0 ? Result.success() : Result.fail("更新案件失败");
     }
 
-
+    /**
+     * 获取案件详情（包含完成情况）
+     */
+    @GetMapping("/detail/{id}")
+    public Result<CaseInfo> getCaseDetail(@PathVariable Long id) {
+        CaseInfo caseInfo = caseInfoService.getById(id);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+        return Result.success(caseInfo);
+    }
 
     /**
      * 删除案件

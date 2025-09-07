@@ -82,8 +82,121 @@ function loadCaseManagementPage() {
     
     // 创建案件模态框容器
     createCaseModalContainer();
+    // 创建案件详情模态框容器
+    createCaseDetailModalContainer();
     // 加载案件列表（默认第一页）
     loadCases(1, 10);
+}
+
+/**
+ * 创建案件详情模态框容器
+ */
+function createCaseDetailModalContainer() {
+    if (!document.getElementById('caseDetailModalContainer')) {
+        const container = document.createElement('div');
+        container.id = 'caseDetailModalContainer';
+        document.body.appendChild(container);
+    }
+}
+
+/**
+ * 显示案件详情模态框（与my-cases.js中的实现相同，可以考虑抽取到common.js中复用）
+ * @param {number} caseId 案件ID
+ */
+async function showCaseDetailModal(caseId) {
+    try {
+        const caseInfo = await request(`/case/detail/${caseId}`);
+        const modalContainer = document.getElementById('caseDetailModalContainer');
+
+        // 格式化日期
+        const formatDate = (dateStr) => {
+            return dateStr ? new Date(dateStr).toLocaleString() : '-';
+        };
+
+        // 创建模态框
+        const modalHtml = `
+        <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">案件详情</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>案件ID:</strong> ${caseInfo.caseId}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>案件号:</strong> ${caseInfo.caseNumber || '-'}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>案由:</strong> ${caseInfo.caseName || '-'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>标的额:</strong> ${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>案件归属地:</strong> ${caseInfo.caseLocation || '-'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>法院收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>原告:</strong> ${caseInfo.plaintiffName || '-'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>被告:</strong> ${caseInfo.defendantName || '-'}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>案件助理:</strong> ${caseInfo.assistantName || '-'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>关联案件包:</strong> ${caseInfo.taskName || '-'}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>状态:</strong> ${caseInfo.status || '-'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>处理人:</strong> ${caseInfo.userName || '-'}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <strong>完成情况:</strong>
+                                <div class="mt-2 p-3 bg-light rounded">
+                                    ${caseInfo.completionNotes || '无'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+
+        modalContainer.innerHTML = modalHtml;
+
+        // 显示模态框
+        const detailModal = new bootstrap.Modal(document.getElementById('caseDetailModal'));
+        detailModal.show();
+    } catch (error) {
+        console.error('获取案件详情失败:', error);
+        alert('获取案件详情失败');
+    }
 }
 
 /**
@@ -372,6 +485,9 @@ function renderCaseTable(cases) {
                 </button>
                 <button class="btn btn-sm btn-primary" onclick="showEditCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-edit"></i> 编辑
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="showCaseDetailModal(${caseInfo.caseId})">
+                    <i class="fa fa-eye"></i> 详情
                 </button>
                 <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseInfo.caseId})">
                     <i class="fa fa-trash"></i> 删除
