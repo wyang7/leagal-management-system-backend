@@ -114,6 +114,6 @@ public class TaskController {
             return Result.fail("分派案件包失败，当前状态不允许领取");
         }
         boolean success = taskService.receiveTask(taskId, userId);
-        return success ? Result.success() : Result.fail("领取案件包失败，可能案件包状态不是待领取");
+        return success ? Result.success() : Result.fail("领取案件包失败，当前案件已到达领取上限");
     }
 }

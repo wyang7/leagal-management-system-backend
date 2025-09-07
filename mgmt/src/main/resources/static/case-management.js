@@ -702,6 +702,12 @@ function createCaseModal(taskOptions, assistantOptions) {
                                     ${assistantOptions}
                                 </select>
                             </div>
+                            <div class="form-group" hidden="hidden">
+                                <label for="caseTaskId">关联案件包（可选）</label>
+                                <select id="caseTaskId" class="form-control">
+                                    ${taskOptions}
+                                </select>
+                            </div>
                             <div class="form-group">
                                 <label for="caseStatus">案件状态</label>
                                 <select id="caseStatus" class="form-control" required>
@@ -789,6 +795,7 @@ async function showEditCaseModal(caseId) {
         document.getElementById('defendantName').value = safeCaseInfo.defendantName ?? '';
         document.getElementById('plaintiffName').value = safeCaseInfo.plaintiffName ?? '';
         document.getElementById('caseStatus').value = safeCaseInfo.status ?? '';
+        document.getElementById('caseTaskId').value = caseInfo.taskId || '';
         document.getElementById('caseModalTitle').textContent = '编辑案件';
         
         // 显示模态框

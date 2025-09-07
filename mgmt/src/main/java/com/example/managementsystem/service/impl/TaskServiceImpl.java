@@ -71,6 +71,12 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
     @Override
     @Transactional
     public boolean receiveTask(Long taskId, Long userId) {
+
+        int count = caseInfoMapper.countActiveByUserId(userId);
+        if (count > 4) {
+            return false;
+        }
+
         Task task = getById(taskId);
         if (task == null) {
             return false;

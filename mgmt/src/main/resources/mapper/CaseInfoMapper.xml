@@ -31,6 +31,16 @@
         </if>
     </select>
 
+    <!-- 根据用户ID查询生效的案件 -->
+    <select id="countActiveByUserId" resultType="int">
+        SELECT COUNT(*) FROM case_info
+        WHERE status='已领取'
+        <if test="userId != null and userId != ''">
+            AND user_id = #{userId}
+        </if>
+
+    </select>
+
     <!-- 分页查询案件 -->
     <select id="selectCasePage" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT *,a.username as assistantName, t.task_name as taskName  FROM case_info c

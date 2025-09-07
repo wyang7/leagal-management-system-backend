@@ -58,6 +58,11 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      */
     int countByTaskId(@Param("taskId") Long taskId);
 
+    /*
+     * 根据用户ID查询在线案件数量
+     */
+    int countActiveByUserId(@Param("userId") Long userId);
+
 
     /**
      * 分页查询案件

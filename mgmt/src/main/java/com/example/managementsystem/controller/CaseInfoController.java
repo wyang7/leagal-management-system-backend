@@ -252,7 +252,7 @@ public class CaseInfoController {
         Long userId = Long.parseLong(params.get("userId").toString());
         
         boolean success = caseInfoService.receiveCase(caseId, userId);
-        return success ? Result.success() : Result.fail("领取案件失败，可能案件状态不是待领取");
+        return success ? Result.success() : Result.fail("领取案件失败，案件状态不是待领取或当前已到达领取上限");
     }
     /**
      * 领取案件
@@ -266,7 +266,7 @@ public class CaseInfoController {
             return Result.fail("案件不存在或不是待领取状态");
         }
         boolean success = caseInfoService.receiveCase(caseId, userId);
-        return success ? Result.success() : Result.fail("领取案件失败，可能案件状态不是待领取");
+        return success ? Result.success() : Result.fail("领取案件失败，当前已到达领取上限");
     }
 
     /**

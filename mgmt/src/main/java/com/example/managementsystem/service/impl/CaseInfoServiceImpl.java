@@ -26,6 +26,9 @@ import java.util.Map;
 @Service
 public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> implements ICaseInfoService {
 
+
+
+
     @Override
     public List<CaseInfo> getCasesByTaskId(Long taskId) {
         return baseMapper.selectByTaskId(taskId);
@@ -54,13 +57,15 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
     @Override
     public boolean receiveCase(Long caseId, Long userId) {
+
+        int count = baseMapper.countActiveByUserId(userId);
+        if (count>4){
+            return false;
+        }
         CaseInfo caseInfo = getById(caseId);
         if (caseInfo == null) {
             return false;
         }
-        
-
-        
         // 更新案件状态为"已领取"并绑定用户
         caseInfo.setStatus("已领取");
         caseInfo.setUserId(userId);
