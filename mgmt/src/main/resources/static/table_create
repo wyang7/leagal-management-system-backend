@@ -1,0 +1,96 @@
+create table management_system.case_info
+(
+    case_id            bigint auto_increment comment '案件ID'
+        primary key,
+    case_number        varchar(50)                           not null comment '案件号',
+    case_name          varchar(100)                          not null comment '案件名',
+    task_id            bigint                                null comment '绑定的任务ID',
+    status             varchar(20)                           not null comment '案件状态：待发布->待领取->已领取->已完成',
+    user_id            bigint                                null comment '案件绑定用户ID',
+    created_time       timestamp default CURRENT_TIMESTAMP   null comment '创建时间',
+    updated_time       timestamp default CURRENT_TIMESTAMP   null on update CURRENT_TIMESTAMP comment '更新时间',
+    amount             decimal(10, 2)                        null comment '标的额（精确到小数点后两位）',
+    completion_notes   text                                  null comment '案件完成情况说明',
+    case_location      enum ('九堡', '彭埠', '笕桥', '本部') null comment '案件归属地',
+    court_receive_time datetime                              null comment '法院收案时间',
+    plaintiff_name     varchar(255)                          null comment '原告',
+    defendant_name     varchar(255)                          null comment '被告',
+    assistant_id       bigint                                null comment '案件助理ID（关联user表user_id）',
+    return_reason      text                                  null comment '退回原因',
+    constraint uk_case_number
+        unique (case_number),
+    constraint fk_case_task
+        foreign key (task_id) references management_system.task (task_id)
+            on delete set null,
+    constraint fk_case_user
+        foreign key (user_id) references management_system.user (user_id)
+            on delete set null
+)
+    comment '案件表' charset = utf8mb4;
+
+create index idx_status
+    on management_system.case_info (status);
+
+create index idx_task_id
+    on management_system.case_info (task_id);
+
+create index idx_user_id
+    on management_system.case_info (user_id);
+
+
+
+create table management_system.role
+(
+    role_id      bigint auto_increment comment '角色ID'
+        primary key,
+    role_name    varchar(50)                         not null comment '角色名',
+    role_type    varchar(20)                         not null comment '角色类型（管理员、调解员）',
+    created_time timestamp default CURRENT_TIMESTAMP null comment '创建时间',
+    updated_time timestamp default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    constraint uk_role_name
+        unique (role_name)
+)
+    comment '角色表' charset = utf8mb4;
+
+
+create table management_system.task
+(
+    task_id      bigint auto_increment comment '任务ID'
+        primary key,
+    task_name    varchar(100)                          not null comment '任务名',
+    created_time timestamp   default CURRENT_TIMESTAMP null comment '创建时间',
+    updated_time timestamp   default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    status       varchar(20) default '待领取'          not null comment '案件包状态：待领取、已领取',
+    owner_id     bigint                                null comment '归属人ID',
+    constraint uk_task_name
+        unique (task_name)
+)
+    comment '任务表' charset = utf8mb4;
+
+
+
+create table management_system.user
+(
+    user_id      bigint auto_increment comment '用户ID'
+        primary key,
+    username     varchar(50)                          not null comment '用户名',
+    password     varchar(255)                         not null comment '密码（加密存储）',
+    status       tinyint(1) default 1                 not null comment '账号状态（1-正常，0-禁用）',
+    role_id      bigint                               null comment '关联角色ID',
+    created_time timestamp  default CURRENT_TIMESTAMP null comment '创建时间',
+    updated_time timestamp  default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    constraint uk_username
+        unique (username),
+    constraint fk_user_role
+        foreign key (role_id) references management_system.role (role_id)
+)
+    comment '用户表' charset = utf8mb4;
+
+create index idx_role_id
+    on management_system.user (role_id);
+
+create index idx_username
+    on management_system.user (username);
+
+
+
