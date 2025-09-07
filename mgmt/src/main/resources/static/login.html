@@ -83,8 +83,9 @@
 
     try {
       const user = await request('/auth/login', 'POST', { username, password });
-      if (user!== null) {
+      if (user) {
         // 登录成功，跳转到首页
+        console.info("跳转主页");
         window.location.href = 'index.html';
       } else {
         alert('登录失败');

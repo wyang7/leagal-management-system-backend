@@ -80,6 +80,7 @@ public class LoginController {
         userSession.setLoginTime(new Date(System.currentTimeMillis()));
 
         session.setAttribute("currentUser", userSession);
+        session.setAttribute("loginUser", user);
         return Result.success(user);
     }
 
