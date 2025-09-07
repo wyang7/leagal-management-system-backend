@@ -40,6 +40,8 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * 领取案件
      */
     boolean receiveCase(Long caseId, Long userId);
+
+    boolean returnCase(Long caseId, String returnReason);
     
     /**
      * 更新案件状态

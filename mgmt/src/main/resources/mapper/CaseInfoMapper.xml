@@ -41,6 +41,15 @@
 
     </select>
 
+
+    <update id="updateReturnStatus">
+        UPDATE case_info
+        SET status = #{status},
+            return_reason = #{returnReason},
+            update_time = NOW()
+        WHERE case_id = #{caseId}
+    </update>
+
     <!-- 分页查询案件 -->
     <select id="selectCasePage" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT *,a.username as assistantName, t.task_name as taskName  FROM case_info c

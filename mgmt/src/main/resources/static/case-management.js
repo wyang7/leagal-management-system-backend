@@ -11,7 +11,7 @@ function loadCaseManagementPage() {
         
         <!-- 搜索和新增区域 -->
         <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="col-md-4">  <!-- 搜索框占4列 -->
                 <div class="input-group">
                     <input type="text" id="caseSearchInput" class="form-control" placeholder="输入案由搜索">
                     <button class="btn btn-primary" onclick="loadCases()">
@@ -19,18 +19,14 @@ function loadCaseManagementPage() {
                     </button>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-8 d-flex justify-content-end gap-2">  <!-- 按钮区域占8列，右对齐并添加间距 -->
                 <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="importCasesFromExcel(event)">
                 <button class="btn btn-secondary" onclick="document.getElementById('excelFileInput').click()">
                     <i class="fa fa-upload"></i> 导入Excel
                 </button>
-            </div>
-            <div class="col-md-6 text-end">
                 <button class="btn btn-success" onclick="showAddCaseModal()">
                     <i class="fa fa-plus"></i> 新增案件
                 </button>
-            </div>
-            <div class="col-md-6 text-end">
                 <button class="btn btn-success" onclick="showBatchAssignTaskModal()">
                     <i class="fa fa-plus"></i> 批量关联案件包
                 </button>
@@ -45,6 +41,7 @@ function loadCaseManagementPage() {
                     <button class="btn btn-outline-primary" onclick="filterCases('待领取')">待领取</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
+                    <button class="btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
                 </div>
             </div>
         </div>
@@ -462,6 +459,9 @@ function renderCaseTable(cases) {
             case '已完成':
                 statusClass = 'status-completed';
                 break;
+            case '退回':
+                statusClass = 'status-returned';
+                break;
         }
         
         html += `
@@ -498,6 +498,11 @@ function renderCaseTable(cases) {
                 ${caseInfo.status === '已领取' ? `
                 <button class="btn btn-sm btn-info" onclick="completeCase(${caseInfo.caseId})">
                     <i class="fa fa-check"></i> 完成
+                </button>
+                ` : ''}
+                ${caseInfo.status === '已领取' ? `
+                <button class="btn btn-sm btn-warning" onclick="returnCase(${caseInfo.caseId})">
+                    <i class="fa fa-check"></i> 退回
                 </button>
                 ` : ''}
             </td>
@@ -1191,6 +1196,31 @@ async function completeCase(caseId) {
         // 重新加载案件列表
         loadCases();
         alert('案件已标记为已完成');
+    } catch (error) {
+        // 错误处理已在request函数中完成
+    }
+}
+
+
+
+/**
+ * 完成案件（状态从已领取变为退回）
+ * @param {number} caseId 案件ID
+ */
+async function returnCase(caseId) {
+    if (!confirm('确定要标记这个案件为退回吗？')) {
+        return;
+    }
+
+    try {
+        await request('/case/update-status', 'POST', {
+            caseId: caseId,
+            status: '退回'
+        });
+
+        // 重新加载案件列表
+        loadCases();
+        alert('案件已标记为退回');
     } catch (error) {
         // 错误处理已在request函数中完成
     }

@@ -92,3 +92,5 @@ ALTER TABLE task ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT '待领取' CO
 
 ALTER TABLE `task`
 ADD COLUMN `owner_id` BIGINT(20) NULL COMMENT '归属人ID' AFTER `status`;
+
+ALTER TABLE case_info ADD COLUMN return_reason TEXT NULL COMMENT '退回原因';

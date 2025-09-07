@@ -74,6 +74,12 @@ public class CaseInfo implements Serializable {
     private String completionNotes;
 
     /**
+     * 退回原因（新增字段）
+     */
+    @TableField("return_reason")
+    private String returnReason;
+
+    /**
      * 案件归属地
      */
     @TableField("case_location")

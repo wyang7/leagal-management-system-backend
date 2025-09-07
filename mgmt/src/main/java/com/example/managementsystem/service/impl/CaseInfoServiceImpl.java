@@ -97,6 +97,21 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         return baseMapper.selectMyCasesWithUsername(userId);
     }
 
+    @Override
+    public boolean returnCase(Long caseId, String returnReason) {
+        CaseInfo caseInfo = getById(caseId);
+        if (caseInfo == null) {
+            return false;
+        }
+
+        // 验证状态是否为已领取
+        if (!"已领取".equals(caseInfo.getStatus())) {
+            return false;
+        }
+
+        // 更新为退回状态
+        return baseMapper.updateReturnStatus(caseId, "退回", returnReason) > 0;
+    }
 
     @Override
     public String genCaseNumber() {

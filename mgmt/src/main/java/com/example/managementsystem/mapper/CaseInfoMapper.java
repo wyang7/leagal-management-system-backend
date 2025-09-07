@@ -63,6 +63,10 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      */
     int countActiveByUserId(@Param("userId") Long userId);
 
+    // 新增方法
+    int updateReturnStatus(@Param("caseId") Long caseId,
+                           @Param("status") String status,
+                           @Param("returnReason") String returnReason);
 
     /**
      * 分页查询案件

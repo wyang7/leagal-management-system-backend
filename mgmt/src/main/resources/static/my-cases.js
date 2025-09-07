@@ -323,12 +323,90 @@ function renderMyCaseTable(cases) {
                     <i class="fa fa-check"></i> 完成
                 </button>
                 ` : ''}
+                ${caseInfo.status === '已领取' ? `
+                <button class="btn btn-sm btn-info" onclick="showCompleteCaseModal(${caseInfo.caseId})">
+                    <i class="fa fa-check"></i> 完成
+                </button>
+                <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
+                    <i class="fa fa-undo"></i> 退回
+                </button>
+                ` : ''}
             </td>
         </tr>
         `;
     });
 
     tableBody.innerHTML = html;
+}
+
+
+/**
+ * 显示退回案件模态框
+ * @param {number} caseId 案件ID
+ */
+function showReturnCaseModal(caseId) {
+    const modalContainer = document.getElementById('completeCaseModalContainer');
+
+    // 创建模态框
+    const modalHtml = `
+    <div class="modal fade" id="returnCaseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">退回案件原因</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="returnCaseForm">
+                        <input type="hidden" id="returnCaseId" value="${caseId}">
+                        <div class="form-group">
+                            <label for="returnReason">请输入退回原因</label>
+                            <textarea id="returnReason" class="form-control" rows="5" required placeholder="请详细描述退回原因..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-warning" onclick="submitCaseReturn()">提交退回</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    modalContainer.innerHTML = modalHtml;
+
+    // 显示模态框
+    const returnModal = new bootstrap.Modal(document.getElementById('returnCaseModal'));
+    returnModal.show();
+}
+
+/**
+ * 提交案件退回
+ */
+async function submitCaseReturn() {
+    const caseId = document.getElementById('returnCaseId').value;
+    const returnReason = document.getElementById('returnReason').value.trim();
+
+    if (!returnReason) {
+        alert('请输入退回原因');
+        return;
+    }
+
+    try {
+        await request('/case/return', 'POST', {
+            caseId: caseId,
+            returnReason: returnReason
+        });
+
+        // 关闭模态框并刷新列表
+        const returnModal = bootstrap.Modal.getInstance(document.getElementById('returnCaseModal'));
+        returnModal.hide();
+        loadMyCases();
+        alert('案件已成功退回');
+    } catch (error) {
+        alert('退回失败: ' + (error.message || '未知错误'));
+    }
 }
 
 /**

@@ -245,6 +245,22 @@ public class CaseInfoController {
     }
 
     /**
+     * 退回案件（包含退回原因）
+     */
+    @PostMapping("/return")
+    public Result<?> returnCase(@RequestBody Map<String, Object> params) {
+        Long caseId = Long.parseLong(params.get("caseId").toString());
+        String returnReason = params.get("returnReason").toString();
+
+        if (StringUtils.isEmpty(returnReason)) {
+            return Result.fail("请输入退回原因");
+        }
+
+        boolean success = caseInfoService.returnCase(caseId, returnReason);
+        return success ? Result.success() : Result.fail("退回案件失败，案件状态不是已领取");
+    }
+
+    /**
      * 删除案件
      */
     @DeleteMapping("/{id}")
