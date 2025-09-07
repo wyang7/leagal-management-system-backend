@@ -45,8 +45,7 @@
     <update id="updateReturnStatus">
         UPDATE case_info
         SET status = #{status},
-            return_reason = #{returnReason},
-            update_time = NOW()
+            return_reason = #{returnReason}
         WHERE case_id = #{caseId}
     </update>
 
