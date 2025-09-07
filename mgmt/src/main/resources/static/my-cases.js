@@ -322,10 +322,9 @@ function renderMyCaseTable(cases) {
                 <button class="btn btn-sm btn-info" onclick="showCompleteCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-check"></i> 完成
                 </button>
-                ` : ''}
                 <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-undo"></i> 退回
-                </button>
+                                                    <i class="fa fa-undo"></i> 退回
+                                                </button>
                 ` : ''}
             </td>
         </tr>
