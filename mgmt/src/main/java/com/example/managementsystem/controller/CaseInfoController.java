@@ -255,6 +255,14 @@ public class CaseInfoController {
         if (StringUtils.isEmpty(returnReason)) {
             return Result.fail("请输入退回原因");
         }
+        CaseInfo caseById = caseInfoService.getCaseById(caseId);
+        if (caseById == null) {
+            return Result.fail("案件不存在");
+        }
+        Long mediatorReceiveTime = caseById.getMediatorReceiveTime();
+        if (mediatorReceiveTime != null && System.currentTimeMillis()-mediatorReceiveTime < 24*60*60*1000) {
+            return Result.fail("案件不允许在领取后24小时之内退回");
+        }
 
         boolean success = caseInfoService.returnCase(caseId, returnReason);
         return success ? Result.success() : Result.fail("退回案件失败，案件状态不是已领取");

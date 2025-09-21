@@ -92,6 +92,12 @@ public class CaseInfo implements Serializable {
     private String courtReceiveTime;
 
     /**
+     * 调解员领取时间
+     */
+    @TableField("mediator_receive_time")
+    private Long mediatorReceiveTime;
+
+    /**
      * 原告
      */
     @TableField("plaintiff_name")

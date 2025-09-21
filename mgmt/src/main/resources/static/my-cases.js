@@ -231,7 +231,7 @@ async function loadMyCases() {
  */
 async function searchMyCases() {
     const caseName = document.getElementById('myCaseSearchInput').value.trim();
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     try {
         let cases;
         if (caseName) {
@@ -251,7 +251,7 @@ async function searchMyCases() {
  * 根据状态筛选我的案件
  */
 async function filterMyCases(status) {
-    const userId = getCurrentUserId();
+    const userId = await getCurrentUserId();
     try {
         let cases = await request(`/case/my-cases?userId=${userId}`);
         if (status !== 'all') {
