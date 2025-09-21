@@ -77,4 +77,6 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     int removeTaskId(Long caseId);
 
     List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName);
+
+    boolean save(CaseInfo caseInfo);
 }

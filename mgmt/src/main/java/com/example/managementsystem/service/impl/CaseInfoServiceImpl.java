@@ -3,9 +3,12 @@ package com.example.managementsystem.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.managementsystem.entity.CaseInfo;
+import com.example.managementsystem.entity.User;
 import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.managementsystem.service.IUserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
@@ -26,7 +29,8 @@ import java.util.Map;
 @Service
 public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> implements ICaseInfoService {
 
-
+    @Autowired
+    private IUserService userService;
 
 
     @Override
@@ -178,6 +182,21 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName) {
         return baseMapper.selectByStatusList(statusList,taskId,caseName);
+    }
+
+    @Override
+    public boolean save(CaseInfo caseInfo) {
+        if (caseInfo==null) {
+            return false;
+        }
+        if (caseInfo.getAssistantId()==null) {
+            String caseLocation = caseInfo.getCaseLocation();
+            User assistantByCaseLocation = userService.getAssistantByCaseLocation(caseLocation);
+            if (assistantByCaseLocation != null) {
+                caseInfo.setAssistantId(assistantByCaseLocation.getUserId());
+            }
+        }
+        return super.save(caseInfo);
     }
 
 }
