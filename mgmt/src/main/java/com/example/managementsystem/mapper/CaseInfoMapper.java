@@ -46,6 +46,8 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     List<CaseInfo> selectCasesByStatusWithUsername(String status);
 
     List<CaseInfo> selectMyCasesWithUsername(Long userId);
+    //助理案件
+    List<CaseInfo> selectAssistantCasesWithUsername(Long userId);
 
 
     /**

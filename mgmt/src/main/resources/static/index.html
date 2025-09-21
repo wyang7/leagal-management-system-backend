@@ -168,6 +168,7 @@
 <script src="task-management.js"></script>
 <script src="task-receive.js"></script>
 <script src="my-cases.js"></script>
+<script src="assistant-cases.js"></script>
 <script>
     // 页面加载时检查登录状态并获取用户信息
     window.onload = function() {
@@ -199,19 +200,19 @@
     async function loadSidebarNav(userInfo) {
         const sidebarNav = document.getElementById('sidebarNav');
         let navHtml = '';
-
         // 所有用户都能看到的基础导航
         navHtml += `
-        <li class="nav-item">
-            <a href="#" class="nav-link" onclick="loadMyCasesPage()">
-                <i class="fa fa-inbox me-2"></i>我的案件
-            </a>
-        </li>
-    `;
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadMyCasesPage()">
+                    <i class="fa fa-inbox me-2"></i>我的案件
+                </a>
+            </li>
+        `;
 
         // 判断是否为系统管理员（通过roleId关联角色表查询角色名称）
         // 由于UserSession中只有roleId，需要额外查询角色信息
         let isSystemAdmin = false;
+        let isAssistant = false;
         try {
             // 获取角色信息
             const roles = await request('/role');
@@ -221,6 +222,10 @@
             if (userRole && userRole.roleName && userRole.roleName.includes('系统管理员')) {
                 isSystemAdmin = true;
             }
+            // 检查角色名称是否包含"案件助理"
+            if (userRole && userRole.roleName && userRole.roleName.includes('案件助理')) {
+                isAssistant = true;
+            }
             if (null==userRole){
                 isSystemAdmin=null;
             }
@@ -229,15 +234,7 @@
         }
 
         // 系统管理员额外可见菜单
-        if (null!=isSystemAdmin && (!isSystemAdmin)){
-            navHtml += `
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
-                    <i class="fa fa-inbox me-2"></i>领取案件
-                </a>
-            </li>
-            `;
-        }else if (null!=isSystemAdmin && isSystemAdmin) {
+         if (null!=isSystemAdmin && isSystemAdmin) {
             navHtml += `
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
@@ -265,7 +262,23 @@
                 </a>
             </li>
         `;
-        }
+        }else if (isAssistant){
+             navHtml += `
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadAssistantCasesPage()">
+                    <i class="fa fa-inbox me-2"></i>助理案件跟踪
+                </a>
+            </li>
+            `;
+        }else if (null!=isSystemAdmin && (!isSystemAdmin)){
+             navHtml += `
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
+                    <i class="fa fa-inbox me-2"></i>领取案件
+                </a>
+            </li>
+            `;
+         }
 
         sidebarNav.innerHTML = navHtml;
         // 设置默认选中"我的案件"

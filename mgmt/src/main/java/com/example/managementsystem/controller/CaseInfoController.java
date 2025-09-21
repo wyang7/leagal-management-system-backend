@@ -383,6 +383,13 @@ public class CaseInfoController {
     public Result<List<CaseInfo>> getMyCases(@RequestParam Long userId) {
         return Result.success(caseInfoService.getMyCases(userId));
     }
+    /**
+     * 获取当前用户的案件
+     */
+    @GetMapping("/assistant-cases")
+    public Result<List<CaseInfo>> getAssistantCases(@RequestParam Long userId) {
+        return Result.success(caseInfoService.getAssistantCases(userId));
+    }
 
     /**
      * 完成案件（包含完成情况）

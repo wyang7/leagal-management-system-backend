@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +100,11 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public List<CaseInfo> getMyCases(Long userId) {
         return baseMapper.selectMyCasesWithUsername(userId);
+    }
+
+    @Override
+    public List<CaseInfo> getAssistantCases(Long userId) {
+        return baseMapper.selectAssistantCasesWithUsername(userId);
     }
 
     @Override

@@ -53,6 +53,8 @@ public interface ICaseInfoService extends IService<CaseInfo> {
 
     List<CaseInfo> getMyCases(Long userId);
 
+    List<CaseInfo> getAssistantCases(Long userId);
+
 
     String genCaseNumber();
 

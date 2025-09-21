@@ -127,6 +127,18 @@
             c.user_id = #{userId}
     </select>
 
+    <select id="selectAssistantCasesWithUsername" resultType="com.example.managementsystem.entity.CaseInfo">
+        SELECT
+            c.*,
+            u.username
+        FROM
+            case_info c
+                LEFT JOIN
+            user u ON c.assistant_id = u.user_id
+        WHERE
+            c.assistant_id = #{userId}
+    </select>
+
 
     <select id="selectByStatusList" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT * FROM case_info
