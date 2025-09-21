@@ -85,6 +85,12 @@ public class CaseInfo implements Serializable {
     @TableField("pre_feedback")
     private String preFeedback;
 
+    /**
+     * 延期原因
+     */
+    @TableField("delay_reason")
+    private String delayReason;
+
 
 
     /**

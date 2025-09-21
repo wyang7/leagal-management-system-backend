@@ -299,6 +299,37 @@ public class CaseInfoController {
     }
 
     /**
+     * 案件延期接口
+     * 接收案件ID和延期原因，从已领取或预反馈状态流转到延期状态
+     */
+    @PostMapping("/delay")
+    public Result<?> delayCase(@RequestBody Map<String, Object> params) {
+        // 解析请求参数
+        Long caseId = Long.parseLong(params.get("caseId").toString());
+        String delayReason = params.get("delayReason").toString();
+
+        // 校验案件是否存在
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+
+        // 校验状态是否为已领取或预反馈（只能从这两个状态流转到延期）
+        String currentStatus = caseInfo.getStatus();
+        if (!"已领取".equals(currentStatus) && !"预反馈".equals(currentStatus)) {
+            return Result.fail("只有已领取或预反馈的案件可以申请延期");
+        }
+
+        // 更新案件信息
+        caseInfo.setStatus("延期"); // 变更状态为延期
+        caseInfo.setDelayReason(delayReason); // 存储延期原因
+        caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))); // 更新时间
+
+        boolean success = caseInfoService.updateById(caseInfo);
+        return success ? Result.success() : Result.fail("延期申请提交失败");
+    }
+
+    /**
      * 删除案件
      */
     @DeleteMapping("/{id}")

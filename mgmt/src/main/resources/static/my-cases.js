@@ -28,9 +28,9 @@ function loadMyCasesPage() {
             <div class="col-md-12">
                 <div class="btn-group" role="group">
                     <button class="btn btn-outline-primary" onclick="filterMyCases('all')">全部</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('待领取')">待领取</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('预反馈')">预反馈</button>
+                    <button class="btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
                 </div>
             </div>
@@ -298,6 +298,9 @@ function renderMyCaseTable(cases) {
             case '预反馈':
                 statusClass = 'text-info';
                 break;
+            case '延期':
+                statusClass = 'text-danger';
+                break;
             case '已完成':
                 statusClass = 'status-completed';
                 break;
@@ -324,20 +327,20 @@ function renderMyCaseTable(cases) {
                 <button class="btn btn-sm btn-info" onclick="showPreFeedbackModal(${caseInfo.caseId})">
                     <i class="fa fa-comment"></i> 预反馈
                 </button>
-                <button class="btn btn-sm btn-success" onclick="showCompleteCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-check"></i> 完成
-                </button>
-                <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-undo"></i> 退回
+                <button class="btn btn-sm btn-danger" onclick="showDelayModal(${caseInfo.caseId})">
+                    <i class="fa fa-clock-o"></i> 延期
                 </button>
                 ` : caseInfo.status === '预反馈' ? `
+                <button class="btn btn-sm btn-danger" onclick="showDelayModal(${caseInfo.caseId})">
+                    <i class="fa fa-clock-o"></i> 延期
+                </button>
+                `:``}
                 <button class="btn btn-sm btn-success" onclick="showCompleteCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-check"></i> 完成
                 </button>
                 <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-undo"></i> 退回
                 </button>
-                `:``}
             </td>
         </tr>
         `;
@@ -346,6 +349,85 @@ function renderMyCaseTable(cases) {
     tableBody.innerHTML = html;
 }
 
+/**
+ * 创建延期模态框容器
+ */
+function createDelayModalContainer() {
+    if (!document.getElementById('delayModalContainer')) {
+        const container = document.createElement('div');
+        container.id = 'delayModalContainer';
+        document.body.appendChild(container);
+    }
+}
+
+/**
+ * 显示延期弹窗
+ */
+async function showDelayModal(caseId) {
+    createDelayModalContainer();
+    const modalContainer = document.getElementById('delayModalContainer');
+
+    // 渲染弹窗HTML
+    modalContainer.innerHTML = `
+    <div class="modal fade" id="delayModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">案件延期申请</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="delayForm">
+                        <input type="hidden" id="delayCaseId" value="${caseId}">
+                        <div class="form-group">
+                            <label for="delayReasonContent">延期原因</label>
+                            <textarea id="delayReasonContent" class="form-control" rows="5" required placeholder="请输入延期原因..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitDelay()">确认提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('delayModal'));
+    modal.show();
+}
+
+/**
+ * 提交延期申请到后端
+ */
+async function submitDelay() {
+    const caseId = document.getElementById('delayCaseId').value;
+    const delayReason = document.getElementById('delayReasonContent').value.trim();
+
+    if (!delayReason) {
+        alert('请输入延期原因');
+        return;
+    }
+
+    try {
+        // 调用后端延期接口
+        await request('/case/delay', 'POST', {
+            caseId: caseId,
+            delayReason: delayReason
+        });
+
+        // 关闭弹窗并刷新列表
+        const modal = bootstrap.Modal.getInstance(document.getElementById('delayModal'));
+        modal.hide();
+        loadMyCases(); // 刷新案件列表
+        alert('延期申请提交成功');
+    } catch (error) {
+        console.error('延期申请提交失败:', error);
+        alert('延期申请提交失败，请重试');
+    }
+}
 
 /**
  * 创建预反馈模态框容器

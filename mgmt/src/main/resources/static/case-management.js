@@ -40,6 +40,8 @@ function loadCaseManagementPage() {
                     <button class="btn btn-outline-primary" onclick="filterCases('all')">全部</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('待领取')">待领取</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
+                    <button class="btn btn-outline-primary" onclick="filterMyCases('预反馈')">预反馈</button>
+                    <button class="btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
                 </div>
@@ -454,6 +456,12 @@ function renderCaseTable(cases) {
                 break;
             case '已领取':
                 statusClass = 'status-received';
+                break;
+            case '预反馈':
+                statusClass = 'text-info';
+                break;
+            case '延期':
+                statusClass = 'text-danger';
                 break;
             case '已完成':
                 statusClass = 'status-completed';
