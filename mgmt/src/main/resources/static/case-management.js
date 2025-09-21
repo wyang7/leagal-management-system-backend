@@ -52,7 +52,6 @@ function loadCaseManagementPage() {
                 <thead class="table-dark">
                     <tr>
                         <th><input type="checkbox" id="selectAllCases"></th>
-                        <th>案件ID</th>
                         <th>案件号</th>
                         <th>案由</th>
                         <th>标的额</th>
@@ -467,7 +466,6 @@ function renderCaseTable(cases) {
         html += `
         <tr>
             <td><input type="checkbox" class="case-checkbox" value="${caseInfo.caseId}"></td>
-            <td>${caseInfo.caseId}</td>
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>

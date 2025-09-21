@@ -40,7 +40,6 @@ function loadMyCasesPage() {
             <table class="table table-striped table-hover">
                 <thead class="table-dark">
                     <tr>
-                        <th>案件ID</th>
                         <th>案件号</th>
                         <th>案由</th>
                         <th>标的额</th> <!-- 之前添加的标的额字段 -->
@@ -302,7 +301,6 @@ function renderMyCaseTable(cases) {
 
         html += `
         <tr>
-            <td>${caseInfo.caseId}</td>
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td> <!-- 标的额展示 -->
