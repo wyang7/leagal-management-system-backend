@@ -207,11 +207,6 @@
                 <i class="fa fa-inbox me-2"></i>我的案件
             </a>
         </li>
-        <li class="nav-item">
-            <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
-                <i class="fa fa-inbox me-2"></i>领取案件
-            </a>
-        </li>
     `;
 
         // 判断是否为系统管理员（通过roleId关联角色表查询角色名称）
@@ -226,13 +221,29 @@
             if (userRole && userRole.roleName && userRole.roleName.includes('系统管理员')) {
                 isSystemAdmin = true;
             }
+            if (null==userRole){
+                isSystemAdmin=null;
+            }
         } catch (error) {
             console.error('获取角色信息失败:', error);
         }
 
         // 系统管理员额外可见菜单
-        if (isSystemAdmin) {
+        if (null!=isSystemAdmin && (!isSystemAdmin)){
             navHtml += `
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
+                    <i class="fa fa-inbox me-2"></i>领取案件
+                </a>
+            </li>
+            `;
+        }else if (null!=isSystemAdmin && isSystemAdmin) {
+            navHtml += `
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
+                    <i class="fa fa-inbox me-2"></i>领取案件
+                </a>
+            </li>
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="loadUserManagementPage()">
                     <i class="fa fa-users me-2"></i>用户管理
