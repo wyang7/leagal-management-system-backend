@@ -23,7 +23,6 @@ async function request(url, method = 'GET', data = null) {
     if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
         options.body = JSON.stringify(data);
     }
-
     // 处理GET请求的缓存问题
     if (method === 'GET') {
         const separator = url.includes('?') ? '&' : '?';
