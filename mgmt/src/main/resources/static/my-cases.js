@@ -30,6 +30,7 @@ function loadMyCasesPage() {
                     <button class="btn btn-outline-primary" onclick="filterMyCases('all')">全部</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('待领取')">待领取</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
+                    <button class="btn btn-outline-primary" onclick="filterMyCases('预反馈')">预反馈</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
                 </div>
             </div>
@@ -294,6 +295,9 @@ function renderMyCaseTable(cases) {
             case '已领取':
                 statusClass = 'status-received';
                 break;
+            case '预反馈':
+                statusClass = 'text-info';
+                break;
             case '已完成':
                 statusClass = 'status-completed';
                 break;
@@ -317,19 +321,110 @@ function renderMyCaseTable(cases) {
                 </button>
                 <!-- 只有已领取状态显示完成按钮 -->
                 ${caseInfo.status === '已领取' ? `
-                <button class="btn btn-sm btn-info" onclick="showCompleteCaseModal(${caseInfo.caseId})">
+                <button class="btn btn-sm btn-info" onclick="showPreFeedbackModal(${caseInfo.caseId})">
+                    <i class="fa fa-comment"></i> 预反馈
+                </button>
+                <button class="btn btn-sm btn-success" onclick="showCompleteCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-check"></i> 完成
                 </button>
                 <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
-                                                    <i class="fa fa-undo"></i> 退回
-                                                </button>
-                ` : ''}
+                    <i class="fa fa-undo"></i> 退回
+                </button>
+                ` : caseInfo.status === '预反馈' ? `
+                <button class="btn btn-sm btn-success" onclick="showCompleteCaseModal(${caseInfo.caseId})">
+                    <i class="fa fa-check"></i> 完成
+                </button>
+                <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
+                    <i class="fa fa-undo"></i> 退回
+                </button>
+                `:``}
             </td>
         </tr>
         `;
     });
 
     tableBody.innerHTML = html;
+}
+
+
+/**
+ * 创建预反馈模态框容器
+ */
+function createPreFeedbackModalContainer() {
+    if (!document.getElementById('preFeedbackModalContainer')) {
+        const container = document.createElement('div');
+        container.id = 'preFeedbackModalContainer';
+        document.body.appendChild(container);
+    }
+}
+
+/**
+ * 显示预反馈弹窗
+ */
+async function showPreFeedbackModal(caseId) {
+    createPreFeedbackModalContainer();
+    const modalContainer = document.getElementById('preFeedbackModalContainer');
+
+    // 渲染弹窗HTML
+    modalContainer.innerHTML = `
+    <div class="modal fade" id="preFeedbackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">案件预反馈</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="preFeedbackForm">
+                        <input type="hidden" id="preFeedbackCaseId" value="${caseId}">
+                        <div class="form-group">
+                            <label for="preFeedbackContent">预反馈内容</label>
+                            <textarea id="preFeedbackContent" class="form-control" rows="5" required placeholder="请输入预反馈内容..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitPreFeedback()">确认提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('preFeedbackModal'));
+    modal.show();
+}
+
+/**
+ * 提交预反馈内容到后端
+ */
+async function submitPreFeedback() {
+    const caseId = document.getElementById('preFeedbackCaseId').value;
+    const feedbackContent = document.getElementById('preFeedbackContent').value.trim();
+
+    if (!feedbackContent) {
+        alert('请输入预反馈内容');
+        return;
+    }
+
+    try {
+        // 调用后端预反馈接口
+        await request('/case/pre-feedback','POST', {
+            caseId: caseId,
+            preFeedback: feedbackContent
+        });
+
+        // 关闭弹窗并刷新列表
+        const modal = bootstrap.Modal.getInstance(document.getElementById('preFeedbackModal'));
+        modal.hide();
+        loadMyCases(); // 刷新案件列表
+        alert('预反馈提交成功');
+    } catch (error) {
+        console.error('预反馈提交失败:', error);
+        alert('预反馈提交失败，请重试');
+    }
 }
 
 

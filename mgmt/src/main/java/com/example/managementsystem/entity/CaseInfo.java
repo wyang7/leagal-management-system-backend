@@ -80,6 +80,14 @@ public class CaseInfo implements Serializable {
     private String returnReason;
 
     /**
+     * 预反馈
+     */
+    @TableField("pre_feedback")
+    private String preFeedback;
+
+
+
+    /**
      * 案件归属地
      */
     @TableField("case_location")

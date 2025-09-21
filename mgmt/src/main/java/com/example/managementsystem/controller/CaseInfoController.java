@@ -269,6 +269,36 @@ public class CaseInfoController {
     }
 
     /**
+     * 案件预反馈接口
+     * 接收案件ID和预反馈内容，更新状态为预反馈
+     */
+    @PostMapping("/pre-feedback")
+    public Result<?> preFeedbackCase(@RequestBody Map<String, Object> params) {
+        // 解析请求参数
+        Long caseId = Long.parseLong(params.get("caseId").toString());
+        String preFeedback = params.get("preFeedback").toString();
+
+        // 校验案件是否存在
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+
+        // 校验状态是否为已领取（只能从已领取状态流转到预反馈）
+        if (!"已领取".equals(caseInfo.getStatus())) {
+            return Result.fail("只有已领取的案件可以提交预反馈");
+        }
+
+        // 更新案件信息
+        caseInfo.setStatus("预反馈"); // 变更状态为预反馈
+        caseInfo.setPreFeedback(preFeedback); // 存储预反馈内容
+        caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))); // 更新时间
+
+        boolean success = caseInfoService.updateById(caseInfo);
+        return success ? Result.success() : Result.fail("预反馈提交失败");
+    }
+
+    /**
      * 删除案件
      */
     @DeleteMapping("/{id}")
