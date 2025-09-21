@@ -398,7 +398,6 @@ async function submitCaseReturn() {
         loadMyCases();
         alert('案件已成功退回');
     } catch (error) {
-        alert('退回失败: ' + (error.message || '未知错误'));
     }
 }
 

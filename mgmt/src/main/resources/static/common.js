@@ -47,11 +47,9 @@ async function request(url, method = 'GET', data = null) {
         if (result.code === 200) {
             return result.data;
         } else {
-            alert(`操作失败: ${result.message}`);
             throw new Error(result.message);
         }
     } catch (error) {
-        console.error('请求错误:', error);
         alert(`请求失败: ${error.message}`);
         throw error;
     }
