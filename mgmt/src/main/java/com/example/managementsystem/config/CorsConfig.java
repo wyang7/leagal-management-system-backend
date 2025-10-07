@@ -20,7 +20,7 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:8090") // 前端页面的地址，不要用*
+                .allowedOrigins("http://47.118.19.86:8090") // 前端页面的地址，不要用*
                 .allowedMethods("GET", "POST", "PUT", "DELETE")
                 .allowCredentials(true) // 关键：允许携带cookie
                 .maxAge(3600);
