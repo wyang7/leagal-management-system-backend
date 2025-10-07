@@ -33,6 +33,7 @@ async function request(url, method = 'GET', data = null) {
         // 发送请求，确保后端地址正确
         // 注意：如果后端端口或上下文路径不同，请修改这里
         const baseUrl = 'http://47.118.19.86:8090/api';
+        // const baseUrl = 'http://localhost:8090/api';
         const response = await fetch(baseUrl + url, options);
 
         // 处理响应

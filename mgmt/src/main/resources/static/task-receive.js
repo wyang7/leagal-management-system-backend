@@ -2,7 +2,7 @@
  * 加载案件包领取页面
  */
 function loadTaskReceivePage() {
-    setActiveNav('案件包领取');
+    setActiveNav('领取案件');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
         <div class="page-title">
