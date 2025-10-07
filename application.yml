@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/management_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://rm-bp16nj63444qf3v96.mysql.rds.aliyuncs.com:3306/management_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root  # 请替换为你的MySQL用户名
-    password: 12345678  # 请替换为你的MySQL密码
+    password: Wangyang@7  # 请替换为你的MySQL密码
   
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
