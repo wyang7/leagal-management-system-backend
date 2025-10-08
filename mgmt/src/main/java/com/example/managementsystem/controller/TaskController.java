@@ -99,7 +99,7 @@ public class TaskController {
     public Result<?> assignTask(@RequestBody Map<String, Object> params) {
         Long taskId = Long.parseLong(params.get("taskId").toString());
         Long userId = Long.parseLong(params.get("userId").toString());
-        boolean success = taskService.receiveTask(taskId, userId);
+        boolean success = taskService.receiveTask(taskId, userId,true);
         return success ? Result.success() : Result.fail("分派案件包失败");
     }
 
@@ -114,7 +114,7 @@ public class TaskController {
         if (taskWithCases == null|| !"待领取".equals(taskWithCases.getStatus())) {
             return Result.fail("分派案件包失败，当前状态不允许领取");
         }
-        boolean success = taskService.receiveTask(taskId, userId);
+        boolean success = taskService.receiveTask(taskId, userId,false);
         return success ? Result.success() : Result.fail("领取案件包失败，当前案件已到达领取上限");
     }
 }

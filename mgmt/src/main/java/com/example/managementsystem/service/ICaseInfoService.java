@@ -39,7 +39,7 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     /**
      * 领取案件
      */
-    boolean receiveCase(Long caseId, Long userId);
+    boolean receiveCase(Long caseId, Long userId, boolean isAssign);
 
     boolean returnCase(Long caseId, String returnReason);
     
@@ -56,7 +56,7 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     List<CaseInfo> getAssistantCases(Long userId);
 
 
-    String genCaseNumber();
+    String genCaseNumber(String courtReceiveTime);
 
 
     /**

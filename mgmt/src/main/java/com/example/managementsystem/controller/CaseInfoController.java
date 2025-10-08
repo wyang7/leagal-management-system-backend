@@ -1,7 +1,5 @@
 package com.example.managementsystem.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.User;
@@ -145,12 +143,9 @@ public class CaseInfoController {
     @PostMapping("/import-excel")
     public Result<?> importCasesFromExcel(@RequestBody List<CaseInfo> caseList) {
         DateTimeFormatter fullFormatter = DateTimeFormatter.ofPattern("yyyy.M.d");
-        DateTimeFormatter noYearFormatter = DateTimeFormatter.ofPattern("M.d");
         DateTimeFormatter dbFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for (CaseInfo caseInfo : caseList) {
-            // 案件号自动生成
-            caseInfo.setCaseNumber(caseInfoService.genCaseNumber());
             // 校验案件助理角色
             String caseLocation = caseInfo.getCaseLocation();
             User assistantByCaseLocation = userService.getAssistantByCaseLocation(caseLocation);
@@ -174,7 +169,11 @@ public class CaseInfoController {
                 } catch (DateTimeParseException e) {
                     return Result.fail("法院收案时间解析失败: " + courtReceiveTime);
                 }
+            }else {
+                return Result.fail("法院收案时间不能为空");
             }
+            // 案件号自动生成
+            caseInfo.setCaseNumber(caseInfoService.genCaseNumber(caseInfo.getCourtReceiveTime()));
             // 状态默认“待领取”
             caseInfo.setStatus("待领取");
             // 创建时间
@@ -203,8 +202,12 @@ public class CaseInfoController {
                 caseInfo.setAssistantId(assistantByCaseLocation.getUserId());
             }
         }
+        if (caseInfo.getCourtReceiveTime() == null) {
+            return Result.fail("法院收案时间不能为空");
+        }
+
         if (StringUtils.isEmpty(caseInfo.getCaseNumber())) {
-            caseInfo.setCaseNumber(caseInfoService.genCaseNumber());
+            caseInfo.setCaseNumber(caseInfoService.genCaseNumber(caseInfo.getCourtReceiveTime().replace("-",".")));
         }
 
         // 新增案件默认状态为"待领取"
@@ -350,7 +353,7 @@ public class CaseInfoController {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         Long userId = Long.parseLong(params.get("userId").toString());
         
-        boolean success = caseInfoService.receiveCase(caseId, userId);
+        boolean success = caseInfoService.receiveCase(caseId, userId,true);
         return success ? Result.success() : Result.fail("领取案件失败，案件状态不是待领取或当前已到达领取上限");
     }
     /**
@@ -364,7 +367,7 @@ public class CaseInfoController {
         if (caseById == null||!"待领取".equals(caseById.getStatus())) {
             return Result.fail("案件不存在或不是待领取状态");
         }
-        boolean success = caseInfoService.receiveCase(caseId, userId);
+        boolean success = caseInfoService.receiveCase(caseId, userId,false);
         return success ? Result.success() : Result.fail("领取案件失败，当前已到达领取上限");
     }
 

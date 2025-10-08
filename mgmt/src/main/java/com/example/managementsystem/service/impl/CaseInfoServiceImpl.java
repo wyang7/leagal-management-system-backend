@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.sql.Date;
 import java.time.LocalDateTime;
@@ -61,12 +62,15 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public boolean receiveCase(Long caseId, Long userId) {
+    public boolean receiveCase(Long caseId, Long userId, boolean isAssign) {
 
-        int count = baseMapper.countActiveByUserId(userId);
-        if (count>4){
-            return false;
+        if (!isAssign) {
+            int count = baseMapper.countActiveByUserId(userId);
+            if (count>4){
+                return false;
+            }
         }
+
         CaseInfo caseInfo = getById(caseId);
         if (caseInfo == null) {
             return false;
@@ -124,13 +128,16 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public String genCaseNumber() {
+    public String genCaseNumber(String courtReceiveTime) {
         // 生成规则：yyyy.MM.dd-序号（两位，不足补0）
-        java.time.LocalDate today = java.time.LocalDate.now();
-        String datePrefix = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        if (StringUtils.isEmpty(courtReceiveTime)) {
+            throw new RuntimeException("收案时间不能为空");
+        }
+//        java.time.LocalDate today = java.time.LocalDate.now();
+//        String datePrefix = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd"));
         // 查询当天最大编号
         QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.likeRight("case_number", datePrefix)
+        queryWrapper.likeRight("case_number", courtReceiveTime)
                 .orderByDesc("case_number")
                 .last("limit 1");
         CaseInfo lastCase = baseMapper.selectOne(queryWrapper);
@@ -144,7 +151,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             }
         }
         String sequenceStr = String.format("%02d", sequenceNumber);
-        return datePrefix + "-" + sequenceStr;
+        return courtReceiveTime + "-" + sequenceStr;
     }
 
     @Override

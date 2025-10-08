@@ -522,7 +522,7 @@ function renderCaseTable(cases) {
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
             <td>${caseInfo.caseLocation || '-'}</td>
-            <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleString() : '-'}</td>
+            <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleDateString() : '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
@@ -857,7 +857,7 @@ function createCaseModal(taskOptions, assistantOptions) {
                             </div>
                             <div class="form-group">
                                 <label for="courtReceiveTime">法院收案时间</label>
-                                <input type="datetime-local" id="courtReceiveTime" class="form-control" required>
+                                <input type="date" id="courtReceiveTime" class="form-control" required>
                             </div>
                             <div class="form-group">
                                 <label for="plaintiffName">原告</label>

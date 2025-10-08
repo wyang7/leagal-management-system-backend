@@ -136,11 +136,11 @@
     <select id="selectMyCasesWithUsername" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT
             c.*,
-            u.username
+            u.username  as assistantName
         FROM
             case_info c
                 LEFT JOIN
-            user u ON c.user_id = u.user_id
+            user u ON c.assistant_id = u.user_id
         WHERE
             c.user_id = #{userId}
     </select>

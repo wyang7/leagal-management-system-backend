@@ -65,18 +65,22 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
     }
 
 
+
+
+
     /**
      * 领取案件包
      */
     @Override
     @Transactional
-    public boolean receiveTask(Long taskId, Long userId) {
+    public boolean receiveTask(Long taskId, Long userId, boolean isAssign) {
 
-        int count = caseInfoMapper.countActiveByUserId(userId);
-        if (count > 4) {
-            return false;
+        if (!isAssign) {
+            int count = caseInfoMapper.countActiveByUserId(userId);
+            if (count > 4) {
+                return false;
+            }
         }
-
         Task task = getById(taskId);
         if (task == null) {
             return false;
