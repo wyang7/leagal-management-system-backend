@@ -410,7 +410,6 @@ function showAssignCasesToTaskModal(taskId) {
                                         <thead>
                                             <tr>
                                                 <th><input type="checkbox" id="selectAllAvailable"></th>
-                                                <th>案件ID</th>
                                                 <th>案件号</th>
                                                 <th>案由</th>
                                             </tr>
@@ -430,7 +429,6 @@ function showAssignCasesToTaskModal(taskId) {
                                         <thead>
                                             <tr>
                                                 <th><input type="checkbox" id="selectAllAssigned"></th>
-                                                <th>案件ID</th>
                                                 <th>案件号</th>
                                                 <th>案由</th>
                                             </tr>
@@ -511,7 +509,6 @@ async function loadAvailableCases(taskId) {
             html += `
             <tr>
                 <td><input type="checkbox" class="case-checkbox" value="${caseInfo.caseId}"></td>
-                <td>${caseInfo.caseId}</td>
                 <td>${caseInfo.caseNumber}</td>
                 <td>${caseInfo.caseName}</td>
             </tr>
@@ -546,7 +543,6 @@ async function loadAssignedCases(taskId) {
             html += `
             <tr>
                 <td><input type="checkbox" class="assigned-case-checkbox" value="${caseInfo.caseId}"></td>
-                <td>${caseInfo.caseId}</td>
                 <td>${caseInfo.caseNumber}</td>
                 <td>${caseInfo.caseName}</td>
             </tr>
