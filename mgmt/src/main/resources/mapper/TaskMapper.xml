@@ -14,6 +14,17 @@
         </if>
     </select>
 
+    <!-- 获取某天某用户领取的任务数量 -->
+    <select id="countTasksReceivedByUser" resultType="int">
+        SELECT COUNT(*)
+        FROM task
+        WHERE
+            owner_id = #{userId}  -- 领取人ID（用户ID）
+          AND status = '已领取'  -- 状态为已领取
+      -- 匹配领取日期（假设任务领取时间存储在updated_time字段，需根据实际表结构调整）
+          AND DATE(updated_time) = #{receiveDate}
+    </select>
+
     <!-- 分页查询任务 -->
     <select id="selectTaskPage" resultType="com.example.managementsystem.entity.Task">
         SELECT * FROM task

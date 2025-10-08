@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,10 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
         if (!isAssign) {
             int count = caseInfoMapper.countActiveByUserId(userId);
             if (count > 4) {
+                return false;
+            }
+            int countTask = baseMapper.countTasksReceivedByUser(userId, LocalDate.now());
+            if (countTask > 0) {
                 return false;
             }
         }
