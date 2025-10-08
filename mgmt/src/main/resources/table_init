@@ -100,9 +100,13 @@ create index idx_user_id
     on management_system.case_info (user_id);
 
 
+alter table case_info
+    add pre_feedback text null;
 
+alter table case_info
+    add delay_reason text null;
 
-
+alter table case_info add mediator_receive_time bigint null;
 
 
 
