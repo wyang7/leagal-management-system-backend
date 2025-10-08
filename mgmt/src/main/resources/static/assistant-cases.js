@@ -50,7 +50,7 @@ function loadAssistantCasesPage() {
                         <th>法院收案时间</th>
                         <th>原告</th>
                         <th>被告</th>
-                        <th>案件助理</th>
+                        <th>处理人</th>
                         <th>关联案件包</th>
                         <th>状态</th>
                         <th>操作</th>
@@ -315,7 +315,7 @@ function renderAssistantCaseTable(cases) {
             <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleString() : '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
-            <td>${caseInfo.assistantName || '-'}</td>
+            <td>${caseInfo.username || '-'}</td>
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>

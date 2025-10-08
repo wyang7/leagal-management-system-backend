@@ -53,7 +53,10 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     /**
      * 查询所有案件总数
      */
-    int countAllCases(@Param("caseName") String caseName,@Param("status") String status);
+    int countAllCases(@Param("caseName") String caseName,@Param("status") String status,
+                      @Param("caseNumber") String caseNumber,
+                      @Param("plaintiff") String plaintiff,
+                      @Param("defendant") String defendant);
 
     /*
      * 根据taskid查询案件数量
@@ -76,7 +79,10 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * @param pageSize 每页条数
      */
     List<CaseInfo> selectCasePage(@Param("offset") int offset, @Param("pageSize") int pageSize
-    ,@Param("caseName") String caseName,@Param("status") String status);
+    ,@Param("caseName") String caseName,@Param("status") String status,
+                                  @Param("caseNumber") String caseNumber,
+                                  @Param("plaintiff") String plaintiff,
+                                  @Param("defendant") String defendant);
 
 
     List<CaseInfo> selectByStatusList(@Param("statusList") List<String> statusList,

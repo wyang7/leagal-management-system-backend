@@ -20,6 +20,15 @@
         <if test="status != null and status != ''">
             AND status = #{status}
         </if>
+        <if test="caseNumber != null and caseNumber != ''">
+            AND case_number LIKE CONCAT('%', #{caseNumber}, '%')
+        </if>
+        <if test="plaintiff != null and plaintiff != ''">
+            AND plaintiff_name LIKE CONCAT('%', #{plaintiff}, '%')
+        </if>
+        <if test="defendant != null and defendant != ''">
+            AND defendant_name LIKE CONCAT('%', #{defendant}, '%')
+        </if>
     </select>
 
     <!-- 查询所有案件总数 -->
@@ -61,6 +70,15 @@
         </if>
         <if test="status != null and status != ''">
             AND c.status = #{status}
+        </if>
+        <if test="caseNumber != null and caseNumber != ''">
+            AND c.case_number LIKE CONCAT('%', #{caseNumber}, '%')
+        </if>
+        <if test="plaintiff != null and plaintiff != ''">
+            AND c.plaintiff_name LIKE CONCAT('%', #{plaintiff}, '%')
+        </if>
+        <if test="defendant != null and defendant != ''">
+            AND c.defendant_name LIKE CONCAT('%', #{defendant}, '%')
         </if>
         ORDER BY c.created_time DESC
             LIMIT #{offset}, #{pageSize}
@@ -130,11 +148,11 @@
     <select id="selectAssistantCasesWithUsername" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT
             c.*,
-            u.username
+            u.username as userName
         FROM
             case_info c
                 LEFT JOIN
-            user u ON c.assistant_id = u.user_id
+            user u ON c.user_id = u.user_id
         WHERE
             c.assistant_id = #{userId}
     </select>

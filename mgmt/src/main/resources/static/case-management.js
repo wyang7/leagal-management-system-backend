@@ -10,28 +10,46 @@ function loadCaseManagementPage() {
         </div>
         
         <!-- 搜索和新增区域 -->
-        <div class="row mb-3">
-            <div class="col-md-4">  <!-- 搜索框占4列 -->
-                <div class="input-group">
+        <div class="row mb-4">
+    <!-- 搜索区域 - 占满整行，在小屏幕自动堆叠 -->
+        <div class="col-12 mb-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <div class="flex-grow-1 min-w-[200px]">
                     <input type="text" id="caseSearchInput" class="form-control" placeholder="输入案由搜索">
-                    <button class="btn btn-primary" onclick="loadCases()">
-                        <i class="fa fa-search"></i> 搜索
+                </div>
+                <div class="flex-grow-1 min-w-[200px]">
+                    <input type="text" id="caseNumberSearchInput" class="form-control" placeholder="输入案号搜索">
+                </div>
+                <div class="flex-grow-1 min-w-[200px]">
+                    <input type="text" id="plaintiffSearchInput" class="form-control" placeholder="输入原告搜索">
+                </div>
+                <div class="flex-grow-1 min-w-[200px]">
+                    <input type="text" id="defendantSearchInput" class="form-control" placeholder="输入被告搜索">
+                </div>
+                <div class="min-w-[100px]">
+                    <button class="btn btn-primary w-100" onclick="loadCases()">
+                        <i class="fa fa-search me-1"></i> 搜索
                     </button>
                 </div>
             </div>
-            <div class="col-md-8 d-flex justify-content-end gap-2">  <!-- 按钮区域占8列，右对齐并添加间距 -->
+        </div>
+
+    <!-- 按钮区域 - 独立一行，右对齐 -->
+        <div class="col-12">
+            <div class="d-flex justify-content-end gap-3">
                 <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="importCasesFromExcel(event)">
                 <button class="btn btn-secondary" onclick="document.getElementById('excelFileInput').click()">
-                    <i class="fa fa-upload"></i> 导入Excel
+                    <i class="fa fa-upload me-1"></i> 导入Excel
                 </button>
                 <button class="btn btn-success" onclick="showAddCaseModal()">
-                    <i class="fa fa-plus"></i> 新增案件
+                    <i class="fa fa-plus me-1"></i> 新增案件
                 </button>
                 <button class="btn btn-success" onclick="showBatchAssignTaskModal()">
-                    <i class="fa fa-plus"></i> 批量关联案件包
+                    <i class="fa fa-plus me-1"></i> 批量关联案件包
                 </button>
             </div>
         </div>
+    </div>
         
         <!-- 案件状态筛选 -->
         <div class="row mb-3">
@@ -40,8 +58,8 @@ function loadCaseManagementPage() {
                     <button class="btn btn-outline-primary" onclick="filterCases('all')">全部</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('待领取')">待领取</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('预反馈')">预反馈</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
+                    <button class="btn btn-outline-primary" onclick="filterCases('预反馈')">预反馈</button>
+                    <button class="btn btn-outline-primary" onclick="filterCases('延期')">延期</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
                 </div>
@@ -122,7 +140,7 @@ async function showCaseDetailModal(caseId) {
                     </div>
                     <div class="modal-body">
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                            <div class="col-md-6" style="display: none;">
                                 <strong>案件ID:</strong> ${caseInfo.caseId}
                             </div>
                             <div class="col-md-6">
@@ -215,7 +233,19 @@ async function loadCases(pageNum = 1, pageSize = 10) {
     try {
         // 发起分页查询请求
         const caseName = document.getElementById('caseSearchInput').value.trim();
-        const response = await request(`/case/page?caseName=${encodeURIComponent(caseName)}&pageNum=${pageNum}&pageSize=${pageSize}`);
+        const caseNumber = document.getElementById('caseNumberSearchInput').value.trim();
+        const plaintiff = document.getElementById('plaintiffSearchInput').value.trim();
+        const defendant = document.getElementById('defendantSearchInput').value.trim();
+
+        const params = new URLSearchParams();
+        params.append('pageNum', pageNum);
+        params.append('pageSize', pageSize);
+        if (caseName) params.append('caseName', caseName);
+        if (caseNumber) params.append('caseNumber', caseNumber);
+        if (plaintiff) params.append('plaintiff', plaintiff);   // 原告参数
+        if (defendant) params.append('defendant', defendant); // 被告参数
+
+        const response = await request(`/case/page?${params.toString()}`);
         // 渲染表格和分页组件
         renderCaseTable(response.records);
         // 渲染分页组件（假设后端返回的分页信息包含total、pageNum、pageSize、pages等字段）
@@ -385,12 +415,26 @@ function renderPagination(pageInfo) {
  */
 async function filterCases(status, pageNum = 1, pageSize = 10) {
     try {
-        let response;
-        if (status === 'all') {
-            response = await request(`/case/page?pageNum=${pageNum}&pageSize=${pageSize}`);
-        } else {
-            response = await request(`/case/page?status=${status}&pageNum=${pageNum}&pageSize=${pageSize}`);
-        }
+
+        // 获取所有搜索条件（案由、案号、原告、被告）
+        const caseName = document.getElementById('caseSearchInput').value.trim();
+        const caseNumber = document.getElementById('caseNumberSearchInput').value.trim();
+        const plaintiff = document.getElementById('plaintiffSearchInput').value.trim();
+        const defendant = document.getElementById('defendantSearchInput').value.trim();
+
+        // 构建查询参数
+        const params = new URLSearchParams();
+        params.append('pageNum', pageNum);
+        params.append('pageSize', pageSize);
+        if (caseName) params.append('caseName', caseName);
+        if (caseNumber) params.append('caseNumber', caseNumber);
+        if (plaintiff) params.append('plaintiff', plaintiff);
+        if (defendant) params.append('defendant', defendant);
+        // 状态为"all"时不传递status参数，后端按所有状态处理
+        if (status !== 'all') params.append('status', status);
+
+        // 发起请求（复用分页查询接口）
+        const response = await request(`/case/page?${params.toString()}`);
         renderCaseTable(response.records);
 
         // 渲染分页组件
