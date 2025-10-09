@@ -27,4 +27,9 @@ public interface UserMapper extends BaseMapper<User> {
      */
     List<User> selectByUsernameLike(@Param("username") String username);
 
+    /**
+     * 根据用户名精确查询
+     */
+    User selectByUsername(@Param("username") String username);
+
 }

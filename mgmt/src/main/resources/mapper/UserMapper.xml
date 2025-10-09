@@ -14,4 +14,11 @@
         WHERE username LIKE CONCAT('%', #{username}, '%')
     </select>
 
+    <!-- 根据用户名精确查询用户 -->
+    <select id="selectByUsername" resultType="com.example.managementsystem.entity.User">
+        SELECT * FROM user
+        WHERE username = #{username} limit 1
+    </select>
+
+
 </mapper>

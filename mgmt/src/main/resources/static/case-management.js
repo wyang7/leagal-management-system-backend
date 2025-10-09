@@ -277,7 +277,7 @@ async function importCasesFromExcel(event) {
             alert('单次导入数据不能超过5000条');
             return;
         }
-        const expected = ['案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额'];
+        const expected = ['案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额', '助理'];
         if (rows[0].join() !== expected.join()) {
             alert('Excel表头格式不正确');
             return;
@@ -288,7 +288,9 @@ async function importCasesFromExcel(event) {
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             // 校验字段缺失
-            if (!row || row.length < 6 || row.some(cell => cell === undefined || cell === null || cell === '')) {
+            if (!row || row.length < 6
+                // ||  row.some(cell => cell === undefined || cell === null || cell === '')
+            ) {
                 alert(`第${i+1}行存在字段缺失`);
                 return;
             }
@@ -304,7 +306,8 @@ async function importCasesFromExcel(event) {
                 plaintiffName: row[2],
                 defendantName: row[3],
                 caseName: row[4],
-                amount: parseFloat(row[5]) || 0
+                amount: parseFloat(row[5]) || 0 ,
+                assistantName: row[6]
             });
         }
         try {

@@ -46,6 +46,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     @Override
+    public User searchUserByUsername(String username) {
+        return baseMapper.selectByUsername(username);
+    }
+
+    @Override
     public boolean addUserWithRole(User user) {
         // 直接保存用户，角色ID已在user对象中
         return save(user);

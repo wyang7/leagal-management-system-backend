@@ -28,6 +28,11 @@ public interface IUserService extends IService<User> {
      * 根据用户名模糊查询
      */
     List<User> searchUsersByUsername(String username);
+
+    /**
+     * 根据用户名精确查询
+     */
+    User searchUserByUsername(String username);
     
     /**
      * 新增用户并关联角色

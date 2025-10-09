@@ -147,11 +147,24 @@ public class CaseInfoController {
 
         for (CaseInfo caseInfo : caseList) {
             // 校验案件助理角色
-            String caseLocation = caseInfo.getCaseLocation();
-            User assistantByCaseLocation = userService.getAssistantByCaseLocation(caseLocation);
-            if (assistantByCaseLocation != null) {
-                caseInfo.setAssistantId(assistantByCaseLocation.getUserId());
+            if (StringUtils.isEmpty(caseInfo.getAssistantName())) {
+                String caseLocation = caseInfo.getCaseLocation();
+                User assistantByCaseLocation = userService.getAssistantByCaseLocation(caseLocation);
+                if (assistantByCaseLocation != null) {
+                    caseInfo.setAssistantId(assistantByCaseLocation.getUserId());
+                }
+            }else {
+                User userByName = userService.searchUserByUsername(caseInfo.getAssistantName());
+                if (userByName == null) {
+                    return Result.fail("案件助理不存在: " + caseInfo.getAssistantName());
+                }
+                boolean isAssistant = userService.checkUserRole(userByName.getUserId(), "案件助理");
+                if (!isAssistant) {
+                    return Result.fail("所选用户不是案件助理角色: " + caseInfo.getAssistantName());
+                }
+                caseInfo.setAssistantId(userByName.getUserId());
             }
+
             // 处理法院收案时间
             String courtReceiveTime = caseInfo.getCourtReceiveTime();
             LocalDate date;
