@@ -49,7 +49,6 @@ function loadMyCasesPage() {
                         <th>原告</th>
                         <th>被告</th>
                         <th>案件助理</th>
-                        <th>关联案件包</th>
                         <th>状态</th>
                         <th>操作</th>
                     </tr>
@@ -312,10 +311,10 @@ function renderMyCaseTable(cases) {
                 statusClass = 'status-received';
                 break;
             case '预反馈':
-                statusClass = 'text-info';
+                statusClass = 'status-pre-feedback';
                 break;
             case '延期':
-                statusClass = 'text-danger';
+                statusClass = 'status-delayed';
                 break;
             case '已完成':
                 statusClass = 'status-completed';
@@ -332,7 +331,6 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
-            <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
                 <button class="btn btn-sm btn-secondary" onclick="showCaseDetailModal(${caseInfo.caseId})">

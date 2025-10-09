@@ -521,10 +521,10 @@ function renderCaseTable(cases) {
                 statusClass = 'status-received';
                 break;
             case '预反馈':
-                statusClass = 'text-info';
+                statusClass = 'status-pre-feedback';
                 break;
             case '延期':
-                statusClass = 'text-danger';
+                statusClass = 'status-delayed';
                 break;
             case '已完成':
                 statusClass = 'status-completed';
