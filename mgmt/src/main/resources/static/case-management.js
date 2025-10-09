@@ -903,6 +903,9 @@ function createCaseModal(taskOptions, assistantOptions) {
                                 <select id="caseStatus" class="form-control" required>
                                     <option value="待领取">待领取</option>
                                     <option value="已领取">已领取</option>
+                                    <option value="预反馈">预反馈</option>
+                                    <option value="退回">退回</option>
+                                    <option value="延期">延期</option>
                                     <option value="已完成">已完成</option>
                                 </select>
                             </div>
