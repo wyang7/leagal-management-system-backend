@@ -109,6 +109,20 @@ alter table case_info
 alter table case_info add mediator_receive_time bigint null;
 
 
+CREATE TABLE `case_flow_history` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `case_id` bigint(20) NOT NULL COMMENT '案件ID',
+  `operator_id` bigint(20) NOT NULL COMMENT '操作人ID',
+  `operator_name` varchar(50) NOT NULL COMMENT '操作人姓名',
+  `action` varchar(50) NOT NULL COMMENT '操作动作（如：领取、预反馈、退回、完成等）',
+  `before_status` varchar(50) DEFAULT NULL COMMENT '操作前状态',
+  `after_status` varchar(50) NOT NULL COMMENT '操作后状态',
+  `remarks` text COMMENT '操作备注（如退回原因、预反馈内容等）',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_case_id` (`case_id`) COMMENT '案件ID索引'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='案件流转历史记录表';
+
 
 -- 初始化角色数据
 INSERT INTO role (role_name, role_type) VALUES

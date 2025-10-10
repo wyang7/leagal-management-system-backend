@@ -1,14 +1,17 @@
 package com.example.managementsystem.controller;
 
 import com.example.managementsystem.common.Result;
+import com.example.managementsystem.dto.UserSession;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.User;
+import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,6 +37,9 @@ public class CaseInfoController {
 
     @Autowired
     private IUserService userService;
+
+    @Autowired
+    private ICaseFlowHistoryService caseFlowHistoryService;
 
     /**
      * 根据状态筛选案件（支持多个状态）
@@ -246,8 +252,6 @@ public class CaseInfoController {
     @PutMapping("/remove-task")
     public Result<?> removeCaseTaskId(@RequestBody CaseInfo caseInfo) {
 
-
-
         int success = caseInfoService.removeTaskId(caseInfo.getCaseId());
         return success>0 ? Result.success() : Result.fail("更新案件失败");
     }
@@ -268,9 +272,16 @@ public class CaseInfoController {
      * 退回案件（包含退回原因）
      */
     @PostMapping("/return")
-    public Result<?> returnCase(@RequestBody Map<String, Object> params) {
+    public Result<?> returnCase(@RequestBody Map<String, Object> params, HttpSession session) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String returnReason = params.get("returnReason").toString();
+
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        String operatorName = currentUser.getUsername();
 
         if (StringUtils.isEmpty(returnReason)) {
             return Result.fail("请输入退回原因");
@@ -283,9 +294,24 @@ public class CaseInfoController {
         if (mediatorReceiveTime != null && System.currentTimeMillis()-mediatorReceiveTime < 24*60*60*1000) {
             return Result.fail("案件不允许在领取后24小时之内退回");
         }
-
+        // 记录原状态
+        String beforeStatus = caseById.getStatus();
         boolean success = caseInfoService.returnCase(caseId, returnReason);
-        return success ? Result.success() : Result.fail("退回案件失败，案件状态不是已领取");
+        if (success) {
+            // 保存历史记录
+            caseFlowHistoryService.saveHistory(
+                    caseId,
+                    operatorId,
+                    operatorName,
+                    "退回案件",
+                    beforeStatus,
+                    "退回", // 退回后的状态
+                    returnReason
+            );
+            return Result.success();
+        } else {
+            return Result.fail("退回案件失败，案件状态不是已领取");
+        }
     }
 
     /**
@@ -293,7 +319,7 @@ public class CaseInfoController {
      * 接收案件ID和预反馈内容，更新状态为预反馈
      */
     @PostMapping("/pre-feedback")
-    public Result<?> preFeedbackCase(@RequestBody Map<String, Object> params) {
+    public Result<?> preFeedbackCase(@RequestBody Map<String, Object> params, HttpSession session) {
         // 解析请求参数
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String preFeedback = params.get("preFeedback").toString();
@@ -303,19 +329,39 @@ public class CaseInfoController {
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        String operatorName = currentUser.getUsername();
 
         // 校验状态是否为已领取（只能从已领取状态流转到预反馈）
         if (!"已领取".equals(caseInfo.getStatus())) {
             return Result.fail("只有已领取的案件可以提交预反馈");
         }
-
+        String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
         caseInfo.setStatus("预反馈"); // 变更状态为预反馈
         caseInfo.setPreFeedback(preFeedback); // 存储预反馈内容
         caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))); // 更新时间
 
         boolean success = caseInfoService.updateById(caseInfo);
-        return success ? Result.success() : Result.fail("预反馈提交失败");
+        if (success) {
+            // 保存历史记录
+            caseFlowHistoryService.saveHistory(
+                    caseId,
+                    operatorId,
+                    operatorName,
+                    "案件预反馈",
+                    beforeStatus,
+                    "预反馈",
+                    preFeedback
+            );
+            return Result.success();
+        } else {
+            return Result.fail("预反馈提交失败");
+        }
     }
 
     /**
@@ -323,7 +369,7 @@ public class CaseInfoController {
      * 接收案件ID和延期原因，从已领取或预反馈状态流转到延期状态
      */
     @PostMapping("/delay")
-    public Result<?> delayCase(@RequestBody Map<String, Object> params) {
+    public Result<?> delayCase(@RequestBody Map<String, Object> params, HttpSession session) {
         // 解析请求参数
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String delayReason = params.get("delayReason").toString();
@@ -334,19 +380,40 @@ public class CaseInfoController {
             return Result.fail("案件不存在");
         }
 
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        String operatorName = currentUser.getUsername();
+
         // 校验状态是否为已领取或预反馈（只能从这两个状态流转到延期）
         String currentStatus = caseInfo.getStatus();
         if (!"已领取".equals(currentStatus) && !"预反馈".equals(currentStatus)) {
             return Result.fail("只有已领取或预反馈的案件可以申请延期");
         }
-
+        String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
         caseInfo.setStatus("延期"); // 变更状态为延期
         caseInfo.setDelayReason(delayReason); // 存储延期原因
         caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))); // 更新时间
 
         boolean success = caseInfoService.updateById(caseInfo);
-        return success ? Result.success() : Result.fail("延期申请提交失败");
+        if (success) {
+            // 保存历史记录
+            caseFlowHistoryService.saveHistory(
+                    caseId,
+                    operatorId,
+                    operatorName,
+                    "案件延期申请",
+                    beforeStatus,
+                    "延期",
+                    delayReason
+            );
+            return Result.success();
+        } else {
+            return Result.fail("延期申请提交失败");
+        }
     }
 
     /**
@@ -362,26 +429,72 @@ public class CaseInfoController {
      * 分派案件
      */
     @PostMapping("/assign")
-    public Result<?> assignCase(@RequestBody Map<String, Object> params) {
+    public Result<?> assignCase(@RequestBody Map<String, Object> params, HttpSession session) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         Long userId = Long.parseLong(params.get("userId").toString());
-        
+
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        String operatorName = currentUser.getUsername();
+        CaseInfo caseById = caseInfoService.getCaseById(caseId);
+
         boolean success = caseInfoService.receiveCase(caseId, userId,true);
-        return success ? Result.success() : Result.fail("领取案件失败，案件状态不是待领取或当前已到达领取上限");
+        if (success) {
+            // 保存历史记录
+            caseFlowHistoryService.saveHistory(
+                    caseId,
+                    operatorId,
+                    operatorName,
+                    "领取案件",
+                    caseById.getStatus(),
+                    "已领取",
+                    ""
+            );
+            return Result.success();
+        } else {
+            return Result.fail("分派案件失败，案件状态不是待领取或当前已到达领取上限");
+        }
     }
     /**
      * 领取案件
      */
     @PostMapping("/receive")
-    public Result<?> receiveCase(@RequestBody Map<String, Object> params) {
+    public Result<?> receiveCase(@RequestBody Map<String, Object> params, HttpSession session) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         Long userId = Long.parseLong(params.get("userId").toString());
+
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        String operatorName = currentUser.getUsername();
+
+
         CaseInfo caseById = caseInfoService.getCaseById(caseId);
         if (caseById == null||!"待领取".equals(caseById.getStatus())) {
             return Result.fail("案件不存在或不是待领取状态");
         }
+        String beforeStatus = caseById.getStatus();
         boolean success = caseInfoService.receiveCase(caseId, userId,false);
-        return success ? Result.success() : Result.fail("领取案件失败，当前已到达领取上限");
+        if (success) {
+            // 保存历史记录
+            caseFlowHistoryService.saveHistory(
+                    caseId,
+                    operatorId,
+                    operatorName,
+                    "领取案件",
+                    beforeStatus,
+                    "已领取",
+                    ""
+            );
+            return Result.success();
+        } else {
+            return Result.fail("领取案件失败，当前已到达领取上限");
+        }
     }
 
     /**
@@ -415,7 +528,7 @@ public class CaseInfoController {
      * 完成案件（包含完成情况）
      */
     @PostMapping("/complete-with-notes")
-    public Result<?> completeCaseWithNotes(@RequestBody Map<String, Object> params) {
+    public Result<?> completeCaseWithNotes(@RequestBody Map<String, Object> params, HttpSession session) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String notes = params.get("notes").toString();
 
@@ -423,11 +536,32 @@ public class CaseInfoController {
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        String operatorName = currentUser.getUsername();
+
 
         // 更新状态和完成情况
         caseInfo.setStatus("已完成");
         caseInfo.setCompletionNotes(notes);
         boolean success = caseInfoService.updateById(caseInfo);
-        return success ? Result.success() : Result.fail("更新案件失败");
+        if (success) {
+            // 保存历史记录
+            caseFlowHistoryService.saveHistory(
+                    caseId,
+                    operatorId,
+                    operatorName,
+                    "完成案件",
+                    caseInfo.getStatus(),
+                    "已完成",
+                    notes
+            );
+            return Result.success();
+        } else {
+            return Result.fail("完成案件失败");
+        }
     }
 }

@@ -119,7 +119,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         }
 
         // 验证状态是否为已领取
-        if (!"已领取".equals(caseInfo.getStatus())) {
+        if ((!"已领取".equals(caseInfo.getStatus()))&&(!"延期".equals(caseInfo.getStatus()))) {
             return false;
         }
 

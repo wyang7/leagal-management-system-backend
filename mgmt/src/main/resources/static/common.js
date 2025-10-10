@@ -84,4 +84,96 @@ function setActiveNav(pageName) {
         }
     });
 }
+
+// 创建历史记录模态框容器
+function createCaseHistoryModalContainer() {
+    if (!document.getElementById('caseHistoryModalContainer')) {
+        const container = document.createElement('div');
+        container.id = 'caseHistoryModalContainer';
+        document.body.appendChild(container);
+    }
+}
+
+
+// 显示历史记录模态框
+async function showCaseHistoryModal(caseId) {
+    try {
+        const historyList = await request(`/case/history/${caseId}`);
+        const modalContainer = document.getElementById('caseHistoryModalContainer');
+
+        // 格式化日期
+        const formatDateTime = (dateStr) => {
+            return dateStr ? new Date(dateStr).toLocaleString() : '-';
+        };
+
+        // 生成历史记录表格
+        let historyTable = `
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>操作时间</th>
+                        <th>操作人</th>
+                        <th>操作动作</th>
+                        <th>状态变更</th>
+                        <th>备注</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        if (historyList.length === 0) {
+            historyTable += `
+                <tr>
+                    <td colspan="5" class="text-center">暂无流转记录</td>
+                </tr>
+            `;
+        } else {
+            historyList.forEach(history => {
+                historyTable += `
+                    <tr>
+                        <td>${formatDateTime(history.createTime)}</td>
+                        <td>${history.operatorName}</td>
+                        <td>${history.action}</td>
+                        <td>${history.beforeStatus || '无'} → ${history.afterStatus}</td>
+                        <td>${history.remarks || '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        historyTable += `
+                </tbody>
+            </table>
+        `;
+
+        // 创建模态框
+        const modalHtml = `
+        <div class="modal fade" id="caseHistoryModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">案件流转历史记录</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${historyTable}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+
+        modalContainer.innerHTML = modalHtml;
+
+        // 显示模态框
+        const historyModal = new bootstrap.Modal(document.getElementById('caseHistoryModal'));
+        historyModal.show();
+    } catch (error) {
+        console.error('获取案件历史记录失败:', error);
+        alert('获取案件历史记录失败');
+    }
+}
     

@@ -100,6 +100,8 @@ function loadCaseManagementPage() {
     createCaseModalContainer();
     // 创建案件详情模态框容器
     createCaseDetailModalContainer();
+    // 创建案件历史记录模态框容器
+    createCaseHistoryModalContainer();
     // 加载案件列表（默认第一页）
     loadCases(1, 10);
 }
@@ -549,7 +551,7 @@ function renderCaseTable(cases) {
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>
-                <button class="btn btn-sm btn-secondary" onclick="showAssignTaskModal(${caseInfo.caseId}, ${caseInfo.taskId || 'null'})">
+                <button class="btn btn-sm btn-primary" onclick="showAssignTaskModal(${caseInfo.caseId}, ${caseInfo.taskId || 'null'})">
                     <i class="fa fa-link"></i> 关联案件包
                 </button>
                 <button class="btn btn-sm btn-primary" onclick="showEditCaseModal(${caseInfo.caseId})">
@@ -558,6 +560,7 @@ function renderCaseTable(cases) {
                 <button class="btn btn-sm btn-secondary" onclick="showCaseDetailModal(${caseInfo.caseId})">
                     <i class="fa fa-eye"></i> 详情
                 </button>
+                <button class="btn btn-sm btn-secondary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseInfo.caseId})">
                     <i class="fa fa-trash"></i> 删除
                 </button>

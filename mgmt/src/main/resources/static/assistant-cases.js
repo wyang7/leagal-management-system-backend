@@ -67,6 +67,8 @@ function loadAssistantCasesPage() {
 
     // 创建案件详情模态框容器
     createCaseDetailModalContainer();
+    // 创建案件历史记录模态框容器
+    createCaseHistoryModalContainer();
     // 加载我的案件列表
     loadAssistantCases();
 }
@@ -335,9 +337,10 @@ function renderAssistantCaseTable(cases) {
             <td>${caseInfo.taskId || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
-                <button class="btn btn-sm btn-secondary" onclick="showCaseDetailModal(${caseInfo.caseId})">
+                <button class="btn btn-sm btn-primary" onclick="showCaseDetailModal(${caseInfo.caseId})">
                     <i class="fa fa-eye"></i> 详情
                 </button>
+                <button class="btn btn-sm btn-primary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
             </td>
         </tr>
         `;

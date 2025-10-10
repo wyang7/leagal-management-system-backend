@@ -1,10 +1,13 @@
 package com.example.managementsystem.controller;
 
 import com.example.managementsystem.common.Result;
+import com.example.managementsystem.dto.UserSession;
 import com.example.managementsystem.entity.Task;
 import com.example.managementsystem.service.ITaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
 
@@ -96,10 +99,15 @@ public class TaskController {
      * 分派案件包给用户
      */
     @PostMapping("/assign")
-    public Result<?> assignTask(@RequestBody Map<String, Object> params) {
+    public Result<?> assignTask(@RequestBody Map<String, Object> params, HttpSession session) {
         Long taskId = Long.parseLong(params.get("taskId").toString());
         Long userId = Long.parseLong(params.get("userId").toString());
-        boolean success = taskService.receiveTask(taskId, userId,true);
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        boolean success = taskService.receiveTask(taskId, userId,operatorId,true);
         return success ? Result.success() : Result.fail("分派案件包失败");
     }
 
@@ -107,14 +115,20 @@ public class TaskController {
      * 领取案件包
      */
     @PostMapping("/receive")
-    public Result<?> receiveTask(@RequestBody Map<String, Object> params) {
+    public Result<?> receiveTask(@RequestBody Map<String, Object> params, HttpSession session) {
         Long taskId = Long.parseLong(params.get("taskId").toString());
         Long userId = Long.parseLong(params.get("userId").toString());
         Task taskWithCases = taskService.getTaskWithCases(taskId);
         if (taskWithCases == null|| !"待领取".equals(taskWithCases.getStatus())) {
             return Result.fail("分派案件包失败，当前状态不允许领取");
         }
-        boolean success = taskService.receiveTask(taskId, userId,false);
+
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        boolean success = taskService.receiveTask(taskId, userId,operatorId,false);
         return success ? Result.success() : Result.fail("领取案件包失败，当前案件已到达领取上限");
     }
 }

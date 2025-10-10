@@ -7,6 +7,7 @@ import com.example.managementsystem.entity.User;
 import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.mapper.TaskMapper;
 import com.example.managementsystem.mapper.UserMapper;
+import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.ITaskService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -38,6 +39,9 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private ICaseFlowHistoryService caseFlowHistoryService;
 
     @Override
     public Task getTaskWithCases(Long taskId) {
@@ -74,7 +78,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
      */
     @Override
     @Transactional
-    public boolean receiveTask(Long taskId, Long userId, boolean isAssign) {
+    public boolean receiveTask(Long taskId, Long userId, Long operateId, boolean isAssign) {
 
         if (!isAssign) {
             int count = caseInfoMapper.countActiveByUserId(userId);
@@ -112,7 +116,15 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
             caseInfo.setStatus("已领取");
         }
 
-        return caseInfoService.updateBatchById(cases);
+        boolean updateBoolean = caseInfoService.updateBatchById(cases);
+        if (updateBoolean) {
+            User user = userMapper.selectById(userId);
+            for (CaseInfo caseInfo : cases) {
+                caseFlowHistoryService.saveHistory(caseInfo.getCaseId(), operateId,user.getUsername(), "领取案件"
+                , "待领取","已领取","");
+            }
+        }
+        return updateBoolean;
     }
 
     /**
