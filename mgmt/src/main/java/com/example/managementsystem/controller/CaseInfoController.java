@@ -185,7 +185,9 @@ public class CaseInfoController {
                         return Result.fail("法院收案时间格式错误: " + courtReceiveTime);
                     }
                     // 案件号自动生成，必须要放在这里，因为生成案号需要用到法院收案时间
-                    caseInfo.setCaseNumber(caseInfoService.genCaseNumber(caseInfo.getCourtReceiveTime()));
+                    if (caseInfo.getCaseNumber() == null) {
+                        caseInfo.setCaseNumber(caseInfoService.genCaseNumber(caseInfo.getCourtReceiveTime()));
+                    }
                     caseInfo.setCourtReceiveTime(date.format(dbFormatter));
                 } catch (DateTimeParseException e) {
                     return Result.fail("法院收案时间解析失败: " + courtReceiveTime);
