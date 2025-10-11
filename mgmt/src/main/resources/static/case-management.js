@@ -295,7 +295,7 @@ async function importCasesFromExcel(event) {
             alert('单次导入数据不能超过5000条');
             return;
         }
-        const expected = ['案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额', '助理'];
+        const expected = ['案件号','案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额', '助理'];
         if (rows[0].join() !== expected.join()) {
             alert('Excel表头格式不正确');
             return;
@@ -306,26 +306,26 @@ async function importCasesFromExcel(event) {
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             // 校验字段缺失
-            if (!row || row.length < 6
-                // ||  row.some(cell => cell === undefined || cell === null || cell === '')
+            if (!row || row.length < 8 || row.slice(1,7).some(cell => cell === undefined || cell === null || cell === '')
             ) {
                 alert(`第${i+1}行存在字段缺失`);
                 return;
             }
             // 校验日期格式
-            const dateStr = row[1] + '';
+            const dateStr = row[2] + '';
             if (!dateRegFull.test(dateStr) && !dateRegNoYear.test(dateStr)) {
                 alert(`第${i+1}行法院收案时间格式错误，需为2025.8.15或8.15`);
                 return;
             }
             caseList.push({
-                caseLocation: row[0],
-                courtReceiveTime: row[1],
-                plaintiffName: row[2],
-                defendantName: row[3],
-                caseName: row[4],
-                amount: parseFloat(row[5]) || 0 ,
-                assistantName: row[6]
+                caseNumber: row[0],
+                caseLocation: row[1],
+                courtReceiveTime: row[2],
+                plaintiffName: row[3],
+                defendantName: row[4],
+                caseName: row[5],
+                amount: parseFloat(row[6]) || 0 ,
+                assistantName: row[7]
             });
         }
         try {
