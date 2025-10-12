@@ -39,6 +39,12 @@ public class Role implements Serializable {
     private String roleType;
 
     /**
+     * 驻点信息
+     */
+    @TableField("station")
+    private String station;
+
+    /**
      * 创建时间
      */
     @TableField("created_time")

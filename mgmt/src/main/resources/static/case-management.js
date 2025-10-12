@@ -76,7 +76,7 @@ function loadCaseManagementPage() {
                         <th>案由</th>
                         <th>标的额</th>
                         <th>案件归属地</th>
-                        <th>法院收案时间</th>
+                        <th>收案时间</th>
                         <th>原告</th>
                         <th>被告</th>
                         <th>案件助理</th>
@@ -162,7 +162,7 @@ async function showCaseDetailModal(caseId) {
                                 <strong>案件归属地:</strong> ${caseInfo.caseLocation || '-'}
                             </div>
                             <div class="col-md-6">
-                                <strong>法院收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
+                                <strong>收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
                             </div>
                         </div>
                         <div class="row mb-3">

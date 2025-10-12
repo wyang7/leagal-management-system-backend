@@ -17,6 +17,7 @@ create table management_system.role
 )
     comment '角色表' charset = utf8mb4;
 
+ALTER TABLE management_system.role ADD COLUMN station VARCHAR(255) COMMENT '驻点信息';
 
 -- 用户表
 create table management_system.user

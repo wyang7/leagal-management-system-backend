@@ -47,7 +47,7 @@ function loadAssistantCasesPage() {
                         <th>案由</th>
                         <th>标的额</th> <!-- 之前添加的标的额字段 -->
                         <th>案件归属地</th>
-                        <th>法院收案时间</th>
+                        <th>收案时间</th>
                         <th>原告</th>
                         <th>被告</th>
                         <th>处理人</th>
@@ -130,7 +130,7 @@ async function showCaseDetailModal(caseId) {
                                 <strong>案件归属地:</strong> ${caseInfo.caseLocation || '-'}
                             </div>
                             <div class="col-md-6">
-                                <strong>法院收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
+                                <strong>收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -321,6 +321,9 @@ function renderAssistantCaseTable(cases) {
                 break;
             case '已完成':
                 statusClass = 'status-completed';
+                break;
+            case '退回':
+                statusClass = 'status-returned';
                 break;
         }
 

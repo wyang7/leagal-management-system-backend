@@ -26,6 +26,7 @@ function loadRoleManagementPage() {
                         <th>角色ID</th>
                         <th>角色名</th>
                         <th>角色类型</th>
+                        <th>驻点信息</th>
                         <th>创建时间</th>
                         <th>关联用户</th>
                         <th>操作</th>
@@ -91,6 +92,7 @@ function renderRoleTable(roles) {
             <td>${role.roleId}</td>
             <td>${role.roleName}</td>
             <td>${role.roleType}</td>
+            <td>${role.station || ''}</td>
             <td>${role.createdTime ? new Date(role.createdTime).toLocaleString() : ''}</td>
             <td>
                 <button class="btn btn-sm btn-info" onclick="showRoleUsers(${role.roleId})">
@@ -145,6 +147,10 @@ function createRoleModal() {
                                     <option value="调解员">调解员</option>
                                 </select>
                             </div>
+                            <div class="form-group">  
+                                <label for="roleStation">驻点</label>
+                                <input type="text" id="roleStation" class="form-control" placeholder="请输入驻点信息">
+                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
@@ -190,6 +196,7 @@ async function showEditRoleModal(roleId) {
         document.getElementById('roleId').value = role.roleId;
         document.getElementById('roleName').value = role.roleName;
         document.getElementById('roleType').value = role.roleType;
+        document.getElementById('roleStation').value = role.station || '总部';
         document.getElementById('roleModalTitle').textContent = '编辑角色';
         
         // 显示模态框
@@ -208,6 +215,7 @@ async function saveRole() {
     const roleId = document.getElementById('roleId').value;
     const roleName = document.getElementById('roleName').value.trim();
     const roleType = document.getElementById('roleType').value;
+    const roleStation = document.getElementById('roleStation').value.trim();
     
     // 简单验证
     if (!roleName) {
@@ -222,7 +230,8 @@ async function saveRole() {
     
     const roleData = {
         roleName: roleName,
-        roleType: roleType
+        roleType: roleType,
+        station: roleStation
     };
     
     try {
