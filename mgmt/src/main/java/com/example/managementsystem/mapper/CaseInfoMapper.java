@@ -82,7 +82,8 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     ,@Param("caseName") String caseName,@Param("status") String status,
                                   @Param("caseNumber") String caseNumber,
                                   @Param("plaintiff") String plaintiff,
-                                  @Param("defendant") String defendant);
+                                  @Param("defendant") String defendant,
+                                  @Param("station") String station);
 
 
     List<CaseInfo> selectByStatusList(@Param("statusList") List<String> statusList,

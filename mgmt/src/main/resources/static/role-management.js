@@ -147,9 +147,15 @@ function createRoleModal() {
                                     <option value="调解员">调解员</option>
                                 </select>
                             </div>
-                            <div class="form-group">  
+                            <div class="form-group">
                                 <label for="roleStation">驻点</label>
-                                <input type="text" id="roleStation" class="form-control" placeholder="请输入驻点信息">
+                                <select id="roleStation" class="form-control" required>
+                                    <option value="">请选择驻点</option>
+                                    <option value="九堡彭埠">九堡彭埠</option>
+                                    <option value="本部">本部</option>
+                                    <option value="笕桥">笕桥</option>
+                                    <option value="总部">总部</option>
+                                </select>
                             </div>
                         </form>
                     </div>

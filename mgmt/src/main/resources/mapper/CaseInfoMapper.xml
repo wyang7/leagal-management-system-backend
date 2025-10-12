@@ -80,6 +80,18 @@
         <if test="defendant != null and defendant != ''">
             AND c.defendant_name LIKE CONCAT('%', #{defendant}, '%')
         </if>
+        <if test="station != null and station != ''">
+            <choose>
+                <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
+                <when test="station == '九堡彭埠'">
+                    AND c.case_location in ('九堡', '彭埠')
+                </when>
+                <!-- 其他情况使用等于条件 -->
+                <otherwise>
+                    AND c.case_location = #{station}
+                </otherwise>
+            </choose>
+        </if>
         ORDER BY c.case_id DESC
             LIMIT #{offset}, #{pageSize}
     </select>

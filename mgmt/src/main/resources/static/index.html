@@ -226,9 +226,27 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadCaseManagementPage()">
-                    <i class="fa fa-gavel me-2"></i>案件管理
+                <a href="#" class="nav-link" onclick="return false;">
+                <i class="fa fa-gavel me-2"></i>案件管理
                 </a>
+                <ul class="nav flex-column ms-3">
+                <!-- 根据用户驻点权限显示对应的二级菜单 -->
+                    <li class="nav-item" id="submenu-jiubao">
+                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('九堡彭埠')">
+                            <i class="fa fa-angle-right me-1"></i>九堡彭埠
+                        </a>
+                    </li>
+                    <li class="nav-item" id="submenu-benbu">
+                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('本部')">
+                            <i class="fa fa-angle-right me-1"></i>本部
+                        </a>
+                    </li>
+                    <li class="nav-item" id="submenu-jianqiao">
+                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('笕桥')">
+                            <i class="fa fa-angle-right me-1"></i>笕桥
+                        </a>
+                    </li>
+                </ul>
             </li>
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="loadTaskManagementPage()">
@@ -257,8 +275,35 @@
         sidebarNav.innerHTML = navHtml;
         // 设置默认选中"我的案件"
         setActiveNav('我的案件');
+        // 调用函数控制菜单显示
+        loadUserStationAndControlMenu();
         // 加载默认页面
         loadMyCasesPage();
+    }
+
+    // 获取当前用户驻点信息并控制二级菜单显示
+    async function loadUserStationAndControlMenu() {
+        try {
+            const userInfo = await request('/auth/currentUser');
+            // 获取用户关联的角色信息以获取驻点
+            const role = await request(`/role/${userInfo.roleId}`);
+            const userStation = role.station;
+
+            // 根据用户驻点控制二级菜单显示
+            if (userStation && userStation !== '总部' && userStation !== '') {
+                // 非总部用户，只显示对应驻点的二级菜单
+                document.getElementById('submenu-jiubao').style.display = userStation === '九堡彭埠' ? 'block' : 'none';
+                document.getElementById('submenu-benbu').style.display = userStation === '本部' ? 'block' : 'none';
+                document.getElementById('submenu-jianqiao').style.display = userStation === '笕桥' ? 'block' : 'none';
+            } else {
+                // 总部用户，显示所有二级菜单
+                document.getElementById('submenu-jiubao').style.display = 'block';
+                document.getElementById('submenu-benbu').style.display = 'block';
+                document.getElementById('submenu-jianqiao').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('获取用户驻点信息失败:', error);
+        }
     }
 
     // 退出登录功能

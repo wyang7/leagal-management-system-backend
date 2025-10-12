@@ -1,12 +1,20 @@
 /**
- * 加载案件管理页面
+ * 加载案件管理页面，接收驻点参数
+ * @param {string} station 驻点名称（九堡彭埠、本部、笕桥）
  */
-function loadCaseManagementPage() {
+
+let currentStation= '';
+
+function loadCaseManagementPage(station) {
+
+    // 记录当前选中的驻点
+    currentStation = station;
+
     setActiveNav('案件管理');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
         <div class="page-title">
-            <h1>案件管理</h1>
+            <h1>案件管理 - ${station}</h1>
         </div>
         
         <!-- 搜索和新增区域 -->
@@ -103,7 +111,7 @@ function loadCaseManagementPage() {
     // 创建案件历史记录模态框容器
     createCaseHistoryModalContainer();
     // 加载案件列表（默认第一页）
-    loadCases(1, 10);
+    loadCases(1, 10, station);
 }
 
 /**
@@ -247,8 +255,12 @@ function createCaseModalContainer() {
 /**
  * 加载案件列表（支持分页）
  */
-async function loadCases(pageNum = 1, pageSize = 10) {
+async function loadCases(pageNum = 1, pageSize = 10, station) {
     try {
+
+        // 使用当前选中的驻点或传入的驻点参数
+        const currentStation = station || window.currentStation;
+
         // 发起分页查询请求
         const caseName = document.getElementById('caseSearchInput').value.trim();
         const caseNumber = document.getElementById('caseNumberSearchInput').value.trim();
@@ -262,6 +274,7 @@ async function loadCases(pageNum = 1, pageSize = 10) {
         if (caseNumber) params.append('caseNumber', caseNumber);
         if (plaintiff) params.append('plaintiff', plaintiff);   // 原告参数
         if (defendant) params.append('defendant', defendant); // 被告参数
+        if (currentStation) params.append('station', currentStation); // 驻点信息
 
         const response = await request(`/case/page?${params.toString()}`);
         // 渲染表格和分页组件
@@ -979,6 +992,13 @@ async function showEditCaseModal(caseId) {
         const assistantOptions = await loadCaseAssistants();
         createCaseModal(taskOptions,assistantOptions);
         await loadCaseAssistants();
+
+        let courtReceiveDate = '';
+        if (caseInfo.courtReceiveTime) {
+            // 后端返回格式为 "2025-09-19 00:00:00"，通过 split 分割出日期部分
+            courtReceiveDate = caseInfo.courtReceiveTime.split(' ')[0];
+            // 分割后得到 "2025-09-19"，符合 input[type=date] 要求
+        }
         
         // 填充表单数据
         document.getElementById('caseAssistantId').value = safeCaseInfo.assistantId ?? '';
@@ -987,7 +1007,7 @@ async function showEditCaseModal(caseId) {
         document.getElementById('caseName').value = safeCaseInfo.caseName ?? '';
         document.getElementById('caseAmount').value = safeCaseInfo.amount ?? '';
         document.getElementById('caseLocation').value = safeCaseInfo.caseLocation ?? '';
-        document.getElementById('courtReceiveTime').value = safeCaseInfo.courtReceiveTime ?? '';
+        document.getElementById('courtReceiveTime').value = courtReceiveDate ?? '';
         document.getElementById('defendantName').value = safeCaseInfo.defendantName ?? '';
         document.getElementById('plaintiffName').value = safeCaseInfo.plaintiffName ?? '';
         document.getElementById('caseStatus').value = safeCaseInfo.status ?? '';

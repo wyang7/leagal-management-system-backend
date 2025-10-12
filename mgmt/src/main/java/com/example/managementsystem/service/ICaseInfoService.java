@@ -66,7 +66,7 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * @return 包含总条数和当前页数据的Map
      */
     Map<String, Object> getCasePage(String caseName,String status,
-                                    String caseNumber, String plaintiff, String defendant
+                                    String caseNumber, String plaintiff, String defendant,String station
                                     ,Integer pageNum, Integer pageSize);
 
 
