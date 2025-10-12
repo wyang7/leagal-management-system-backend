@@ -25,6 +25,7 @@ function loadTaskManagementPage() {
                     <tr>
                         <th>任务ID</th>
                         <th>任务名</th>
+                        <th>案件包归属</th>
                         <th>创建时间</th>
                         <th>关联案件数</th>
                         <th>状态</th>
@@ -99,6 +100,7 @@ function renderTaskTable(tasks) {
         <tr>
             <td>${task.taskId}</td>
             <td>${task.taskName}</td>
+            <td>${task.station || '-'}</td>
             <td>${task.createdTime ? new Date(task.createdTime).toLocaleString() : ''}</td>
             <td>${task.caseCount || 0}</td>
             <td><span class="${statusClass}">${task.status}</span></td>
@@ -148,6 +150,16 @@ function createTaskModal() {
                                 <label for="taskName">任务名</label>
                                 <input type="text" id="taskName" class="form-control" required>
                             </div>
+                            <div class="form-group">
+                                <label for="taskStation">案件包归属地</label>
+                                <select id="taskStation" class="form-control" required>
+                                    <option value="">请选择归属地</option>
+                                    <option value="九堡彭埠">九堡彭埠</option>
+                                    <option value="本部">本部</option>
+                                    <option value="笕桥">笕桥</option>
+                                    <option value="总部">总部</option>
+                                </select>
+                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
@@ -192,6 +204,7 @@ async function showEditTaskModal(taskId) {
         // 填充表单数据
         document.getElementById('taskId').value = task.taskId;
         document.getElementById('taskName').value = task.taskName;
+        document.getElementById('taskStation').value = task.station || '';
         document.getElementById('taskModalTitle').textContent = '编辑任务';
         
         // 显示模态框
@@ -326,15 +339,21 @@ async function saveTask() {
     // 获取表单数据
     const taskId = document.getElementById('taskId').value;
     const taskName = document.getElementById('taskName').value.trim();
+    const station = document.getElementById('taskStation').value;
     
     // 简单验证
     if (!taskName) {
         alert('请输入任务名');
         return;
     }
+    if (!station) {
+        alert('请选择驻点');
+        return;
+    }
     
     const taskData = {
-        taskName: taskName
+        taskName: taskName,
+        station: station
     };
     
     try {

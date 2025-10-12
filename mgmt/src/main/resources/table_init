@@ -59,6 +59,8 @@ create table management_system.task
 )
     comment '任务表' charset = utf8mb4;
 
+ALTER TABLE task ADD COLUMN station VARCHAR(20) COMMENT '驻点（九堡彭埠、本部、笕桥、总部）';
+
 
 -- 案件表
 create table management_system.case_info
@@ -100,6 +102,7 @@ create index idx_task_id
 create index idx_user_id
     on management_system.case_info (user_id);
 
+ALTER TABLE case_info ADD COLUMN judge VARCHAR(20) COMMENT '法官';
 
 alter table case_info
     add pre_feedback text null;

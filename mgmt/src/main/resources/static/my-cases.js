@@ -48,6 +48,7 @@ function loadMyCasesPage() {
                         <th>收案时间</th>
                         <th>原告</th>
                         <th>被告</th>
+                        <th>法官</th>
                         <th>案件助理</th>
                         <th>状态</th>
                         <th>操作</th>
@@ -127,6 +128,9 @@ async function showCaseDetailModal(caseId) {
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <strong>案件归属地:</strong> ${caseInfo.caseLocation || '-'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>法官:</strong> ${caseInfo.judge || '-'}
                             </div>
                             <div class="col-md-6">
                                 <strong>收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
@@ -332,6 +336,7 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleDateString() : '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
+            <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>

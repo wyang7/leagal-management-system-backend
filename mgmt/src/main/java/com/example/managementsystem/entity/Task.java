@@ -48,6 +48,9 @@ public class Task implements Serializable {
     @TableField(exist = false)
     private String ownerName;
 
+    @TableField("station")
+    private String station; // 驻点（九堡彭埠、本部、笕桥、总部）
+
     /**
      * 创建时间
      */

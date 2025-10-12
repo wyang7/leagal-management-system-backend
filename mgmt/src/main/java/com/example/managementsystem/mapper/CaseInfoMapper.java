@@ -56,7 +56,8 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     int countAllCases(@Param("caseName") String caseName,@Param("status") String status,
                       @Param("caseNumber") String caseNumber,
                       @Param("plaintiff") String plaintiff,
-                      @Param("defendant") String defendant);
+                      @Param("defendant") String defendant,
+                      @Param("station") String station);
 
     /*
      * 根据taskid查询案件数量

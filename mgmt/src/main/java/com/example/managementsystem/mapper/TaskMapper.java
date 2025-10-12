@@ -21,7 +21,7 @@ public interface TaskMapper extends BaseMapper<Task> {
      * 查询所有任务总数
      */
     int countAllTasks(@Param("taskName") String taskName
-            ,@Param("taskStatus") String taskStatus);
+            ,@Param("taskStatus") String taskStatus,@Param("station") String station);
 
     /**
      * 获取某天某用户领取的任务数量
@@ -41,6 +41,7 @@ public interface TaskMapper extends BaseMapper<Task> {
     List<Task> selectTaskPage(@Param("offset") int offset,
                               @Param("pageSize") int pageSize,
                               @Param("taskName") String taskName,
-                              @Param("taskStatus") String taskStatus);
+                              @Param("taskStatus") String taskStatus,
+                              @Param("station") String station);
 
 }

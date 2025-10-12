@@ -2,7 +2,9 @@ package com.example.managementsystem.controller;
 
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.dto.UserSession;
+import com.example.managementsystem.entity.Role;
 import com.example.managementsystem.entity.Task;
+import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.ITaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,9 @@ public class TaskController {
 
     @Autowired
     private ITaskService taskService;
+
+    @Autowired
+    private IRoleService roleService;
 
     /**
      * 查询所有任务
@@ -90,9 +95,19 @@ public class TaskController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String taskName,
-            @RequestParam(required = false) String taskStatus) {
-
-        return Result.success(taskService.getTaskPage(pageNum, pageSize,taskName,taskStatus));
+            @RequestParam(required = false) String taskStatus,
+            HttpSession session) {
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getRoleId() == null) {
+            return Result.fail("未登录或角色信息缺失");
+        }
+        Long userRoleId = currentUser.getRoleId();
+        Role byId = roleService.getById(userRoleId);
+        if (byId == null) {
+            return Result.fail("角色信息不存在");
+        }
+        String station = byId.getStation();
+        return Result.success(taskService.getTaskPage(pageNum, pageSize,taskName,taskStatus,station));
     }
 
     /**

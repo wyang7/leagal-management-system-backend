@@ -12,6 +12,18 @@
         <if test="taskStatus != null and taskStatus != ''">
             AND status = #{taskStatus}
         </if>
+        <if test="station != null and station != '' and station != '总部'">
+            <choose>
+                <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
+                <when test="station == '九堡彭埠'">
+                    AND station in ('九堡', '彭埠', '九堡彭埠')
+                </when>
+                <!-- 其他情况使用等于条件 -->
+                <otherwise>
+                    AND station = #{station}
+                </otherwise>
+            </choose>
+        </if>
     </select>
 
     <!-- 获取某天某用户领取的任务数量 -->
@@ -34,6 +46,18 @@
         </if>
         <if test="taskStatus != null and taskStatus != ''">
             AND status = #{taskStatus}
+        </if>
+        <if test="station != null and station != ''  and station != '总部' ">
+            <choose>
+                <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
+                <when test="station == '九堡彭埠'">
+                    AND station in ('九堡', '彭埠', '九堡彭埠')
+                </when>
+                <!-- 其他情况使用等于条件 -->
+                <otherwise>
+                    AND station = #{station}
+                </otherwise>
+            </choose>
         </if>
         ORDER BY created_time DESC
         LIMIT #{offset}, #{pageSize}

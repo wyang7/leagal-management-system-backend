@@ -87,6 +87,7 @@ function loadCaseManagementPage(station) {
                         <th>收案时间</th>
                         <th>原告</th>
                         <th>被告</th>
+                        <th>法官</th>
                         <th>案件助理</th>
                         <th>关联案件包</th>
                         <th>状态</th>
@@ -168,6 +169,9 @@ async function showCaseDetailModal(caseId) {
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <strong>案件归属地:</strong> ${caseInfo.caseLocation || '-'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>法官:</strong> ${caseInfo.judge || '-'}
                             </div>
                             <div class="col-md-6">
                                 <strong>收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
@@ -259,7 +263,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
     try {
 
         // 使用当前选中的驻点或传入的驻点参数
-        const currentStation = station || window.currentStation;
+        const currentStationTemp = station || currentStation;
 
         // 发起分页查询请求
         const caseName = document.getElementById('caseSearchInput').value.trim();
@@ -274,7 +278,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         if (caseNumber) params.append('caseNumber', caseNumber);
         if (plaintiff) params.append('plaintiff', plaintiff);   // 原告参数
         if (defendant) params.append('defendant', defendant); // 被告参数
-        if (currentStation) params.append('station', currentStation); // 驻点信息
+        if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
 
         const response = await request(`/case/page?${params.toString()}`);
         // 渲染表格和分页组件
@@ -308,7 +312,7 @@ async function importCasesFromExcel(event) {
             alert('单次导入数据不能超过5000条');
             return;
         }
-        const expected = ['案件号','案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额', '助理'];
+        const expected = ['案件号','案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额', '助理', '法官'];
         if (rows[0].join() !== expected.join()) {
             alert('Excel表头格式不正确');
             return;
@@ -319,7 +323,7 @@ async function importCasesFromExcel(event) {
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             // 校验字段缺失
-            if (!row || row.length < 8 || row.slice(1,7).some(cell => cell === undefined || cell === null || cell === '')
+            if (!row || row.length < 9 || row.slice(1,7).some(cell => cell === undefined || cell === null || cell === '')
             ) {
                 alert(`第${i+1}行存在字段缺失`);
                 return;
@@ -338,7 +342,8 @@ async function importCasesFromExcel(event) {
                 defendantName: row[4],
                 caseName: row[5],
                 amount: parseFloat(row[6]) || 0 ,
-                assistantName: row[7]
+                assistantName: row[7],
+                judge: row[8]
             });
         }
         try {
@@ -466,6 +471,7 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
         if (defendant) params.append('defendant', defendant);
         // 状态为"all"时不传递status参数，后端按所有状态处理
         if (status !== 'all') params.append('status', status);
+        if (currentStation) params.append('station', currentStation); // 驻点信息
 
         // 发起请求（复用分页查询接口）
         const response = await request(`/case/page?${params.toString()}`);
@@ -559,6 +565,7 @@ function renderCaseTable(cases) {
             <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleDateString() : '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
+            <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.taskName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>

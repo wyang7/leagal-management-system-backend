@@ -131,14 +131,15 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
      * 分页查询案件包列表（包含状态）
      */
     @Override
-    public Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName,String taskStatus) {
+    public Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize
+            ,String taskName,String taskStatus,String station) {
         int offset = (pageNum - 1) * pageSize;
 
         // 查询总条数
-        int total = baseMapper.countAllTasks(taskName, taskStatus);
+        int total = baseMapper.countAllTasks(taskName, taskStatus,station);
 
         // 查询当前页数据
-        List<Task> records = baseMapper.selectTaskPage(offset, pageSize,taskName, taskStatus);
+        List<Task> records = baseMapper.selectTaskPage(offset, pageSize,taskName, taskStatus,station);
 
         if (CollectionUtils.isNotEmpty(records)) {
             // 为每个任务设置关联的案件数量

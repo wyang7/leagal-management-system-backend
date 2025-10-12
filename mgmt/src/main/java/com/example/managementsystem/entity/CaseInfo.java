@@ -42,6 +42,12 @@ public class CaseInfo implements Serializable {
     private String caseName;
 
     /**
+     * 法官
+     */
+    @TableField("judge")
+    private String judge;
+
+    /**
      * 新增：标的额（精确到小数点后两位）
      */
     @TableField("amount")

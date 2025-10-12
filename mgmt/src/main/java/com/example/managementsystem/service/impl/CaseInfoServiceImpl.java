@@ -163,7 +163,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         int offset = (pageNum - 1) * pageSize;
 
         // 查询总条数
-        int total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant);
+        int total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,station);
 
         // 查询当前页数据
         List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize,caseName,status
