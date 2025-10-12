@@ -90,13 +90,14 @@ public class LoginController {
     @PostMapping("/register")
     public Result<?> register(@RequestBody LoginDTO loginDTO) {
         // 检查用户名是否已存在
-        if (userService.existsByUsername(loginDTO.getUsername())) {
-            return Result.fail("用户名已存在");
+        if (userService.existsByUsername(loginDTO.getUsername())|| loginDTO.getPassword()==null) {
+            return Result.fail("用户名已存在或密码为空");
         }
         
         // 创建新用户
         User user = new User();
         user.setUsername(loginDTO.getUsername());
+        user.setRoleId(loginDTO.getRoleId());
         // 密码加密存储
         user.setPassword(DigestUtils.md5DigestAsHex(
             loginDTO.getPassword().getBytes(StandardCharsets.UTF_8)

@@ -184,6 +184,10 @@ function createUserModal(roleOptions) {
                                     <input type="text" id="username" class="form-control" required>
                                 </div>
                                 <div class="form-group">
+                                    <label for="password">密码</label>
+                                    <input type="password" id="password" class="form-control" required>
+                                </div>
+                                <div class="form-group">
                                     <label for="roleId">角色</label>
                                     <select id="roleId" class="form-control" required>
                                         ${roleOptions}
@@ -252,6 +256,8 @@ async function showEditUserModal(userId) {
         // 填充表单数据
         document.getElementById('userId').value = user.userId || '';
         document.getElementById('username').value = user.username || '';
+        // 编辑时清空密码字段
+        document.getElementById('password').value = '';
         
         // 确保角色选择正确设置
         const roleSelect = document.getElementById('roleId');
@@ -281,6 +287,7 @@ async function saveUser() {
     // 获取表单元素
     const userIdElement = document.getElementById('userId');
     const usernameElement = document.getElementById('username');
+    const passwordElement = document.getElementById('password');
     const roleIdElement = document.getElementById('roleId');
     
     // 检查元素是否存在
@@ -292,6 +299,7 @@ async function saveUser() {
     // 获取表单数据
     const userId = userIdElement.value;
     const username = usernameElement.value.trim();
+    const password = passwordElement.value.trim();
     const roleId = roleIdElement.value;
     
     // 详细验证
@@ -326,7 +334,11 @@ async function saveUser() {
             await request('/user', 'PUT', userData);
         } else {
             // 新增用户
-            await request('/user', 'POST', userData);
+            await request('/auth/register', 'POST', {
+                username,
+                password,
+                roleId: parseInt(roleId)
+            });
         }
         
         // 关闭模态框

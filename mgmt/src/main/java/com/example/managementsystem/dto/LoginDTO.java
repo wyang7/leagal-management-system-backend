@@ -9,4 +9,6 @@ public class LoginDTO {
 
 
     private String password;
+
+    private Long roleId;
 }
