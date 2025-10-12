@@ -70,6 +70,7 @@ function loadCaseManagementPage(station) {
                     <button class="btn btn-outline-primary" onclick="filterCases('延期')">延期</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
+                    <button class="btn btn-outline-primary" onclick="filterCases('完结')">完结</button>
                 </div>
             </div>
         </div>
@@ -176,6 +177,9 @@ async function showCaseDetailModal(caseId) {
                             <div class="col-md-6">
                                 <strong>收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
                             </div>
+                            <div class="col-md-6">
+                                <strong>退回法院时间:</strong> ${formatDate(caseInfo.returnCourtTime)}
+                            </div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -219,9 +223,17 @@ async function showCaseDetailModal(caseId) {
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <strong>完成情况:</strong>
+                                <strong>案件完成情况:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
                                     ${caseInfo.completionNotes || '无'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <strong>完结备注:</strong>
+                                <div class="mt-2 p-3 bg-light rounded">
+                                    ${caseInfo.completionRemark || '无'}
                                 </div>
                             </div>
                         </div>
@@ -553,6 +565,9 @@ function renderCaseTable(cases) {
             case '退回':
                 statusClass = 'status-returned';
                 break;
+            case '完结':
+                statusClass = 'text-success'; // 绿色表示完结
+                break;
         }
         
         html += `
@@ -597,6 +612,9 @@ function renderCaseTable(cases) {
                     <i class="fa fa-check"></i> 退回
                 </button>
                 ` : ''}
+                ${(caseInfo.status !== '完结' && caseInfo.status !== '待领取') ? `
+                <button class="btn btn-sm btn-success me-1" onclick="showFinishCaseModal(${caseInfo.caseId})">完结</button>` 
+                : ''}
             </td>
         </tr>
         `;
@@ -616,6 +634,96 @@ function renderCaseTable(cases) {
 }
 
 
+// 4. 添加完结案件的模态框函数
+// 创建完结案件模态框容器
+function createFinishCaseModalContainer() {
+    if (!document.getElementById('finishCaseModalContainer')) {
+        const container = document.createElement('div');
+        container.id = 'finishCaseModalContainer';
+        document.body.appendChild(container);
+    }
+}
+
+// 显示完结案件模态框
+function showFinishCaseModal(caseId) {
+    createFinishCaseModalContainer(); // 确保容器存在
+    const modalContainer = document.getElementById('finishCaseModalContainer');
+
+    // 模态框HTML（使用新ID）
+    const modalHtml = `
+    <div class="modal fade" id="finishCaseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">案件完结确认</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 完结备注和退回时间表单 -->
+                    <input type="hidden" id="finishCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">完结备注</label>
+                        <select class="form-select" id="finishRemark">
+                            <option value="司法确认">司法确认</option>
+                            <option value="撤诉">撤诉</option>
+                            <option value="民初">民初</option>
+                            <option value="拒绝调解">拒绝调解</option>
+                            <option value="联系不上">联系不上</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">退回法院时间</label>
+                        <input type="date" class="form-control" id="returnCourtTime">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmFinishCase()">确认完结</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    modalContainer.innerHTML = modalHtml;
+    const finishModal = new bootstrap.Modal(document.getElementById('finishCaseModal'));
+    finishModal.show();
+}
+
+// 5. 添加确认完结的函数
+async function confirmFinishCase() {
+    const caseId = document.getElementById('finishCaseId').value;
+    const completionRemark = document.getElementById('finishRemark').value;
+    const returnCourtTime = document.getElementById('returnCourtTime').value;
+
+    if (!completionRemark) {
+        alert('请选择完结备注');
+        return;
+    }
+
+    if (!returnCourtTime) {
+        alert('请选择退回法院时间');
+        return;
+    }
+
+    try {
+        await request('/case/complete', 'POST', {
+            caseId:caseId,
+            status: '完结',
+            completionRemark:completionRemark,
+            returnCourtTime:returnCourtTime
+        });
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('completeCaseModal'));
+        modal.hide();
+        // 重新加载案件列表
+        loadCases();
+        alert('案件已成功完结');
+    } catch (error) {
+        console.error('完结案件失败:', error);
+        alert('完结案件失败');
+    }
+}
 
 // 创建批量关联案件包模态框
 function createBatchAssignTaskModal() {

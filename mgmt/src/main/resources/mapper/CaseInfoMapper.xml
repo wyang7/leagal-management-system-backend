@@ -217,6 +217,16 @@
         ORDER BY case_id DESC
     </select>
 
+    <!-- 更新案件为完结状态 -->
+    <update id="updateCompleteStatus">
+        UPDATE case_info
+        SET
+            status = #{status},
+            completion_remark = #{completionRemark},
+            return_court_time = #{returnCourtTime},
+            updated_time = NOW()
+        WHERE case_id = #{caseId}
+    </update>
 
 
 

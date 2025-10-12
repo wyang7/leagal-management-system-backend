@@ -325,6 +325,9 @@ function renderMyCaseTable(cases) {
             case '已完成':
                 statusClass = 'status-completed';
                 break;
+            case '完结':
+                statusClass = 'text-success'; // 绿色表示完结
+                break;
         }
 
         html += `

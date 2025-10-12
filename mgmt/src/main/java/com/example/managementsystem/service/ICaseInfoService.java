@@ -83,4 +83,13 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName,String station);
 
     boolean save(CaseInfo caseInfo);
+
+    /**
+     * 完结案件（更新状态、备注、退回法院时间）
+     * @param caseId 案件ID
+     * @param completionRemark 完结备注
+     * @param returnCourtTime 退回法院时间
+     * @return 是否成功
+     */
+    boolean completeCase(Long caseId, String completionRemark, String returnCourtTime);
 }

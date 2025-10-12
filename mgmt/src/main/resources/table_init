@@ -112,6 +112,12 @@ alter table case_info
 
 alter table case_info add mediator_receive_time bigint null;
 
+-- 添加完结备注字段
+ALTER TABLE case_info ADD COLUMN completion_remark VARCHAR(255) NULL COMMENT '完结备注（司法确认、撤诉、民初、拒绝调解、联系不上）';
+
+-- 添加退回法院时间字段（与法院收案时间格式一致）
+ALTER TABLE case_info ADD COLUMN return_court_time VARCHAR(50) NULL COMMENT '退回法院时间';
+
 
 CREATE TABLE `case_flow_history` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',

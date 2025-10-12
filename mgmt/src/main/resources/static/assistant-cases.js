@@ -329,6 +329,9 @@ function renderAssistantCaseTable(cases) {
             case '退回':
                 statusClass = 'status-returned';
                 break;
+            case '完结':
+                statusClass = 'text-success'; // 绿色表示完结
+                break;
         }
 
         html += `

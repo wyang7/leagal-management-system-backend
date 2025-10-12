@@ -583,4 +583,16 @@ public class CaseInfoController {
             return Result.fail("完成案件失败");
         }
     }
+
+    // 添加完结案件的接口
+    @PostMapping("/complete")
+    public Result<?> completeCase(@RequestBody CaseInfo caseInfo) {
+        CaseInfo existingCase = caseInfoService.getById(caseInfo.getCaseId());
+        if (existingCase == null) {
+            return Result.fail("案件不存在");
+        }
+
+        boolean success = caseInfoService.completeCase(caseInfo.getCaseId(), caseInfo.getCompletionRemark(), caseInfo.getReturnCourtTime());
+        return success ? Result.success() : Result.fail("完结案件失败");
+    }
 }

@@ -216,4 +216,30 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         return super.save(caseInfo);
     }
 
+    @Override
+    public boolean completeCase(Long caseId, String completionRemark, String returnCourtTime) {
+        // 1. 校验案件是否存在
+        CaseInfo caseInfo = getById(caseId);
+        if (caseInfo == null) {
+            return false;
+        }
+
+        // 2. 校验状态是否允许完结（根据业务规则调整，例如：已领取、已完成等状态可转为完结）
+        String currentStatus = caseInfo.getStatus();
+        if (!"已领取".equals(currentStatus) && !"已完成".equals(currentStatus) && !"预反馈".equals(currentStatus)
+                 && !"退回".equals(currentStatus)) {
+            return false;  // 不允许从当前状态转为完结
+        }
+
+        // 3. 更新案件状态和字段
+        int rows = baseMapper.updateCompleteStatus(
+                caseId,
+                "完结",  // 目标状态
+                completionRemark,
+                returnCourtTime
+        );
+
+        return rows > 0;
+    }
+
 }

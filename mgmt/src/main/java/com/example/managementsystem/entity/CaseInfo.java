@@ -147,6 +147,19 @@ public class CaseInfo implements Serializable {
     @TableField(exist = false)
     private String username;
 
+
+    /**
+     * 完结备注（枚举：司法确认、撤诉、民初、拒绝调解、联系不上）
+     */
+    @TableField("completion_remark")
+    private String completionRemark;
+
+    /**
+     * 退回法院时间
+     */
+    @TableField("return_court_time")
+    private String returnCourtTime;
+
     /**
      * 创建时间
      */

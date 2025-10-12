@@ -91,4 +91,14 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                                       @Param("taskId") Integer taskId,
                                       @Param("caseName") String caseName,
                                       @Param("station") String station);
+
+    /**
+     * 更新案件为完结状态，包含备注和退回法院时间
+     */
+    int updateCompleteStatus(
+            @Param("caseId") Long caseId,
+            @Param("status") String status,
+            @Param("completionRemark") String completionRemark,
+            @Param("returnCourtTime") String returnCourtTime
+    );
 }
