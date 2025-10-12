@@ -187,17 +187,22 @@
         // 由于UserSession中只有roleId，需要额外查询角色信息
         let isSystemAdmin = false;
         let isAssistant = false;
+        let isSystemAdminMain = false;//是否总部系统管理员
         try {
             // 获取角色信息
             const roles = await request('/role');
             // 找到当前用户的角色
             const userRole = roles.find(role => role.roleId === userInfo.roleId);
             // 检查角色名称是否包含"系统管理员"
-            if (userRole && userRole.roleName && userRole.roleName.includes('系统管理员')) {
+            if (userRole && userRole.roleType && userRole.roleType.includes('管理员')) {
                 isSystemAdmin = true;
             }
+            if (userRole && userRole.roleType && userRole.roleType.includes('管理员')
+                && userRole.station.includes('总部')) {
+                isSystemAdminMain = true;
+            }
             // 检查角色名称是否包含"案件助理"
-            if (userRole && userRole.roleName && userRole.roleName.includes('案件助理')) {
+            if (userRole && userRole.roleType && userRole.roleType.includes('助理')) {
                 isAssistant = true;
             }
             if (null==userRole){
@@ -213,16 +218,6 @@
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
                     <i class="fa fa-inbox me-2"></i>领取案件
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadUserManagementPage()">
-                    <i class="fa fa-users me-2"></i>用户管理
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadRoleManagementPage()">
-                    <i class="fa fa-key me-2"></i>角色管理
                 </a>
             </li>
             <li class="nav-item">
@@ -254,6 +249,20 @@
                 </a>
             </li>
         `;
+            if (isSystemAdminMain){
+                navHtml += `
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="loadUserManagementPage()">
+                        <i class="fa fa-users me-2"></i>用户管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="loadRoleManagementPage()">
+                        <i class="fa fa-key me-2"></i>角色管理
+                    </a>
+                </li>
+            `;
+            }
         }else if (isAssistant){
              navHtml += `
             <li class="nav-item">
