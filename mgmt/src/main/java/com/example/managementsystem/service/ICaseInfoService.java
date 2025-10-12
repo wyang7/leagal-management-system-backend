@@ -80,7 +80,7 @@ public interface ICaseInfoService extends IService<CaseInfo> {
 
     int removeTaskId(Long caseId);
 
-    List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName);
+    List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName,String station);
 
     boolean save(CaseInfo caseInfo);
 }

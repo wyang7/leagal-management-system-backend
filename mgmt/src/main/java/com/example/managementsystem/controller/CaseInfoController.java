@@ -3,9 +3,11 @@ package com.example.managementsystem.controller;
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.dto.UserSession;
 import com.example.managementsystem.entity.CaseInfo;
+import com.example.managementsystem.entity.Role;
 import com.example.managementsystem.entity.User;
 import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.ICaseInfoService;
+import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -41,6 +43,10 @@ public class CaseInfoController {
     @Autowired
     private ICaseFlowHistoryService caseFlowHistoryService;
 
+
+    @Autowired
+    private IRoleService roleService;
+
     /**
      * 根据状态筛选案件（支持多个状态）
      */
@@ -48,8 +54,18 @@ public class CaseInfoController {
     public Result<List<CaseInfo>> filterCasesByStatus(
             @RequestParam List<String> statusList,
             @RequestParam Integer taskId,
-            @RequestParam(required = false) String caseName) {
-        return Result.success(caseInfoService.getCasesByStatusList(statusList,taskId,caseName));
+            @RequestParam(required = false) String caseName, HttpSession session) {
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getRoleId() == null) {
+            return Result.fail("未登录或角色信息缺失");
+        }
+        Long userRoleId = currentUser.getRoleId();
+        Role byId = roleService.getById(userRoleId);
+        if (null==byId){
+            return Result.fail("角色信息异常");
+        }
+        String station = byId.getStation();
+        return Result.success(caseInfoService.getCasesByStatusList(statusList,taskId,caseName,station));
     }
 
     /**

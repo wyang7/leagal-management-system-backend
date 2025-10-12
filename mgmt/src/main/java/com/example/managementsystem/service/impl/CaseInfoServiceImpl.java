@@ -197,8 +197,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName) {
-        return baseMapper.selectByStatusList(statusList,taskId,caseName);
+    public List<CaseInfo> getCasesByStatusList(List<String> statusList,Integer taskId,String caseName,String station) {
+        return baseMapper.selectByStatusList(statusList,taskId,caseName,station);
     }
 
     @Override
