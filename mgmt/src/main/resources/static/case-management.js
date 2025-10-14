@@ -714,7 +714,7 @@ async function confirmFinishCase() {
             returnCourtTime:returnCourtTime
         });
         // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(document.getElementById('completeCaseModal'));
+        const modal = bootstrap.Modal.getInstance(document.getElementById('finishCaseModal'));
         modal.hide();
         // 重新加载案件列表
         loadCases();

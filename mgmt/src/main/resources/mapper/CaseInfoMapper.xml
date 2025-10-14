@@ -168,7 +168,7 @@
                 LEFT JOIN
             user u ON c.assistant_id = u.user_id
         WHERE
-            c.user_id = #{userId} and c.status!='退回'
+            c.user_id = #{userId} and c.status!='退回' and c.status!='完结'
         ORDER BY c.case_id DESC
     </select>
 

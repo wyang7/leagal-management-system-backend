@@ -66,7 +66,7 @@ function loadMyCasesPage() {
     // 创建完成案件模态框容器
     createCompleteCaseModalContainer();
     // 创建案件详情模态框容器
-    createCaseDetailModalContainer();
+    createMyCaseDetailModalContainer();
     // 创建案件历史记录模态框容器
     createCaseHistoryModalContainer();
     // 加载我的案件列表
@@ -76,10 +76,10 @@ function loadMyCasesPage() {
 /**
  * 创建案件详情模态框容器
  */
-function createCaseDetailModalContainer() {
-    if (!document.getElementById('caseDetailModalContainer')) {
+function createMyCaseDetailModalContainer() {
+    if (!document.getElementById('myCaseDetailModalContainer')) {
         const container = document.createElement('div');
-        container.id = 'caseDetailModalContainer';
+        container.id = 'myCaseDetailModalContainer';
         document.body.appendChild(container);
     }
 }
@@ -89,10 +89,10 @@ function createCaseDetailModalContainer() {
  * 显示案件详情模态框
  * @param {number} caseId 案件ID
  */
-async function showCaseDetailModal(caseId) {
+async function showmyCaseDetailModal(caseId) {
     try {
         const caseInfo = await request(`/case/detail/${caseId}`);
-        const modalContainer = document.getElementById('caseDetailModalContainer');
+        const modalContainer = document.getElementById('myCaseDetailModalContainer');
 
         // 格式化日期
         const formatDate = (dateStr) => {
@@ -101,7 +101,7 @@ async function showCaseDetailModal(caseId) {
 
         // 创建模态框
         const modalHtml = `
-        <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="myCaseDetailModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -196,7 +196,7 @@ async function showCaseDetailModal(caseId) {
         modalContainer.innerHTML = modalHtml;
 
         // 显示模态框
-        const detailModal = new bootstrap.Modal(document.getElementById('caseDetailModal'));
+        const detailModal = new bootstrap.Modal(document.getElementById('myCaseDetailModal'));
         detailModal.show();
     } catch (error) {
         console.error('获取案件详情失败:', error);
@@ -343,7 +343,7 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.assistantName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="showCaseDetailModal(${caseInfo.caseId})">
+                <button class="btn btn-sm btn-primary" onclick="showmyCaseDetailModal(${caseInfo.caseId})">
                     <i class="fa fa-eye"></i> 详情
                 </button>
                 <button class="btn btn-sm btn-primary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
