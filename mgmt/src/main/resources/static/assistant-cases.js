@@ -165,7 +165,7 @@ async function showAssistantCaseDetailModal(caseId) {
                             <div class="col-md-12">
                                 <strong>预反馈情况:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
-                                    ${caseInfo.preFeedback || '无'}
+                                    ${caseInfo.preFeedback ? caseInfo.preFeedback.replace(/\n/g, '<br>') : '无'}
                                 </div>
                             </div>
                         </div>
@@ -173,7 +173,7 @@ async function showAssistantCaseDetailModal(caseId) {
                             <div class="col-md-12">
                                 <strong>退回情况:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
-                                    ${caseInfo.returnReason || '无'}
+                                    ${caseInfo.returnReason ? caseInfo.returnReason.replace(/\n/g, '<br>') : '无'}
                                 </div>
                             </div>
                         </div>
@@ -181,7 +181,7 @@ async function showAssistantCaseDetailModal(caseId) {
                             <div class="col-md-12">
                                 <strong>完成情况:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
-                                    ${caseInfo.completionNotes || '无'}
+                                    ${caseInfo.completionNotes ? caseInfo.completionNotes.replace(/\n/g, '<br>') : '无'}
                                 </div>
                             </div>
                         </div>

@@ -123,7 +123,6 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
                 &&(!"预反馈".equals(caseInfo.getStatus()))) {
             return false;
         }
-
         // 更新为退回状态
         return baseMapper.updateReturnStatus(caseId, "退回", returnReason) > 0;
     }

@@ -356,14 +356,18 @@ public class CaseInfoController {
         String operatorName = currentUser.getUsername();
 
         // 校验状态是否为已领取（只能从已领取状态流转到预反馈）
-        if (!"已领取".equals(caseInfo.getStatus())) {
+        if (!"已领取".equals(caseInfo.getStatus())&& !"预反馈".equals(caseInfo.getStatus())) {
             return Result.fail("只有已领取的案件可以提交预反馈");
         }
         String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
         caseInfo.setStatus("预反馈"); // 变更状态为预反馈
-        caseInfo.setPreFeedback(preFeedback); // 存储预反馈内容
+        //修改预反馈结构
+        String finalPreFeedback = buildAccumulatedRemark(caseInfo.getPreFeedback(), preFeedback, operatorId);
+        caseInfo.setPreFeedback(finalPreFeedback); // 存储预反馈内容
         caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))); // 更新时间
+
+
 
         boolean success = caseInfoService.updateById(caseInfo);
         if (success) {
@@ -414,7 +418,8 @@ public class CaseInfoController {
         String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
         caseInfo.setStatus("延期"); // 变更状态为延期
-        caseInfo.setDelayReason(delayReason); // 存储延期原因
+        String finalDelayReason = buildAccumulatedRemark(caseInfo.getDelayReason(), delayReason, operatorId);
+        caseInfo.setDelayReason(finalDelayReason); // 存储延期原因
         caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))); // 更新时间
 
         boolean success = caseInfoService.updateById(caseInfo);
@@ -565,7 +570,8 @@ public class CaseInfoController {
 
         // 更新状态和完成情况
         caseInfo.setStatus("已完成");
-        caseInfo.setCompletionNotes(notes);
+        String finalNotes = buildAccumulatedRemark(caseInfo.getCompletionNotes(), notes, operatorId);
+        caseInfo.setCompletionNotes(finalNotes);
         boolean success = caseInfoService.updateById(caseInfo);
         if (success) {
             // 保存历史记录
@@ -586,13 +592,38 @@ public class CaseInfoController {
 
     // 添加完结案件的接口
     @PostMapping("/complete")
-    public Result<?> completeCase(@RequestBody CaseInfo caseInfo) {
+    public Result<?> completeCase(@RequestBody CaseInfo caseInfo, HttpSession session) {
         CaseInfo existingCase = caseInfoService.getById(caseInfo.getCaseId());
         if (existingCase == null) {
             return Result.fail("案件不存在");
         }
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
 
-        boolean success = caseInfoService.completeCase(caseInfo.getCaseId(), caseInfo.getCompletionRemark(), caseInfo.getReturnCourtTime());
+        String finalCompletionRemark = buildAccumulatedRemark(existingCase.getCompletionRemark(), caseInfo.getCompletionRemark(), operatorId);
+        boolean success = caseInfoService.completeCase(caseInfo.getCaseId(), finalCompletionRemark, caseInfo.getReturnCourtTime());
         return success ? Result.success() : Result.fail("完结案件失败");
+    }
+
+
+
+
+
+
+    private String buildAccumulatedRemark(String existingRemark, String newRemark, Long operatorId) {
+        // 获取当前时间
+        String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        // 获取操作人姓名
+        User operator = userService.getById(operatorId);
+        String operatorName = operator != null ? operator.getUsername() : "未知用户";
+
+        // 构建新记录行
+        String newRecord = String.format("%s，%s，填写预反馈备注：%s", currentTime, operatorName, newRemark);
+
+        // 累积记录（如果已有记录则换行添加，否则直接使用新记录）
+        return StringUtils.isEmpty(existingRemark) ? newRecord : existingRemark + "\n" + newRecord;
     }
 }
