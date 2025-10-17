@@ -46,7 +46,7 @@ function loadTaskManagementPage() {
     // 创建任务模态框容器
     createTaskModalContainer();
     // 加载任务列表（分页）
-    loadTasks(1, 10);
+    loadTasks(1, 100);
 }
 
 /**
@@ -63,7 +63,7 @@ function createTaskModalContainer() {
 /**
  * 加载任务列表
  */
-async function loadTasks(pageNum = 1, pageSize = 10) {
+async function loadTasks(pageNum = 1, pageSize = 100) {
 
     try {
         const response = await request(`/task/page?pageNum=${pageNum}&pageSize=${pageSize}`);
