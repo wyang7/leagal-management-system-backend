@@ -137,3 +137,33 @@ INSERT INTO role (role_name, role_type) VALUES
 ('初级调解员', '调解员'),
 ('高级调解员', '调解员');
 
+
+
+brew services start mysql
+mysql -hrm-bp16nj63444qf3v96.mysql.rds.aliyuncs.com -P3306 -uroot -p
+Wangyang@7
+USE management_system;
+
+yum install -y java-1.8.0-openjdk-devel
+
+sudo yum install -y git
+git clone https://github.com/wyang7/leagal-management-system-backend.git
+
+
+sudo yum install -y maven
+mvn clean package
+
+java -jar mgmt/target/mgmt-0.0.1-SNAPSHOT.jar & disown %1
+
+nohup java -jar mgmt/target/mgmt-0.0.1-SNAPSHOT.jar > /dev/null 2>&1 &
+
+防火墙
+https://help.aliyun.com/zh/ecs/user-guide/enable-or-disable-the-system-firewall-in-a-linux-instance?spm=a2c4g.11186623.0.0.e85a2eb0EQsXF2#6d44d28dbba78
+
+
+
+
+
+
+
+
