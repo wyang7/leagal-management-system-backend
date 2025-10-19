@@ -53,6 +53,7 @@ public class CaseAutoReturnTask {
                 history.setBeforeStatus(beforeStatus);
                 history.setAfterStatus(caseInfo.getStatus());
                 history.setOperatorName("System");
+                history.setOperatorId(0L); // 系统操作，ID设为0
                 caseFlowHistoryService.save(history);
             }
         }
