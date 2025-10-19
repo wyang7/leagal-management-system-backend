@@ -112,7 +112,7 @@ create index idx_user_id
 
 ALTER TABLE case_info ADD COLUMN receive_type VARCHAR(20) COMMENT '领取方式：self_receive-自己领取，assigned-被分派';
 
-
+ALTER TABLE case_info ADD COLUMN receive_time DATETIME COMMENT '领取时间';
 
 create table management_system.case_flow_history
 (

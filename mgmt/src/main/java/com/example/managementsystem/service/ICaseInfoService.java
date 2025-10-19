@@ -92,4 +92,6 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * @return 是否成功
      */
     boolean completeCase(Long caseId, String completionRemark, String returnCourtTime);
+
+    List<CaseInfo> getSelfReceivedCheckableCases();
 }

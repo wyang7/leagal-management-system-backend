@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,8 +122,9 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
             if (isAssign){
                 caseInfo.setReceiveType("assign");
             }else {
-                caseInfo.setReceiveType("receive");
+                caseInfo.setReceiveType("self_receive");
             }
+            caseInfo.setReceiveTime(LocalDateTime.now());
         }
 
         boolean updateBoolean = caseInfoService.updateBatchById(cases);

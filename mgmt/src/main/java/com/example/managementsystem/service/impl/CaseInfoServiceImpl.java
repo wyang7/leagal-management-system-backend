@@ -15,10 +15,7 @@ import org.springframework.util.StringUtils;
 import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * <p>
@@ -80,8 +77,9 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         if (isAssign){
             caseInfo.setReceiveType("assign");
         }else {
-            caseInfo.setReceiveType("receive");
+            caseInfo.setReceiveType("self_receive");
         }
+        caseInfo.setReceiveTime(LocalDateTime.now());
         caseInfo.setUserId(userId);
         return updateById(caseInfo);
     }
@@ -244,6 +242,18 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         );
 
         return rows > 0;
+    }
+
+    @Override
+    public List<CaseInfo> getSelfReceivedCheckableCases() {
+        QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
+        // 只查询“自行领取”的案件
+        queryWrapper.eq("receive_type", "self_receive")
+                // 状态为“已领取”或“反馈”（需要检查的状态）
+                .in("status", Arrays.asList("已领取", "反馈"))
+                // 必须有领取时间（排除异常数据）
+                .isNotNull("receive_time");
+        return baseMapper.selectList(queryWrapper);
     }
 
 }

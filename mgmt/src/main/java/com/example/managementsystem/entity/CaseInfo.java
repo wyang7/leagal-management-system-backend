@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -81,6 +82,9 @@ public class CaseInfo implements Serializable {
      */
     @TableField("receive_type")
     private String receiveType;
+
+    @TableField("receive_time")
+    private LocalDateTime receiveTime;
 
     @TableField("completion_notes")
     private String completionNotes;
