@@ -38,6 +38,9 @@ function loadCaseManagementPage(station) {
                 <div class="flex-grow-1 min-w-[200px]">
                     <input type="text" id="defendantSearchInput" class="form-control" placeholder="输入被告搜索">
                 </div>
+                <div class="flex-grow-1 min-w-[200px]">
+                    <input type="text" id="userNameSearchInput" class="form-control" placeholder="输入处理人搜索">
+                </div>
                 <div class="min-w-[100px]">
                     <button class="btn btn-primary w-100" onclick="loadCases()">
                         <i class="fa fa-search me-1"></i> 搜索
@@ -287,6 +290,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         const caseNumber = document.getElementById('caseNumberSearchInput').value.trim();
         const plaintiff = document.getElementById('plaintiffSearchInput').value.trim();
         const defendant = document.getElementById('defendantSearchInput').value.trim();
+        const userName = document.getElementById('userNameSearchInput').value.trim();
 
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
@@ -295,6 +299,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         if (caseNumber) params.append('caseNumber', caseNumber);
         if (plaintiff) params.append('plaintiff', plaintiff);   // 原告参数
         if (defendant) params.append('defendant', defendant); // 被告参数
+        if (userName) params.append('userName', userName); // 处理人参数
         if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
         if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
 

@@ -29,6 +29,9 @@
         <if test="defendant != null and defendant != ''">
             AND defendant_name LIKE CONCAT('%', #{defendant}, '%')
         </if>
+        <if test="userId != null and userId != ''">
+            AND user_id = #{userId}
+        </if>
         <if test="station != null and station != ''  and station != '总部'">
             <choose>
                 <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
@@ -104,6 +107,9 @@
         </if>
         <if test="defendant != null and defendant != ''">
             AND c.defendant_name LIKE CONCAT('%', #{defendant}, '%')
+        </if>
+        <if test="userId != null and userId != ''">
+            AND c.user_id = #{userId}
         </if>
         <if test="station != null and station != '' and station != '总部'">
             <choose>

@@ -97,6 +97,7 @@ public class CaseInfoController {
             @RequestParam(required = false) String caseNumber,      // 新增：案号
             @RequestParam(required = false) String plaintiff,       // 新增：原告
             @RequestParam(required = false) String defendant,
+            @RequestParam(required = false) String userName,
             @RequestParam(required = false) String station) {
 
         // 校验分页参数合法性
@@ -108,7 +109,7 @@ public class CaseInfoController {
         }
 
         // 调用服务层获取分页数据
-        Map<String, Object> pageResult = caseInfoService.getCasePage(caseName,status, caseNumber, plaintiff, defendant
+        Map<String, Object> pageResult = caseInfoService.getCasePage(caseName,status, userName,caseNumber, plaintiff, defendant
                 ,station,pageNum, pageSize);
 
         // 返回统一格式的响应
