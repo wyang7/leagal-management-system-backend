@@ -110,6 +110,10 @@ create index idx_user_id
     on management_system.case_info (user_id);
 
 
+ALTER TABLE case_info ADD COLUMN receive_type VARCHAR(20) COMMENT '领取方式：self_receive-自己领取，assigned-被分派';
+
+
+
 create table management_system.case_flow_history
 (
     id            bigint auto_increment comment '主键ID'
@@ -117,10 +121,10 @@ create table management_system.case_flow_history
     case_id       bigint                             not null comment '案件ID',
     operator_id   bigint                             not null comment '操作人ID',
     operator_name varchar(50)                        not null comment '操作人姓名',
-    action        varchar(50)                        not null comment '操作动作（如：领取、预反馈、退回、完成等）',
+    action        varchar(50)                        not null comment '操作动作（如：领取、反馈、退回、完成等）',
     before_status varchar(50)                        null comment '操作前状态',
     after_status  varchar(50)                        not null comment '操作后状态',
-    remarks       text                               null comment '操作备注（如退回原因、预反馈内容等）',
+    remarks       text                               null comment '操作备注（如退回原因、反馈内容等）',
     create_time   datetime default CURRENT_TIMESTAMP not null comment '操作时间'
 )
     comment '案件流转历史记录表' charset = utf8mb4;

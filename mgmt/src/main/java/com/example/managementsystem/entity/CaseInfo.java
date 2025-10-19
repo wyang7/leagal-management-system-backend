@@ -76,6 +76,12 @@ public class CaseInfo implements Serializable {
     @TableField("user_id")
     private Long userId;
 
+    /**
+     * 领取方式：self_receive(自己领取)、assigned(被分派)
+     */
+    @TableField("receive_type")
+    private String receiveType;
+
     @TableField("completion_notes")
     private String completionNotes;
 
@@ -86,7 +92,7 @@ public class CaseInfo implements Serializable {
     private String returnReason;
 
     /**
-     * 预反馈
+     * 反馈
      */
     @TableField("pre_feedback")
     private String preFeedback;

@@ -334,8 +334,8 @@ public class CaseInfoController {
     }
 
     /**
-     * 案件预反馈接口
-     * 接收案件ID和预反馈内容，更新状态为预反馈
+     * 案件反馈接口
+     * 接收案件ID和反馈内容，更新状态为反馈
      */
     @PostMapping("/pre-feedback")
     public Result<?> preFeedbackCase(@RequestBody Map<String, Object> params, HttpSession session) {
@@ -355,16 +355,16 @@ public class CaseInfoController {
         Long operatorId = currentUser.getUserId();
         String operatorName = currentUser.getUsername();
 
-        // 校验状态是否为已领取（只能从已领取状态流转到预反馈）
-        if (!"已领取".equals(caseInfo.getStatus())&& !"预反馈".equals(caseInfo.getStatus())) {
-            return Result.fail("只有已领取的案件可以提交预反馈");
+        // 校验状态是否为已领取（只能从已领取状态流转到反馈）
+        if (!"已领取".equals(caseInfo.getStatus())&& !"反馈".equals(caseInfo.getStatus())) {
+            return Result.fail("只有已领取的案件可以提交反馈");
         }
         String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
-        caseInfo.setStatus("预反馈"); // 变更状态为预反馈
-        //修改预反馈结构
+        caseInfo.setStatus("反馈"); // 变更状态为反馈
+        //修改反馈结构
         String finalPreFeedback = buildAccumulatedRemark(caseInfo.getPreFeedback(), preFeedback, operatorId);
-        caseInfo.setPreFeedback(finalPreFeedback); // 存储预反馈内容
+        caseInfo.setPreFeedback(finalPreFeedback); // 存储反馈内容
         caseInfo.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))); // 更新时间
 
 
@@ -376,20 +376,20 @@ public class CaseInfoController {
                     caseId,
                     operatorId,
                     operatorName,
-                    "案件预反馈",
+                    "案件反馈",
                     beforeStatus,
-                    "预反馈",
+                    "反馈",
                     preFeedback
             );
             return Result.success();
         } else {
-            return Result.fail("预反馈提交失败");
+            return Result.fail("反馈提交失败");
         }
     }
 
     /**
      * 案件延期接口
-     * 接收案件ID和延期原因，从已领取或预反馈状态流转到延期状态
+     * 接收案件ID和延期原因，从已领取或反馈状态流转到延期状态
      */
     @PostMapping("/delay")
     public Result<?> delayCase(@RequestBody Map<String, Object> params, HttpSession session) {
@@ -410,10 +410,10 @@ public class CaseInfoController {
         Long operatorId = currentUser.getUserId();
         String operatorName = currentUser.getUsername();
 
-        // 校验状态是否为已领取或预反馈（只能从这两个状态流转到延期）
+        // 校验状态是否为已领取或反馈（只能从这两个状态流转到延期）
         String currentStatus = caseInfo.getStatus();
-        if (!"已领取".equals(currentStatus) && !"预反馈".equals(currentStatus)) {
-            return Result.fail("只有已领取或预反馈的案件可以申请延期");
+        if (!"已领取".equals(currentStatus) && !"反馈".equals(currentStatus)) {
+            return Result.fail("只有已领取或反馈的案件可以申请延期");
         }
         String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
@@ -621,7 +621,7 @@ public class CaseInfoController {
         String operatorName = operator != null ? operator.getUsername() : "未知用户";
 
         // 构建新记录行
-        String newRecord = String.format("%s，%s，填写预反馈备注：%s", currentTime, operatorName, newRemark);
+        String newRecord = String.format("%s，%s，填写反馈备注：%s", currentTime, operatorName, newRemark);
 
         // 累积记录（如果已有记录则换行添加，否则直接使用新记录）
         return StringUtils.isEmpty(existingRemark) ? newRecord : existingRemark + "\n" + newRecord;

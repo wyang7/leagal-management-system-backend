@@ -69,6 +69,11 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      */
     int countActiveByUserId(@Param("userId") Long userId);
 
+    /*
+     * 根据用户ID查询在线领取类型的案件数量
+     */
+    int countActiveReceiveByUserId(@Param("userId") Long userId,@Param("receiveType") String receiveType);
+
     // 新增方法
     int updateReturnStatus(@Param("caseId") Long caseId,
                            @Param("status") String status,

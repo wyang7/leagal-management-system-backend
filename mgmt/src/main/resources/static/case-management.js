@@ -4,6 +4,10 @@
  */
 
 let currentStation= '';
+// 新增全局变量跟踪当前分页和筛选状态
+let currentPage = 1;
+const pageSize = 10;
+let currentFilterStatus = 'all';
 
 function loadCaseManagementPage(station) {
 
@@ -66,7 +70,7 @@ function loadCaseManagementPage(station) {
                     <button class="btn btn-outline-primary" onclick="filterCases('all')">全部</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('待领取')">待领取</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('预反馈')">预反馈</button>
+                    <button class="btn btn-outline-primary" onclick="filterCases('反馈')">反馈</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('延期')">延期</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
                     <button class="btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
@@ -207,7 +211,7 @@ async function showCaseDetailModal(caseId) {
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <strong>预反馈情况:</strong>
+                                <strong>反馈情况:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
                                     ${caseInfo.preFeedback ? caseInfo.preFeedback.replace(/\n/g, '<br>') : '无'}
                                 </div>
@@ -276,6 +280,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
 
         // 使用当前选中的驻点或传入的驻点参数
         const currentStationTemp = station || currentStation;
+        currentPage = pageNum;
 
         // 发起分页查询请求
         const caseName = document.getElementById('caseSearchInput').value.trim();
@@ -290,6 +295,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         if (caseNumber) params.append('caseNumber', caseNumber);
         if (plaintiff) params.append('plaintiff', plaintiff);   // 原告参数
         if (defendant) params.append('defendant', defendant); // 被告参数
+        if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
         if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
 
         const response = await request(`/case/page?${params.toString()}`);
@@ -466,43 +472,16 @@ function renderPagination(pageInfo) {
  */
 async function filterCases(status, pageNum = 1, pageSize = 10) {
     try {
+        currentPage = pageNum;
+        currentFilterStatus = status;
 
-        // 获取所有搜索条件（案由、案号、原告、被告）
-        const caseName = document.getElementById('caseSearchInput').value.trim();
-        const caseNumber = document.getElementById('caseNumberSearchInput').value.trim();
-        const plaintiff = document.getElementById('plaintiffSearchInput').value.trim();
-        const defendant = document.getElementById('defendantSearchInput').value.trim();
-
-        // 构建查询参数
-        const params = new URLSearchParams();
-        params.append('pageNum', pageNum);
-        params.append('pageSize', pageSize);
-        if (caseName) params.append('caseName', caseName);
-        if (caseNumber) params.append('caseNumber', caseNumber);
-        if (plaintiff) params.append('plaintiff', plaintiff);
-        if (defendant) params.append('defendant', defendant);
-        // 状态为"all"时不传递status参数，后端按所有状态处理
-        if (status !== 'all') params.append('status', status);
-        if (currentStation) params.append('station', currentStation); // 驻点信息
-
-        // 发起请求（复用分页查询接口）
-        const response = await request(`/case/page?${params.toString()}`);
-        renderCaseTable(response.records);
-
-        // 渲染分页组件
-        renderPagination({
-            total: response.total,
-            pageNum: response.pageNum,
-            pageSize: response.pageSize
-        });
+        loadCases(currentPage, pageSize, currentStation);
 
         // 更新按钮样式（保持不变）
         document.querySelectorAll('.btn-group .btn').forEach(btn => {
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-outline-primary');
         });
-        event.currentTarget.classList.remove('btn-outline-primary');
-        event.currentTarget.classList.add('btn-primary');
     } catch (error) {
         console.error('筛选失败:', error);
         document.getElementById('paginationContainer')?.remove();
@@ -553,7 +532,7 @@ function renderCaseTable(cases) {
             case '已领取':
                 statusClass = 'status-received';
                 break;
-            case '预反馈':
+            case '反馈':
                 statusClass = 'status-pre-feedback';
                 break;
             case '延期':
@@ -1034,7 +1013,7 @@ function createCaseModal(taskOptions, assistantOptions) {
                                 <select id="caseStatus" class="form-control" required>
                                     <option value="待领取">待领取</option>
                                     <option value="已领取">已领取</option>
-                                    <option value="预反馈">预反馈</option>
+                                    <option value="反馈">反馈</option>
                                     <option value="退回">退回</option>
                                     <option value="延期">延期</option>
                                     <option value="已完成">已完成</option>

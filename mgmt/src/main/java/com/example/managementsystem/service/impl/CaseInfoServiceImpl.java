@@ -77,6 +77,11 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         }
         // 更新案件状态为"已领取"并绑定用户
         caseInfo.setStatus("已领取");
+        if (isAssign){
+            caseInfo.setReceiveType("assign");
+        }else {
+            caseInfo.setReceiveType("receive");
+        }
         caseInfo.setUserId(userId);
         return updateById(caseInfo);
     }
@@ -120,7 +125,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
         // 验证状态是否为已领取
         if ((!"已领取".equals(caseInfo.getStatus()))&&(!"延期".equals(caseInfo.getStatus()))
-                &&(!"预反馈".equals(caseInfo.getStatus()))) {
+                &&(!"反馈".equals(caseInfo.getStatus()))) {
             return false;
         }
         // 更新为退回状态
@@ -225,7 +230,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
         // 2. 校验状态是否允许完结（根据业务规则调整，例如：已领取、已完成等状态可转为完结）
         String currentStatus = caseInfo.getStatus();
-        if (!"已领取".equals(currentStatus) && !"已完成".equals(currentStatus) && !"预反馈".equals(currentStatus)
+        if (!"已领取".equals(currentStatus) && !"已完成".equals(currentStatus) && !"反馈".equals(currentStatus)
                  && !"退回".equals(currentStatus)) {
             return false;  // 不允许从当前状态转为完结
         }

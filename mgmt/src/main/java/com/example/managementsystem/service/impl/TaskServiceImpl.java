@@ -82,7 +82,11 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 
         if (!isAssign) {
             int count = caseInfoMapper.countActiveByUserId(userId);
-            if (count > 4) {
+            if (count > 8) {
+                return false;
+            }
+            int countReceive = caseInfoMapper.countActiveReceiveByUserId(userId,"receive");
+            if (countReceive > 3) {
                 return false;
             }
             int countTask = baseMapper.countTasksReceivedByUser(userId, LocalDate.now());
@@ -114,6 +118,11 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
         for (CaseInfo caseInfo : cases) {
             caseInfo.setUserId(userId);
             caseInfo.setStatus("已领取");
+            if (isAssign){
+                caseInfo.setReceiveType("assign");
+            }else {
+                caseInfo.setReceiveType("receive");
+            }
         }
 
         boolean updateBoolean = caseInfoService.updateBatchById(cases);

@@ -30,7 +30,7 @@ function loadAssistantCasesPage() {
                     <button class="btn btn-outline-primary" onclick="filterAssistantCases('all')">全部</button>
                     <button class="btn btn-outline-primary" onclick="filterAssistantCases('待领取')">待领取</button>
                     <button class="btn btn-outline-primary" onclick="filterAssistantCases('已领取')">已领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('预反馈')">预反馈</button>
+                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('反馈')">反馈</button>
                     <button class="btn btn-outline-primary" onclick="filterAssistantCases('延期')">延期</button>
                     <button class="btn btn-outline-primary" onclick="filterAssistantCases('已完成')">已完成</button>
                     <button class="btn btn-outline-primary" onclick="filterAssistantCases('退回')">退回</button>
@@ -163,7 +163,7 @@ async function showAssistantCaseDetailModal(caseId) {
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <strong>预反馈情况:</strong>
+                                <strong>反馈情况:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
                                     ${caseInfo.preFeedback ? caseInfo.preFeedback.replace(/\n/g, '<br>') : '无'}
                                 </div>
@@ -317,7 +317,7 @@ function renderAssistantCaseTable(cases) {
             case '已领取':
                 statusClass = 'status-received';
                 break;
-            case '预反馈':
+            case '反馈':
                 statusClass = 'status-pre-feedback';
                 break;
             case '延期':

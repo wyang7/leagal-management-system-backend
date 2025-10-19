@@ -55,9 +55,22 @@
     <!-- 根据用户ID查询生效的案件 -->
     <select id="countActiveByUserId" resultType="int">
         SELECT COUNT(*) FROM case_info
-        WHERE status='已领取'
+        WHERE status in ('已领取' ,'反馈' ,'延期')
         <if test="userId != null and userId != ''">
             AND user_id = #{userId}
+        </if>
+
+    </select>
+
+    <!-- 根据用户ID查询生效的案件 -->
+    <select id="countActiveReceiveByUserId" resultType="int">
+        SELECT COUNT(*) FROM case_info
+        WHERE status in ('已领取' ,'反馈' ,'延期')
+        <if test="userId != null and userId != ''">
+            AND user_id = #{userId}
+        </if>
+        <if test="receiveType != null and receiveType != ''">
+            AND receive_type = #{receiveType}
         </if>
 
     </select>

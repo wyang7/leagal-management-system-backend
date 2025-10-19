@@ -29,7 +29,7 @@ function loadMyCasesPage() {
                 <div class="btn-group" role="group">
                     <button class="btn btn-outline-primary" onclick="filterMyCases('all')">全部</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('预反馈')">预反馈</button>
+                    <button class="btn btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
                 </div>
@@ -162,7 +162,7 @@ async function showmyCaseDetailModal(caseId) {
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <strong>预反馈情况:</strong>
+                                <strong>反馈情况:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
                                     ${caseInfo.preFeedback ? caseInfo.preFeedback.replace(/\n/g, '<br>') : '无'}
                                 </div>
@@ -316,7 +316,7 @@ function renderMyCaseTable(cases) {
             case '已领取':
                 statusClass = 'status-received';
                 break;
-            case '预反馈':
+            case '反馈':
                 statusClass = 'status-pre-feedback';
                 break;
             case '延期':
@@ -348,14 +348,14 @@ function renderMyCaseTable(cases) {
                 </button>
                 <button class="btn btn-sm btn-primary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
                 <!-- 只有已领取状态显示完成按钮 -->
-                ${(caseInfo.status === '已领取' || caseInfo.status === '预反馈') ? `
+                ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
                 <button class="btn btn-sm btn-info" onclick="showPreFeedbackModal(${caseInfo.caseId})">
-                    <i class="fa fa-comment"></i> 预反馈
+                    <i class="fa fa-comment"></i> 反馈
                 </button>
                 <button class="btn btn-sm btn-danger" onclick="showDelayModal(${caseInfo.caseId})">
                     <i class="fa fa-clock-o"></i> 延期
                 </button>
-                ` : caseInfo.status === '预反馈' ? `
+                ` : caseInfo.status === '反馈' ? `
                 <button class="btn btn-sm btn-danger" onclick="showDelayModal(${caseInfo.caseId})">
                     <i class="fa fa-clock-o"></i> 延期
                 </button>
@@ -455,7 +455,7 @@ async function submitDelay() {
 }
 
 /**
- * 创建预反馈模态框容器
+ * 创建反馈模态框容器
  */
 function createPreFeedbackModalContainer() {
     if (!document.getElementById('preFeedbackModalContainer')) {
@@ -466,7 +466,7 @@ function createPreFeedbackModalContainer() {
 }
 
 /**
- * 显示预反馈弹窗
+ * 显示反馈弹窗
  */
 async function showPreFeedbackModal(caseId) {
     createPreFeedbackModalContainer();
@@ -478,15 +478,15 @@ async function showPreFeedbackModal(caseId) {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">案件预反馈</h5>
+                    <h5 class="modal-title">案件反馈</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="preFeedbackForm">
                         <input type="hidden" id="preFeedbackCaseId" value="${caseId}">
                         <div class="form-group">
-                            <label for="preFeedbackContent">预反馈内容</label>
-                            <textarea id="preFeedbackContent" class="form-control" rows="5" required placeholder="请输入预反馈内容..."></textarea>
+                            <label for="preFeedbackContent">反馈内容</label>
+                            <textarea id="preFeedbackContent" class="form-control" rows="5" required placeholder="请输入反馈内容..."></textarea>
                         </div>
                     </form>
                 </div>
@@ -505,19 +505,19 @@ async function showPreFeedbackModal(caseId) {
 }
 
 /**
- * 提交预反馈内容到后端
+ * 提交反馈内容到后端
  */
 async function submitPreFeedback() {
     const caseId = document.getElementById('preFeedbackCaseId').value;
     const feedbackContent = document.getElementById('preFeedbackContent').value.trim();
 
     if (!feedbackContent) {
-        alert('请输入预反馈内容');
+        alert('请输入反馈内容');
         return;
     }
 
     try {
-        // 调用后端预反馈接口
+        // 调用后端反馈接口
         await request('/case/pre-feedback','POST', {
             caseId: caseId,
             preFeedback: feedbackContent
@@ -527,10 +527,10 @@ async function submitPreFeedback() {
         const modal = bootstrap.Modal.getInstance(document.getElementById('preFeedbackModal'));
         modal.hide();
         loadMyCases(); // 刷新案件列表
-        alert('预反馈提交成功');
+        alert('反馈提交成功');
     } catch (error) {
-        console.error('预反馈提交失败:', error);
-        alert('预反馈提交失败，请重试');
+        console.error('反馈提交失败:', error);
+        alert('反馈提交失败，请重试');
     }
 }
 
