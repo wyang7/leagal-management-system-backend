@@ -1,5 +1,6 @@
 package com.example.managementsystem.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.Task;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,5 +174,31 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
         result.put("pageSize", pageSize);
 
         return result;
+    }
+
+    @Override
+    @Transactional
+    public boolean publishTasks(List<Long> taskIds) {
+        if (taskIds == null || taskIds.isEmpty()) {
+            return false;
+        }
+        taskIds.forEach(taskId -> {
+            int i = caseInfoMapper.countByTaskId(taskId);
+            if (i == 0) {
+                throw new RuntimeException("案件包ID " + taskId + " 下没有案件，无法发布！");
+            }
+        });
+        // 创建更新对象，将状态从待发布改为待领取
+        Task updateTask = new Task();
+        updateTask.setStatus("待领取");
+        updateTask.setUpdatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+        // 构建查询条件：只更新状态为"待发布"的案件包
+        QueryWrapper<Task> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("task_id", taskIds);
+        queryWrapper.eq("status", "待发布");
+
+        // 执行批量更新
+        return update(updateTask, queryWrapper);
     }
 }

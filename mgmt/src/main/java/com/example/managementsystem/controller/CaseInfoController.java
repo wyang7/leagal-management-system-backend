@@ -18,9 +18,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -182,7 +184,10 @@ public class CaseInfoController {
                 if (userByName == null) {
                     return Result.fail("案件助理不存在: " + caseInfo.getAssistantName());
                 }
-                boolean isAssistant = userService.checkUserRole(userByName.getUserId(), "案件助理");
+                List<String> roles = new ArrayList<>();
+                roles.add("案件助理");
+                roles.add("管理员");
+                boolean isAssistant = userService.checkUserRole(userByName.getUserId(), roles);
                 if (!isAssistant) {
                     return Result.fail("所选用户不是案件助理角色: " + caseInfo.getAssistantName());
                 }
@@ -230,7 +235,10 @@ public class CaseInfoController {
 
         // 校验案件助理角色
         if (caseInfo.getAssistantId() != null) {
-            boolean isAssistant = userService.checkUserRole(caseInfo.getAssistantId(), "案件助理");
+            List<String> roles = new ArrayList<>();
+            roles.add("案件助理");
+            roles.add("管理员");
+            boolean isAssistant = userService.checkUserRole(caseInfo.getAssistantId(), roles);
             if (!isAssistant) {
                 return Result.fail("所选用户不是案件助理角色");
             }
@@ -255,6 +263,57 @@ public class CaseInfoController {
         }
         boolean success = caseInfoService.save(caseInfo);
         return success ? Result.success() : Result.fail("新增案件失败");
+    }
+
+    /**
+     * 批量分派案件
+     */
+    @PostMapping("/batch-assign")
+    public Result<?> batchAssignCases(@RequestBody Map<String, Object> params, HttpSession session) {
+        List<Integer> intCaseIds = (List<Integer>) params.get("caseIds");
+        // 手动转换为List<Long>
+        List<Long> caseIds = intCaseIds.stream()
+                .map(Integer::longValue) // 每个Integer转为Long
+                .collect(Collectors.toList());
+        Long userId = Long.parseLong(params.get("userId").toString());
+
+        if (caseIds == null || caseIds.isEmpty()) {
+            return Result.fail("请选择要分派的案件");
+        }
+        if (userId == null || userId <= 0) {
+            return Result.fail("请选择负责人");
+        }
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        List<Long> failedCases = new ArrayList<>();
+        caseIds.forEach(caseId -> {
+            Long operatorId = currentUser.getUserId();
+            String operatorName = currentUser.getUsername();
+            CaseInfo caseById = caseInfoService.getCaseById(caseId);
+            if (caseById == null) {
+                failedCases.add(operatorId);
+                return;
+            }
+            boolean success = caseInfoService.receiveCase(caseId, userId,true);
+            if (success) {
+                // 保存历史记录
+                caseFlowHistoryService.saveHistory(
+                        caseId,
+                        operatorId,
+                        operatorName,
+                        "领取案件",
+                        caseById.getStatus(),
+                        "已领取",
+                        ""
+                );
+            }else  {
+                failedCases.add(caseId);
+            }
+        });
+        boolean success = failedCases.isEmpty();
+        return success ? Result.success() : Result.fail("批量分派失败：部分案件分派失败，案件ID列表：" + failedCases);
     }
 
     /**

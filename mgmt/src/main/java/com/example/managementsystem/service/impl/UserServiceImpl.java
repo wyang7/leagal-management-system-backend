@@ -116,7 +116,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      * 校验用户是否属于指定角色（新增实现）
      */
     @Override
-    public boolean checkUserRole(Long userId, String roleName) {
+    public boolean checkUserRole(Long userId, List<String> roleName) {
         // 1. 查询用户信息，获取其角色ID
         User user = getById(userId);
         if (user == null || user.getRoleId() == null) {
@@ -125,7 +125,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         // 2. 查询指定角色名称对应的角色ID
         QueryWrapper<Role> roleQuery = new QueryWrapper<>();
-        roleQuery.eq("role_type", roleName);
+        roleQuery.in("role_type", roleName);
         List<Role> role = roleMapper.selectList(roleQuery);
         return CollectionUtils.isNotEmpty(role) ;
     }

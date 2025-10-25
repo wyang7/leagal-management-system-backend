@@ -11,6 +11,11 @@ function loadTaskManagementPage() {
         
         <!-- 新增案件包按钮 -->
         <div class="row mb-3">
+            <div class="col-md-6">
+                <button class="btn btn-primary" onclick="batchPublishTasks()">
+                    <i class="fa fa-paper-plane"></i> 批量发布
+                </button>
+            </div>
             <div class="col-md-12 text-end">
                 <button class="btn btn-success" onclick="showAddTaskModal()">
                     <i class="fa fa-plus"></i> 新增案件包
@@ -23,6 +28,7 @@ function loadTaskManagementPage() {
             <table class="table table-striped table-hover">
                 <thead class="table-dark">
                     <tr>
+                        <th><input type="checkbox" id="selectAllTasks" onclick="toggleSelectAllTasks()"></th>
                         <th>任务ID</th>
                         <th>任务名</th>
                         <th>案件包归属</th>
@@ -47,6 +53,18 @@ function loadTaskManagementPage() {
     createTaskModalContainer();
     // 加载任务列表（分页）
     loadTasks(1, 100);
+}
+
+/**
+ * 全选/取消全选任务
+ */
+function toggleSelectAllTasks() {
+    const selectAll = document.getElementById('selectAllTasks');
+    const checkboxes = document.querySelectorAll('input[name="taskCheckbox"]');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
 }
 
 /**
@@ -94,10 +112,18 @@ function renderTaskTable(tasks) {
     let html = '';
     tasks.forEach(task => {
         // 状态样式
-        let statusClass = task.status === '待领取' ? 'text-warning' : 'text-success';
+        let statusClass = '';
+        if (task.status === '待领取') {
+            statusClass = 'text-warning';
+        } else if (task.status === '已领取') {
+            statusClass = 'text-success';
+        } else if (task.status === '待发布') {
+            statusClass = 'text-info';
+        }
 
         html += `
         <tr>
+            <td><input type="checkbox" name="taskCheckbox" value="${task.taskId}" ${task.status !== '待发布' ? 'disabled' : ''}></td>
             <td>${task.taskId}</td>
             <td>${task.taskName}</td>
             <td>${task.station || '-'}</td>
@@ -118,12 +144,58 @@ function renderTaskTable(tasks) {
                 <button class="btn btn-sm btn-secondary" onclick="showAssignTaskToUserModal(${task.taskId})">
                     <i class="fa fa-user"></i> 分派
                 </button>
+                ${task.status === '待发布' ? `
+                <button class="btn btn-sm btn-warning" onclick="publishTask(${task.taskId})">
+                    <i class="fa fa-paper-plane"></i> 发布
+                </button>
+                ` : ''}
             </td>
         </tr>
         `;
     });
 
     tableBody.innerHTML = html;
+}
+
+
+/**
+ * 单个发布案件包
+ */
+async function publishTask(taskId) {
+    if (confirm('确定要发布此案件包吗？发布后状态将变为待领取')) {
+        try {
+            await request(`/task/publish`, 'POST', { taskIds: [taskId] });
+            alert('发布成功');
+            loadTasks(); // 刷新列表
+        } catch (error) {
+            alert('发布失败: ' + (error.message || '未知错误'));
+        }
+    }
+}
+
+/**
+ * 批量发布案件包
+ */
+async function batchPublishTasks() {
+    const checkedBoxes = document.querySelectorAll('input[name="taskCheckbox"]:checked');
+
+    if (checkedBoxes.length === 0) {
+        alert('请选择要发布的案件包');
+        return;
+    }
+
+    if (confirm(`确定要发布选中的 ${checkedBoxes.length} 个案件包吗？发布后状态将变为待领取`)) {
+        const taskIds = Array.from(checkedBoxes).map(checkbox => parseInt(checkbox.value));
+
+        try {
+            await request(`/task/publish`, 'POST', { taskIds: taskIds });
+            alert(`成功发布 ${checkedBoxes.length} 个案件包`);
+            loadTasks(); // 刷新列表
+            document.getElementById('selectAllTasks').checked = false; // 取消全选状态
+        } catch (error) {
+            alert('批量发布失败: ' + (error.message || '未知错误'));
+        }
+    }
 }
 
 /**

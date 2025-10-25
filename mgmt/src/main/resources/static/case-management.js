@@ -59,6 +59,9 @@ function loadCaseManagementPage(station) {
                 <button class="btn btn-success" onclick="showAddCaseModal()">
                     <i class="fa fa-plus me-1"></i> 新增案件
                 </button>
+                <button class="btn btn-primary" onclick="showBatchAssignModal()">
+                    <i class="fa fa-users"></i> 批量分派
+                </button>
                 <button class="btn btn-success" onclick="showBatchAssignTaskModal()">
                     <i class="fa fa-plus me-1"></i> 批量关联案件包
                 </button>
@@ -119,8 +122,92 @@ function loadCaseManagementPage(station) {
     createCaseDetailModalContainer();
     // 创建案件历史记录模态框容器
     createCaseHistoryModalContainer();
+    // 创建批量分派模态框
+    createBatchAssignModal();
     // 加载案件列表（默认第一页）
     loadCases(1, 10, station);
+
+    document.querySelector('.btn-group .btn[onclick="filterCases(\'all\')"]').classList.add('active');
+}
+
+/**
+ * 创建批量分派模态框
+ */
+function createBatchAssignModal() {
+    const modalHtml = `
+    <div class="modal fade" id="batchAssignModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">批量分派案件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">选择负责人</label>
+                        <select class="form-select" id="receiveUserId" required>
+                            <option value="">-- 请选择负责人 --</option>
+                            <!-- 这里通过JS动态加载用户列表 -->
+                        </select>
+                    </div>
+                    <div class="text-danger" id="batchAssignError" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmBatchAssign()">确认分派</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    // 添加到页面
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    // 加载可选用户列表（实际项目中从接口获取）
+    loadUsersForReceiveDropdown();
+}
+
+/**
+ * 显示批量分派模态框
+ */
+function showBatchAssignModal() {
+    const checkedBoxes = getSelectedCaseIds();
+
+    if (checkedBoxes.length === 0) {
+        alert('请选择要分派的案件');
+        return;
+    }
+    // 重置模态框状态
+    document.getElementById('batchAssignError').style.display = 'none';
+    // 显示模态框
+    new bootstrap.Modal(document.getElementById('batchAssignModal')).show();
+}
+
+/**
+ * 确认批量分派
+ */
+async function confirmBatchAssign() {
+    const userId = document.getElementById('receiveUserId').value;
+    const checkedBoxes = getSelectedCaseIds();
+
+    if (!userId) {
+        document.getElementById('batchAssignError').textContent = '请选择负责人';
+        document.getElementById('batchAssignError').style.display = 'block';
+        return;
+    }
+
+    try {
+        await request(`/case/batch-assign`, 'POST', {
+            caseIds: checkedBoxes,
+            userId: userId
+        });
+        alert(`成功分派 ${checkedBoxes.length} 个案件`);
+        // 关闭模态框并刷新列表
+        bootstrap.Modal.getInstance(document.getElementById('batchAssignModal')).hide();
+        loadCases(); // 刷新案件列表
+        document.getElementById('selectAllCases').checked = false; // 取消全选
+    } catch (error) {
+        alert('批量分派失败: ' + (error.message || '未知错误'));
+    }
 }
 
 /**
@@ -477,6 +564,16 @@ function renderPagination(pageInfo) {
  */
 async function filterCases(status, pageNum = 1, pageSize = 10) {
     try {
+        const allButtons = document.querySelectorAll('.btn-group .btn.btn-outline-primary');
+        allButtons.forEach(button => {
+            button.classList.remove('active');
+        });
+
+        const currentButton = document.querySelector(`.btn-group .btn[onclick="filterCases('${status}')"]`);
+        if (currentButton) {
+            currentButton.classList.add('active');
+        }
+
         currentPage = pageNum;
         currentFilterStatus = status;
 

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -53,6 +54,10 @@ public class TaskController {
      */
     @PostMapping
     public Result<?> addTask(@RequestBody Task task) {
+        // 新增案件包默认状态为"待发布"
+        if (task.getStatus() == null || task.getStatus().isEmpty()) {
+            task.setStatus("待发布");
+        }
         boolean success = taskService.save(task);
         return success ? Result.success() : Result.fail("新增案件包失败");
     }
@@ -124,6 +129,30 @@ public class TaskController {
         Long operatorId = currentUser.getUserId();
         boolean success = taskService.receiveTask(taskId, userId,operatorId,true);
         return success ? Result.success() : Result.fail("分派案件包失败");
+    }
+
+    /**
+     * 批量发布案件包（更新状态为待领取）
+     */
+    @PostMapping("/publish")
+    public Result<?> publishTasks(@RequestBody Map<String, Object> params) {
+
+        List<Integer> intTaskIds = (List<Integer>) params.get("taskIds");
+        // 手动转换为List<Long>
+        List<Long> taskIds = intTaskIds.stream()
+                .map(Integer::longValue) // 每个Integer转为Long
+                .collect(Collectors.toList());
+
+        if (taskIds == null || taskIds.isEmpty()) {
+            return Result.fail("请选择要发布的案件包");
+        }
+        try {
+            boolean success = taskService.publishTasks(taskIds);
+            return success ? Result.success() : Result.fail("发布案件包失败");
+        }catch (Exception e) {
+            return Result.fail("发布案件包异常：" + e.getMessage());
+        }
+
     }
 
     /**

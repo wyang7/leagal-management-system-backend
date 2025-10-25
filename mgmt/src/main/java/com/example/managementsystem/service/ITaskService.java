@@ -32,4 +32,9 @@ public interface ITaskService extends IService<Task> {
 
     // 新增方法：获取案件包及状态信息
     Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName,String taskStatus,String station);
+
+    /**
+     * 批量发布案件包（将状态从待发布改为待领取）
+     */
+    boolean publishTasks(List<Long> taskIds);
 }

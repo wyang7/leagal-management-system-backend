@@ -104,6 +104,24 @@
         .page-link:hover {
             color: #0a58ca;
         }
+
+        /* 状态筛选按钮组样式增强 */
+        .btn-group .btn.btn-outline-primary {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        /* 选中状态的亮色样式（使用实色填充） */
+        .btn-group .btn.btn-outline-primary.active {
+            background-color: #0d6efd; /* 主色调填充 */
+            color: white; /* 文字变白 */
+            border-color: #0d6efd; /* 边框同主色 */
+        }
+
+        /* 悬停效果优化 */
+        .btn-group .btn.btn-outline-primary:not(.active):hover {
+            background-color: rgba(13, 110, 253, 0.1); /* 浅色调悬停 */
+        }
     </style>
 </head>
 <body>
