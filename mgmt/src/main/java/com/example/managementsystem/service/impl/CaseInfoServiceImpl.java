@@ -159,7 +159,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public Map<String, Object> getCasePage(String caseName,String status ,String userName,String assistant,
+    public Map<String, Object> getCasePage(String caseName,String status ,String userName,String assistant,String receiveTime,
                                            String caseNumber, String plaintiff, String defendant,String station
                                             ,Integer pageNum, Integer pageSize) {
         // 计算分页起始位置(MyBatis中通常从0开始)
@@ -183,11 +183,11 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
 
         // 查询总条数
-        int total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,assistantId,userId,station);
+        int total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station);
 
         // 查询当前页数据
         List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize,caseName,status
-                , caseNumber, plaintiff, defendant,assistantId,userId,station);
+                , caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station);
 
         // 封装分页结果
         Map<String, Object> result = new HashMap<>();

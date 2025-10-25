@@ -172,6 +172,19 @@
         checkLoginStatus();
     };
 
+    // 全局用户信息对象（页面加载时初始化）
+    window.App = window.App || {};
+    App.user = {
+        // 默认空值，登录后会被后端数据填充
+        userId: null,
+        userName: '',
+        roleType: '', // 角色标识，如 'admin'、'user'
+        roleName: '',
+        station: ''
+    };
+
+
+
     // 检查登录状态并获取用户信息
     async function checkLoginStatus() {
         try {
@@ -182,6 +195,13 @@
                 document.getElementById('loginUsername').textContent = userInfo.username;
                 // 加载侧边栏导航（根据用户角色）
                 await loadSidebarNav(userInfo);
+                App.user = {
+                    userId: userInfo.userId,
+                    userName: userInfo.userName,
+                    roleType: userInfo.roleType,
+                    roleName: userInfo.roleName,
+                    station: userInfo.station
+                };
             } else {
                 // 未登录，跳转到登录页
                 window.location.href = 'login.html';

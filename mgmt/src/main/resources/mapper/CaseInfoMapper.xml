@@ -29,6 +29,9 @@
         <if test="defendant != null and defendant != ''">
             AND defendant_name LIKE CONCAT('%', #{defendant}, '%')
         </if>
+        <if test="receiveTime != null and receiveTime != ''">
+            AND court_receive_time  LIKE CONCAT('%',#{receiveTime}, '%')
+        </if>
         <if test="userId != null and userId != ''">
             AND user_id = #{userId}
         </if>
@@ -110,6 +113,9 @@
         </if>
         <if test="defendant != null and defendant != ''">
             AND c.defendant_name LIKE CONCAT('%', #{defendant}, '%')
+        </if>
+        <if test="receiveTime != null and receiveTime != ''">
+            AND c.court_receive_time LIKE CONCAT('%',#{receiveTime}, '%')
         </if>
         <if test="userId != null and userId != ''">
             AND c.user_id = #{userId}

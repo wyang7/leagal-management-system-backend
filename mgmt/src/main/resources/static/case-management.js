@@ -91,6 +91,14 @@ function loadCaseManagementPage(station) {
                        style="transition: border-color 0.2s ease;">
                 </div>
             </div>
+            
+        <!-- 收案时间搜索 -->
+            <div class="flex-grow-1 min-w-[200px]">
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fa fa-calendar text-success"></i></span>
+                    <input type="date" id="receiveTimeSearchInput" class="form-control" placeholder="法院收案日期">
+                </div>
+            </div>
 
         <!-- 搜索按钮 -->
             <div class="min-w-[100px]">
@@ -432,6 +440,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         const defendant = document.getElementById('defendantSearchInput').value.trim();
         const userName = document.getElementById('userNameSearchInput').value.trim();
         const assistant = document.getElementById('assistantSearchInput').value.trim();
+        const courtReceiveTime = document.getElementById('receiveTimeSearchInput').value.trim();
 
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
@@ -442,6 +451,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         if (defendant) params.append('defendant', defendant); // 被告参数
         if (userName) params.append('userName', userName); // 处理人参数
         if (assistant) params.append('assistant', assistant); // 案件助理参数
+        if (courtReceiveTime) params.append('courtReceiveTime', courtReceiveTime);
         if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
         if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
 
@@ -732,9 +742,11 @@ function renderCaseTable(cases) {
                     <i class="fa fa-eye"></i> 详情
                 </button>
                 <button class="btn btn-sm btn-secondary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
+               ${ (App.user.roleType === '管理员' && App.user.station === '总部') ? `
                 <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseInfo.caseId})">
                     <i class="fa fa-trash"></i> 删除
                 </button>
+                ` : ''}
                 <button class="btn btn-sm btn-success" onclick="showReceiveCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-handshake-o"></i> 分派案件
                 </button>

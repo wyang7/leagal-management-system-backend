@@ -7,10 +7,35 @@ public class UserSession implements Serializable {
     private Long userId;
     private String username;
     private Long roleId;
+    private String roleName;
+    private String roleType;
+    private String station;
     private Date loginTime;
     
     // 省略getter和setter方法
 
+    public String getStation() {
+        return station;
+    }
+    public void setStation(String station) {
+        this.station = station;
+    }
+
+    public String getRoleType() {
+        return roleType;
+    }
+
+    public void setRoleType(String roleType) {
+        this.roleType = roleType;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
 
     public Long getUserId() {
         return userId;

@@ -3,7 +3,9 @@ package com.example.managementsystem.controller;
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.dto.LoginDTO;
 import com.example.managementsystem.dto.UserSession;
+import com.example.managementsystem.entity.Role;
 import com.example.managementsystem.entity.User;
+import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.DigestUtils;
@@ -19,6 +21,9 @@ public class LoginController {
 
     @Autowired
     private IUserService userService;
+
+    @Autowired
+    private IRoleService roleService;
 
 
 
@@ -71,12 +76,20 @@ public class LoginController {
         if (user.getStatus() == 0) {
             return Result.fail("账号已禁用，请联系管理员");
         }
-        
+
+        Role role = roleService.getById(user.getRoleId());
+        if (role == null) {
+            return Result.fail("用户角色无效，请联系管理员");
+        }
+
         // 保存登录状态
         UserSession userSession = new UserSession();
         userSession.setUserId(user.getUserId());
         userSession.setUsername(user.getUsername());
         userSession.setRoleId(user.getRoleId());
+        userSession.setRoleName(role.getRoleName());
+        userSession.setRoleType(role.getRoleType());
+        userSession.setStation(role.getStation());
         userSession.setLoginTime(new Date(System.currentTimeMillis()));
 
         session.setAttribute("currentUser", userSession);

@@ -9,6 +9,7 @@ import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/case")
+@Slf4j
 public class CaseInfoController {
 
     @Autowired
@@ -101,6 +103,7 @@ public class CaseInfoController {
             @RequestParam(required = false) String defendant,
             @RequestParam(required = false) String userName,
             @RequestParam(required = false) String assistant,
+            @RequestParam(required = false) String courtReceiveTime,
             @RequestParam(required = false) String station) {
 
         // 校验分页参数合法性
@@ -112,7 +115,7 @@ public class CaseInfoController {
         }
 
         // 调用服务层获取分页数据
-        Map<String, Object> pageResult = caseInfoService.getCasePage(caseName,status, userName,assistant,caseNumber, plaintiff, defendant
+        Map<String, Object> pageResult = caseInfoService.getCasePage(caseName,status, userName,assistant,courtReceiveTime,caseNumber, plaintiff, defendant
                 ,station,pageNum, pageSize);
 
         // 返回统一格式的响应
@@ -166,39 +169,63 @@ public class CaseInfoController {
         // 调用服务层方法，传入前端传递的name参数
         return Result.success(caseInfoService.searchCasesByCaseNamePrefix(name));
     }
-
     @PostMapping("/import-excel")
     public Result<?> importCasesFromExcel(@RequestBody List<CaseInfo> caseList) {
         DateTimeFormatter fullFormatter = DateTimeFormatter.ofPattern("yyyy.M.d");
         DateTimeFormatter dbFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        List<String> errorMessages = new ArrayList<>(); // 记录所有错误信息
 
         for (CaseInfo caseInfo : caseList) {
-            // 校验案件助理角色
-            if (StringUtils.isEmpty(caseInfo.getAssistantName())) {
-                String caseLocation = caseInfo.getCaseLocation();
-                User assistantByCaseLocation = userService.getAssistantByCaseLocation(caseLocation);
-                if (assistantByCaseLocation != null) {
-                    caseInfo.setAssistantId(assistantByCaseLocation.getUserId());
+            try {
+                // 跳过空对象
+                if (caseInfo == null) {
+                    errorMessages.add("存在空的案件数据，已跳过");
+                    continue;
                 }
-            }else {
-                User userByName = userService.searchUserByUsername(caseInfo.getAssistantName());
-                if (userByName == null) {
-                    return Result.fail("案件助理不存在: " + caseInfo.getAssistantName());
-                }
-                List<String> roles = new ArrayList<>();
-                roles.add("案件助理");
-                roles.add("管理员");
-                boolean isAssistant = userService.checkUserRole(userByName.getUserId(), roles);
-                if (!isAssistant) {
-                    return Result.fail("所选用户不是案件助理角色: " + caseInfo.getAssistantName());
-                }
-                caseInfo.setAssistantId(userByName.getUserId());
-            }
 
-            // 处理法院收案时间
-            String courtReceiveTime = caseInfo.getCourtReceiveTime();
-            LocalDate date;
-            if (courtReceiveTime != null) {
+                String caseNumber = caseInfo.getCaseNumber() != null ? caseInfo.getCaseNumber() : "未知案件编号";
+
+                // 校验案件助理角色
+                if (StringUtils.isEmpty(caseInfo.getAssistantName())) {
+                    String caseLocation = caseInfo.getCaseLocation();
+                    // 校验地点为空
+                    if (StringUtils.isEmpty(caseLocation)) {
+                        errorMessages.add(String.format("案件编号[%s]：案件地点为空，无法自动分配助理，已跳过", caseNumber));
+                        continue;
+                    }
+
+                    User assistantByCaseLocation = userService.getAssistantByCaseLocation(caseLocation);
+                    if (assistantByCaseLocation != null) {
+                        caseInfo.setAssistantId(assistantByCaseLocation.getUserId());
+                    } else {
+                        errorMessages.add(String.format("案件编号[%s]：未找到对应地点[%s]的案件助理，已跳过", caseNumber, caseLocation));
+                        continue;
+                    }
+                } else {
+                    User userByName = userService.searchUserByUsername(caseInfo.getAssistantName());
+                    if (userByName == null) {
+                        errorMessages.add(String.format("案件编号[%s]：案件助理[%s]不存在，已跳过", caseNumber, caseInfo.getAssistantName()));
+                        continue;
+                    }
+                    List<String> roles = new ArrayList<>();
+                    roles.add("案件助理");
+                    roles.add("管理员");
+                    boolean isAssistant = userService.checkUserRole(userByName.getUserId(), roles);
+                    if (!isAssistant) {
+                        errorMessages.add(String.format("案件编号[%s]：用户[%s]不是案件助理角色，已跳过", caseNumber, caseInfo.getAssistantName()));
+                        continue;
+                    }
+                    caseInfo.setAssistantId(userByName.getUserId());
+                }
+
+                // 处理法院收案时间
+                String courtReceiveTime = caseInfo.getCourtReceiveTime();
+                LocalDate date;
+                if (courtReceiveTime == null) {
+                    errorMessages.add(String.format("案件编号[%s]：法院收案时间不能为空，已跳过", caseNumber));
+                    continue;
+                }
+
                 try {
                     if (courtReceiveTime.matches("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}$")) {
                         date = LocalDate.parse(courtReceiveTime, fullFormatter);
@@ -206,26 +233,44 @@ public class CaseInfoController {
                         int year = LocalDate.now().getYear();
                         date = LocalDate.parse(year + "." + courtReceiveTime, fullFormatter);
                     } else {
-                        return Result.fail("法院收案时间格式错误: " + courtReceiveTime);
+                        errorMessages.add(String.format("案件编号[%s]：法院收案时间格式错误[%s]，正确格式为yyyy.M.d或M.d，已跳过", caseNumber, courtReceiveTime));
+                        continue;
                     }
-                    // 案件号自动生成，必须要放在这里，因为生成案号需要用到法院收案时间
+                    // 生成案件号（如果为空）
                     if (caseInfo.getCaseNumber() == null) {
-                        caseInfo.setCaseNumber(caseInfoService.genCaseNumber(caseInfo.getCourtReceiveTime()));
+                        String generatedNumber = caseInfoService.genCaseNumber(courtReceiveTime);
+                        caseInfo.setCaseNumber(generatedNumber);
+                        caseNumber = generatedNumber; // 更新案件号变量
                     }
                     caseInfo.setCourtReceiveTime(date.format(dbFormatter));
                 } catch (DateTimeParseException e) {
-                    return Result.fail("法院收案时间解析失败: " + courtReceiveTime);
+                    errorMessages.add(String.format("案件编号[%s]：法院收案时间解析失败[%s]，已跳过", caseNumber, courtReceiveTime));
+                    continue;
                 }
-            }else {
-                return Result.fail("法院收案时间不能为空");
+
+                // 设置默认值
+                caseInfo.setStatus("待领取");
+                caseInfo.setCreatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+                // 保存数据
+                caseInfoService.save(caseInfo);
+
+            } catch (Exception e) {
+                // 捕获所有未预料到的异常
+                String caseNumber = caseInfo.getCaseNumber() != null ? caseInfo.getCaseNumber() : "未知案件编号";
+                errorMessages.add(String.format("案件编号[%s]：发生未知错误[%s]，已跳过", caseNumber, e.getMessage()));
+                // 打印异常堆栈便于调试
+                e.printStackTrace();
+                log.error("导入案件异常，案件编号[{}]，异常信息：{}", caseInfo.getCaseNumber(), e.getMessage());
             }
-            // 状态默认“待领取”
-            caseInfo.setStatus("待领取");
-            // 创建时间
-            caseInfo.setCreatedTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            caseInfoService.save(caseInfo);
         }
-        return Result.success();
+
+        // 返回结果处理
+        if (!errorMessages.isEmpty()) {
+            return Result.fail("部分案件导入失败，详情如下：\n" + String.join("\n", errorMessages));
+        } else {
+            return Result.success("所有案件导入成功");
+        }
     }
 
     /**
