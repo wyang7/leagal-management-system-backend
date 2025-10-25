@@ -57,6 +57,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                       @Param("caseNumber") String caseNumber,
                       @Param("plaintiff") String plaintiff,
                       @Param("defendant") String defendant,
+                      @Param("assistantId") Long assistantId,
                       @Param("userId") Long userId,
                       @Param("station") String station);
 
@@ -90,6 +91,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                                   @Param("caseNumber") String caseNumber,
                                   @Param("plaintiff") String plaintiff,
                                   @Param("defendant") String defendant,
+                                  @Param("assistantId") Long assistantId,
                                   @Param("userId") Long userId,
                                   @Param("station") String station);
 

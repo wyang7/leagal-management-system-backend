@@ -25,29 +25,82 @@ function loadCaseManagementPage(station) {
         <div class="row mb-4">
     <!-- 搜索区域 - 占满整行，在小屏幕自动堆叠 -->
         <div class="col-12 mb-3">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <div class="flex-grow-1 min-w-[200px]">
-                    <input type="text" id="caseSearchInput" class="form-control" placeholder="输入案由搜索">
-                </div>
-                <div class="flex-grow-1 min-w-[200px]">
-                    <input type="text" id="caseNumberSearchInput" class="form-control" placeholder="输入案号搜索">
-                </div>
-                <div class="flex-grow-1 min-w-[200px]">
-                    <input type="text" id="plaintiffSearchInput" class="form-control" placeholder="输入原告搜索">
-                </div>
-                <div class="flex-grow-1 min-w-[200px]">
-                    <input type="text" id="defendantSearchInput" class="form-control" placeholder="输入被告搜索">
-                </div>
-                <div class="flex-grow-1 min-w-[200px]">
-                    <input type="text" id="userNameSearchInput" class="form-control" placeholder="输入处理人搜索">
-                </div>
-                <div class="min-w-[100px]">
-                    <button class="btn btn-primary w-100" onclick="loadCases()">
-                        <i class="fa fa-search me-1"></i> 搜索
-                    </button>
+        <div class="d-flex flex-wrap gap-3 align-items-center p-3 bg-light bg-opacity-50 rounded-3 shadow-sm">
+        <!-- 案由搜索 -->
+            <div class="flex-grow-1 min-w-[200px]">
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="fa fa-file-text-o text-secondary"></i>
+                    </span>
+                    <input type="text" id="caseSearchInput" class="form-control" placeholder="输入案由搜索" 
+                       style="transition: border-color 0.2s ease;">
                 </div>
             </div>
+
+        <!-- 案号搜索 -->
+            <div class="flex-grow-1 min-w-[200px]">
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="fa fa-hashtag text-secondary"></i>
+                    </span>
+                    <input type="text" id="caseNumberSearchInput" class="form-control" placeholder="输入案号搜索"
+                       style="transition: border-color 0.2s ease;">
+                </div>
+            </div>
+
+        <!-- 原告搜索 -->
+            <div class="flex-grow-1 min-w-[200px]">
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="fa fa-user text-primary"></i>
+                    </span>
+                    <input type="text" id="plaintiffSearchInput" class="form-control" placeholder="输入原告搜索"
+                       style="transition: border-color 0.2s ease;">
+                </div>
+            </div>
+
+        <!-- 被告搜索 -->
+            <div class="flex-grow-1 min-w-[200px]">
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="fa fa-user-o text-danger"></i>
+                    </span>
+                    <input type="text" id="defendantSearchInput" class="form-control" placeholder="输入被告搜索"
+                       style="transition: border-color 0.2s ease;">
+                </div>
+            </div>
+
+        <!-- 处理人搜索 -->
+            <div class="flex-grow-1 min-w-[200px]">
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="fa fa-user-circle text-info"></i>
+                    </span>
+                    <input type="text" id="userNameSearchInput" class="form-control" placeholder="输入处理人搜索"
+                       style="transition: border-color 0.2s ease;">
+                </div>
+            </div>
+
+        <!-- 助理搜索 -->
+            <div class="flex-grow-1 min-w-[200px]">
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="fa fa-user-plus text-success"></i>
+                    </span>
+                    <input type="text" id="assistantSearchInput" class="form-control" placeholder="输入助理搜索"
+                       style="transition: border-color 0.2s ease;">
+                </div>
+            </div>
+
+        <!-- 搜索按钮 -->
+            <div class="min-w-[100px]">
+                <button class="btn btn-primary w-100 py-2 hover:bg-primary/90 active:bg-primary/80 transition-all duration-200" 
+                    onclick="loadCases()">
+                    <i class="fa fa-search me-1"></i> 搜索
+                </button>
+            </div>
         </div>
+</div>
 
     <!-- 按钮区域 - 独立一行，右对齐 -->
         <div class="col-12">
@@ -378,6 +431,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         const plaintiff = document.getElementById('plaintiffSearchInput').value.trim();
         const defendant = document.getElementById('defendantSearchInput').value.trim();
         const userName = document.getElementById('userNameSearchInput').value.trim();
+        const assistant = document.getElementById('assistantSearchInput').value.trim();
 
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
@@ -387,6 +441,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         if (plaintiff) params.append('plaintiff', plaintiff);   // 原告参数
         if (defendant) params.append('defendant', defendant); // 被告参数
         if (userName) params.append('userName', userName); // 处理人参数
+        if (assistant) params.append('assistant', assistant); // 案件助理参数
         if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
         if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
 

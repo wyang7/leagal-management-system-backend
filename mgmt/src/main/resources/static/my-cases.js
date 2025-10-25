@@ -71,6 +71,8 @@ function loadMyCasesPage() {
     createCaseHistoryModalContainer();
     // 加载我的案件列表
     loadMyCases();
+
+    document.querySelector('.btn-group .btn[onclick="filterMyCases(\'all\')"]').classList.add('active');
 }
 
 /**
@@ -273,6 +275,17 @@ async function searchMyCases() {
  * 根据状态筛选我的案件
  */
 async function filterMyCases(status) {
+
+    const allButtons = document.querySelectorAll('.btn-group .btn.btn-outline-primary');
+    allButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    const currentButton = document.querySelector(`.btn-group .btn[onclick="filterMyCases('${status}')"]`);
+    if (currentButton) {
+        currentButton.classList.add('active');
+    }
+
     const userId = await getCurrentUserId();
     try {
         let cases = await request(`/case/my-cases?userId=${userId}`);

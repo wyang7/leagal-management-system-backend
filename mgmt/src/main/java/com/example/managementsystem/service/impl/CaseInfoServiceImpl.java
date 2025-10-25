@@ -8,6 +8,7 @@ import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.managementsystem.service.IUserService;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -158,7 +159,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public Map<String, Object> getCasePage(String caseName,String status ,String userName,
+    public Map<String, Object> getCasePage(String caseName,String status ,String userName,String assistant,
                                            String caseNumber, String plaintiff, String defendant,String station
                                             ,Integer pageNum, Integer pageSize) {
         // 计算分页起始位置(MyBatis中通常从0开始)
@@ -171,14 +172,22 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             }
             userId = user.getUserId();
         }
+        Long assistantId=null;
+        if (null!=assistant){
+            User user = userService.searchUserByUsername(assistant);
+            if (user == null) {
+                return null;
+            }
+            assistantId = user.getUserId();
+        }
 
 
         // 查询总条数
-        int total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,userId,station);
+        int total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,assistantId,userId,station);
 
         // 查询当前页数据
         List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize,caseName,status
-                , caseNumber, plaintiff, defendant,userId,station);
+                , caseNumber, plaintiff, defendant,assistantId,userId,station);
 
         // 封装分页结果
         Map<String, Object> result = new HashMap<>();
