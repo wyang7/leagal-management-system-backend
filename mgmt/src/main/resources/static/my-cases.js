@@ -1,3 +1,9 @@
+
+// 分页参数
+let currentMyCasePage = 1;
+const currentMyCasePageSize = 10; // 每页显示10条
+let currentMyFilterStatus = 'all';
+
 /**
  * 加载我的案件页面
  */
@@ -16,7 +22,7 @@ function loadMyCasesPage() {
             <div class="col-md-6">
                 <div class="input-group">
                     <input type="text" id="myCaseSearchInput" class="form-control" placeholder="输入案由搜索">
-                    <button class="btn btn-primary" onclick="searchMyCases()">
+                    <button class="btn btn-primary" onclick="loadMyCases()">
                         <i class="fa fa-search"></i> 搜索
                     </button>
                 </div>
@@ -70,7 +76,7 @@ function loadMyCasesPage() {
     // 创建案件历史记录模态框容器
     createCaseHistoryModalContainer();
     // 加载我的案件列表
-    loadMyCases();
+    loadMyCases(currentMyCasePage,currentMyCasePageSize);
 
     document.querySelector('.btn-group .btn[onclick="filterMyCases(\'all\')"]').classList.add('active');
 }
@@ -159,7 +165,7 @@ async function showmyCaseDetailModal(caseId) {
                                 <strong>状态:</strong> ${caseInfo.status || '-'}
                             </div>
                             <div class="col-md-6">
-                                <strong>处理人:</strong> ${caseInfo.userName || '-'}
+                                <strong>处理人:</strong> ${caseInfo.username || '-'}
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -206,6 +212,8 @@ async function showmyCaseDetailModal(caseId) {
     }
 }
 
+
+
 /**
  * 获取当前登录用户ID（实际项目中需从登录信息中获取）
  */
@@ -224,15 +232,34 @@ async function getCurrentUserId() {
         window.location.href = 'login.html';
         return null;
     }
+}/**
+ * 获取当前登录用户ID（实际项目中需从登录信息中获取）
+ */
+async function getCurrentUserName() {
+    try {
+        // 复用用项目中已有的的获取当前用户信息接口
+        const userInfo = await request('/auth/currentUser');
+        if (userInfo && userInfo.username) {
+            return userInfo.username; // 确保返回有效的userId
+        }
+        // 获取失败时跳转登录页
+        window.location.href = 'login.html';
+        return null;
+    } catch (error) {
+        console.error('获取当前用户名失败:', error);
+        window.location.href = 'login.html';
+        return null;
+    }
 }
 
 /**
  * 加载我的案件列表
  */
-async function loadMyCases() {
+async function loadMyCases(pageNum = 1, pageSize = 10) {
     try {
-        const userId = await getCurrentUserId();
-        if (!userId) {
+        currentMyCasePage = pageNum;
+        const username = await getCurrentUserName();
+        if (!username) {
             // 如果userId为空，直接终止（已在getCurrentUserId中处理跳转）
             document.getElementById('myCaseTableBody').innerHTML = `
                 <tr><td colspan="7" class="text-center text-danger">未获取到用户信息</td></tr>
@@ -240,9 +267,23 @@ async function loadMyCases() {
             return;
         }
 
-        // 确保userId有效后再发起请求
-        const cases = await request(`/case/my-cases?userId=${userId}`);
-        renderMyCaseTable(cases);
+        // 确保username有效后再发起请求
+        const caseName = document.getElementById('myCaseSearchInput').value.trim();
+        const params = new URLSearchParams();
+        params.append('pageNum', pageNum);
+        params.append('pageSize', pageSize);
+        if (caseName) params.append('caseName', caseName);
+        if (username) params.append('userName', username);
+        if (currentMyFilterStatus !== 'all') params.append('status', currentMyFilterStatus);
+
+        const response = await request(`/case/page?${params.toString()}`);
+        renderMyCaseTable(response.records);
+        // 渲染分页组件（假设后端返回的分页信息包含total、pageNum、pageSize、pages等字段）
+        renderMyPagination({
+            total: response.total,      // 总记录数
+            pageNum: response.pageNum,  // 当前页码
+            pageSize: response.pageSize// 每页条数
+        });
     } catch (error) {
         document.getElementById('myCaseTableBody').innerHTML = `
             <tr><td colspan="8" class="text-center text-danger">加载案件失败</td></tr>
@@ -251,25 +292,98 @@ async function loadMyCases() {
 }
 
 /**
- * 根据案由搜索我的案件
+ * 渲染分页组件
+ * @param {Object} pageInfo 分页信息对象，包含total、pageNum、pageSize、pages等
  */
-async function searchMyCases() {
-    const caseName = document.getElementById('myCaseSearchInput').value.trim();
-    const userId = await getCurrentUserId();
-    try {
-        let cases;
-        if (caseName) {
-            // 先搜索所有符合条件的案件，再筛选当前用户的
-            const allMatchedCases = await request(`/case/search?name=${encodeURIComponent(caseName)}`);
-            cases = allMatchedCases.filter(c => c.userId == userId);
-        } else {
-            cases = await request(`/case/my-cases?userId=${userId}`);
+function renderMyPagination(pageInfo) {
+    const { total, pageNum, pageSize } = pageInfo;
+    const pages= Math.ceil(total / pageSize);
+    if (pages <= 1) {
+        // 只有一页时不显示分页
+        const myPaginationContainer = document.getElementById('myPaginationContainer');
+        if (myPaginationContainer) {
+            myPaginationContainer.innerHTML = `
+                <div class="d-flex justify-content-center mt-2 text-secondary">
+                    共 ${total} 条记录
+                </div>
+            `;
         }
-        renderMyCaseTable(cases);
-    } catch (error) {
-        console.error('搜索失败:', error);
+        return;
     }
+
+    // 创建分页容器（如果不存在）
+    let myPaginationContainer = document.getElementById('myPaginationContainer');
+    if (!myPaginationContainer) {
+        myPaginationContainer = document.createElement('div');
+        myPaginationContainer.id = 'myPaginationContainer';
+        myPaginationContainer.className = 'd-flex justify-content-center mt-4';
+        // 插入到表格下方
+        document.querySelector('.table-responsive').after(myPaginationContainer);
+    }
+
+    // 计算显示的页码范围
+    let startPage = Math.max(1, pageNum - 2);
+    let endPage = Math.min(pages, startPage + 4);
+
+    // 调整页码范围，确保显示5个页码
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    let paginationHtml = `
+    <div class="d-flex justify-content-center mb-2 text-secondary">
+        共 ${total} 条记录，当前第 ${pageNum}/${pages} 页
+    </div>
+    <nav aria-label="案件列表分页">
+        <ul class="pagination">
+            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+    `;
+
+
+
+    // 添加第一页按钮（当当前页不在前5页时）
+    if (startPage > 1) {
+        paginationHtml += `
+            <li class="page-item"><a class="page-link" href="#" onclick="loadMyCases(1, ${pageSize})">1</a></li>
+            ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+        `;
+    }
+
+    // 添加中间页码
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `
+            <li class="page-item ${i === pageNum ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadMyCases(${i}, ${pageSize})">${i}</a>
+            </li>
+        `;
+    }
+
+    // 添加最后一页按钮（当当前页不在后5页时）
+    if (endPage < pages) {
+        paginationHtml += `
+            ${endPage < pages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+            <li class="page-item"><a class="page-link" href="#" onclick="loadMyCases(${pages}, ${pageSize})">${pages}</a></li>
+        `;
+    }
+
+    // 下一页按钮
+    paginationHtml += `
+            <li class="page-item ${pageNum === pages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadMyCases(${pageNum + 1}, ${pageSize})" aria-label="下一页">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    `;
+
+    myPaginationContainer.innerHTML = paginationHtml;
 }
+
 
 /**
  * 根据状态筛选我的案件
@@ -286,24 +400,15 @@ async function filterMyCases(status) {
         currentButton.classList.add('active');
     }
 
-    const userId = await getCurrentUserId();
-    try {
-        let cases = await request(`/case/my-cases?userId=${userId}`);
-        if (status !== 'all') {
-            cases = cases.filter(c => c.status === status);
-        }
-        renderMyCaseTable(cases);
-
-        // 更新按钮样式
-        document.querySelectorAll('.btn-group .btn').forEach(btn => {
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-outline-primary');
-        });
-        event.currentTarget.classList.remove('btn-outline-primary');
-        event.currentTarget.classList.add('btn-primary');
-    } catch (error) {
-        console.error('筛选失败:', error);
-    }
+    currentMyFilterStatus = status;
+    loadMyCases(currentMyCasePage,currentMyCasePageSize);
+    // 更新按钮样式
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline-primary');
+    });
+    event.currentTarget.classList.remove('btn-outline-primary');
+    event.currentTarget.classList.add('btn-primary');
 }
 
 /**
@@ -459,7 +564,7 @@ async function submitDelay() {
         // 关闭弹窗并刷新列表
         const modal = bootstrap.Modal.getInstance(document.getElementById('delayModal'));
         modal.hide();
-        loadMyCases(); // 刷新案件列表
+        loadMyCases(currentMyCasePage,currentMyCasePageSize); // 刷新案件列表
         alert('延期申请提交成功');
     } catch (error) {
         console.error('延期申请提交失败:', error);
@@ -539,7 +644,7 @@ async function submitPreFeedback() {
         // 关闭弹窗并刷新列表
         const modal = bootstrap.Modal.getInstance(document.getElementById('preFeedbackModal'));
         modal.hide();
-        loadMyCases(); // 刷新案件列表
+        loadMyCases(currentMyCasePage,currentMyCasePageSize); // 刷新案件列表
         alert('反馈提交成功');
     } catch (error) {
         console.error('反馈提交失败:', error);
@@ -610,7 +715,7 @@ async function submitCaseReturn() {
         // 关闭模态框并刷新列表
         const returnModal = bootstrap.Modal.getInstance(document.getElementById('returnCaseModal'));
         returnModal.hide();
-        loadMyCases();
+        loadMyCases(currentMyCasePage,currentMyCasePageSize);
         alert('案件已成功退回');
     } catch (error) {
     }
@@ -691,7 +796,7 @@ async function submitCaseCompletion() {
         modal.hide();
 
         // 重新加载我的案件列表
-        loadMyCases();
+        loadMyCases(currentMyCasePage,currentMyCasePageSize);
         alert('案件已成功标记为完成');
     } catch (error) {
         console.error('提交失败:', error);

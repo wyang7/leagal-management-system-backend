@@ -145,6 +145,19 @@
         WHERE task_id = #{taskId} order by case_id DESC
     </select>
 
+    <!-- 根据任务ID查询案件 -->
+    <select id="selectByCaseId" resultType="com.example.managementsystem.entity.CaseInfo">
+        SELECT
+            c.*,
+            u.username,
+            a.username as assistantName
+        FROM
+            case_info c
+                LEFT JOIN user u ON c.user_id = u.user_id
+                LEFT JOIN user a ON c.assistant_id = a.user_id
+        WHERE c.case_id = #{caseId} limit 1
+    </select>
+
     <!-- 根据用户ID查询案件 -->
     <select id="selectByUserId" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT * FROM case_info

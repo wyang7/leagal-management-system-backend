@@ -20,6 +20,8 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 根据任务ID查询案件
      */
     List<CaseInfo> selectByTaskId(@Param("taskId") Long taskId);
+
+    CaseInfo selectByCaseId(@Param("caseId") Long caseId);
     
     /**
      * 根据用户ID查询案件

@@ -12,9 +12,15 @@ function loadTaskManagementPage() {
         <!-- 新增案件包按钮 -->
         <div class="row mb-3">
             <div class="col-md-6">
-                <button class="btn btn-primary" onclick="batchPublishTasks()">
-                    <i class="fa fa-paper-plane"></i> 批量发布
-                </button>
+                <div class="input-group">
+                    <input type="text" id="taskSearchInput" class="form-control" placeholder="输入案件包名称搜索">
+                    <button class="btn btn-primary" onclick="searchTasks()">
+                        <i class="fa fa-search"></i> 搜索
+                    </button>
+                    <button class="btn btn-primary ms-2" onclick="batchPublishTasks()">
+                        <i class="fa fa-paper-plane"></i> 批量发布
+                    </button>
+                </div>
             </div>
             <div class="col-md-12 text-end">
                 <button class="btn btn-success" onclick="showAddTaskModal()">
@@ -52,7 +58,12 @@ function loadTaskManagementPage() {
     // 创建任务模态框容器
     createTaskModalContainer();
     // 加载任务列表（分页）
-    loadTasks(1, 100);
+    loadTasks(1, 10);
+}
+
+function searchTasks() {
+    const taskName = document.getElementById('taskSearchInput').value.trim();
+    loadTasks(1, taskPageSize, taskName);
 }
 
 /**
@@ -81,10 +92,15 @@ function createTaskModalContainer() {
 /**
  * 加载任务列表
  */
-async function loadTasks(pageNum = 1, pageSize = 100) {
+async function loadTasks(pageNum = 1, pageSize = 10, taskName = '') {
 
     try {
-        const response = await request(`/task/page?pageNum=${pageNum}&pageSize=${pageSize}`);
+        currentTaskPage = pageNum; // 保存当前页码
+        let url = `/task/page?pageNum=${pageNum}&pageSize=${pageSize}`;
+        if (taskName) {
+            url += `&taskName=${encodeURIComponent(taskName)}`;
+        }
+        const response = await request(url);
         renderTaskTable(response.records);
         renderTaskPagination({
             total: response.total,
@@ -166,7 +182,7 @@ async function publishTask(taskId) {
         try {
             await request(`/task/publish`, 'POST', { taskIds: [taskId] });
             alert('发布成功');
-            loadTasks(); // 刷新列表
+            loadTasks(currentTaskPage, taskPageSize); // 刷新列表
         } catch (error) {
             alert('发布失败: ' + (error.message || '未知错误'));
         }
@@ -190,7 +206,7 @@ async function batchPublishTasks() {
         try {
             await request(`/task/publish`, 'POST', { taskIds: taskIds });
             alert(`成功发布 ${checkedBoxes.length} 个案件包`);
-            loadTasks(); // 刷新列表
+            loadTasks(currentTaskPage, taskPageSize); // 刷新列表
             document.getElementById('selectAllTasks').checked = false; // 取消全选状态
         } catch (error) {
             alert('批量发布失败: ' + (error.message || '未知错误'));
@@ -390,7 +406,7 @@ async function confirmAssignTask() {
         // 关闭模态框并刷新列表
         const assignModal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
         assignModal.hide();
-        loadTasks();
+        loadTasks(currentTaskPage, taskPageSize);
         alert('案件包分派成功');
     } catch (error) {
         alert('分派失败：' + (error.message || '未知错误'));
@@ -400,10 +416,94 @@ async function confirmAssignTask() {
 // 添加分页渲染函数
 function renderTaskPagination(pageInfo) {
     const { total, pageNum, pageSize } = pageInfo;
-    const pages = Math.ceil(total / pageSize);
-    // 分页渲染逻辑类似案件管理页面的分页实现
-    // 省略具体实现，可参考case-management.js中的renderPagination方法
+    const totalPages = Math.ceil(total / pageSize);
+
+    // 移除旧分页容器（如果存在）
+    const oldPagination = document.getElementById('taskPaginationContainer');
+    if (oldPagination) {
+        oldPagination.remove();
+    }
+
+    // 只有一页时不显示分页
+    if (totalPages <= 1) {
+        return;
+    }
+
+    // 创建新分页容器
+    const paginationContainer = document.createElement('div');
+    paginationContainer.id = 'taskPaginationContainer';
+    paginationContainer.className = 'd-flex justify-content-center mt-4';
+
+    // 计算显示的页码范围
+    let startPage = Math.max(1, pageNum - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    let paginationHtml = `
+    <div class="d-flex justify-content-center mb-2 text-secondary">
+        共 ${total} 条记录，当前第 ${pageNum}/${totalPages} 页
+    </div>
+    <nav aria-label="任务分页">
+        <ul class="pagination">
+            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadTasks(${pageNum - 1}, ${pageSize})" aria-label="上一页">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+    `;
+
+    // 添加第一页按钮（当前页不在前5页时）
+    if (startPage > 1) {
+        paginationHtml += `
+            <li class="page-item"><a class="page-link" href="#" onclick="loadTasks(1, ${pageSize})">1</a></li>
+            ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+        `;
+    }
+
+    // 添加中间页码
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `
+            <li class="page-item ${i === pageNum ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadTasks(${i}, ${pageSize})">${i}</a>
+            </li>
+        `;
+    }
+
+    // 添加最后一页按钮（当前页不在后5页时）
+    if (endPage < totalPages) {
+        paginationHtml += `
+            ${endPage < totalPages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+            <li class="page-item"><a class="page-link" href="#" onclick="loadTasks(${totalPages}, ${pageSize})">${totalPages}</a></li>
+        `;
+    }
+
+    // 下一页按钮
+    paginationHtml += `
+            <li class="page-item ${pageNum === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadTasks(${pageNum + 1}, ${pageSize})" aria-label="下一页">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    `;
+
+    paginationContainer.innerHTML = paginationHtml;
+    // 将分页容器添加到表格下方
+    const tableContainer = document.querySelector('.table-responsive');
+    if (tableContainer) {
+        tableContainer.after(paginationContainer);
+    } else {
+        console.error('表格容器不存在，无法添加分页');
+    }
 }
+
+// 修改loadTasks函数，添加分页参数保存和搜索支持
+let currentTaskPage = 1;
+const taskPageSize = 10; // 改为10条每页，方便分页展示
+
 /**
  * 保存任务（新增或编辑）
  */
@@ -443,7 +543,7 @@ async function saveTask() {
         taskModal.hide();
         
         // 重新加载任务列表
-        loadTasks();
+        loadTasks(currentTaskPage, taskPageSize);
         
         alert(taskId ? '任务更新成功' : '任务新增成功');
     } catch (error) {
@@ -463,7 +563,7 @@ async function deleteTask(taskId) {
     try {
         await request(`/task/${taskId}`, 'DELETE');
         // 重新加载任务列表
-        loadTasks();
+        loadTasks(currentTaskPage, taskPageSize);
         alert('任务删除成功');
     } catch (error) {
         // 错误处理已在request函数中完成
