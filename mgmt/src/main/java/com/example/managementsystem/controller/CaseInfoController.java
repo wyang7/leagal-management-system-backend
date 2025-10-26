@@ -1,5 +1,8 @@
 package com.example.managementsystem.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.dto.UserSession;
 import com.example.managementsystem.entity.CaseInfo;
@@ -10,6 +13,7 @@ import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.annotations.Case;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -386,7 +390,7 @@ public class CaseInfoController {
      */
     @GetMapping("/detail/{id}")
     public Result<CaseInfo> getCaseDetail(@PathVariable Long id) {
-        CaseInfo caseInfo = caseInfoService.getById(id);
+        CaseInfo caseInfo = caseInfoService.getCaseById(id);
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
@@ -639,13 +643,7 @@ public class CaseInfoController {
         return success ? Result.success() : Result.fail("更新案件状态失败");
     }
 
-    /**
-     * 获取当前用户的案件
-     */
-    @GetMapping("/my-cases")
-    public Result<List<CaseInfo>> getMyCases(@RequestParam Long userId) {
-        return Result.success(caseInfoService.getMyCases(userId));
-    }
+
     /**
      * 获取当前用户的案件
      */

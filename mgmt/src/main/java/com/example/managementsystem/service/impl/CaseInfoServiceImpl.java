@@ -56,7 +56,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
     @Override
     public CaseInfo getCaseById(Long caseId) {
-        return baseMapper.selectById(caseId);
+        return baseMapper.selectByCaseId(caseId);
     }
 
     @Override
