@@ -37,6 +37,7 @@ function loadMyCasesPage() {
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
+                    <button class="btn btn-outline-primary" onclick="filterMyCases('退回')">退回</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
                 </div>
             </div>
@@ -388,7 +389,7 @@ function renderMyPagination(pageInfo) {
 /**
  * 根据状态筛选我的案件
  */
-async function filterMyCases(status) {
+async function filterMyCases(status, pageNum = 1, pageSize = 10) {
 
     const allButtons = document.querySelectorAll('.btn-group .btn.btn-outline-primary');
     allButtons.forEach(button => {
@@ -399,16 +400,14 @@ async function filterMyCases(status) {
     if (currentButton) {
         currentButton.classList.add('active');
     }
-
+    currentMyCasePage = pageNum;
     currentMyFilterStatus = status;
     loadMyCases(currentMyCasePage,currentMyCasePageSize);
-    // 更新按钮样式
+    // 更新按钮样式（保持不变）
     document.querySelectorAll('.btn-group .btn').forEach(btn => {
         btn.classList.remove('btn-primary');
         btn.classList.add('btn-outline-primary');
     });
-    event.currentTarget.classList.remove('btn-outline-primary');
-    event.currentTarget.classList.add('btn-primary');
 }
 
 /**
@@ -442,6 +441,9 @@ function renderMyCaseTable(cases) {
                 break;
             case '已完成':
                 statusClass = 'status-completed';
+                break;
+            case '退回':
+                statusClass = 'status-returned';
                 break;
             case '完结':
                 statusClass = 'text-success'; // 绿色表示完结
