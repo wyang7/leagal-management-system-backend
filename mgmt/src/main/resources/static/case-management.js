@@ -206,7 +206,7 @@ function createBatchAssignModal() {
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">选择负责人</label>
-                        <select class="form-select" id="receiveUserId" required>
+                        <select class="form-select" id="batchReceiveUserId" required>
                             <option value="">-- 请选择负责人 --</option>
                             <!-- 这里通过JS动态加载用户列表 -->
                         </select>
@@ -224,7 +224,7 @@ function createBatchAssignModal() {
     // 添加到页面
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     // 加载可选用户列表（实际项目中从接口获取）
-    loadUsersForReceiveDropdown();
+    loadUsersForReceiveDropdown(true);
 }
 
 /**
@@ -247,7 +247,7 @@ function showBatchAssignModal() {
  * 确认批量分派
  */
 async function confirmBatchAssign() {
-    const userId = document.getElementById('receiveUserId').value;
+    const userId = document.getElementById('batchReceiveUserId').value;
     const checkedBoxes = getSelectedCaseIds();
 
     if (!userId) {
@@ -1441,11 +1441,12 @@ function showReceiveCaseModal(caseId) {
 /**
  * 加载可领取案件的用户列表到下拉框
  */
-async function loadUsersForReceiveDropdown() {
+async function loadUsersForReceiveDropdown(isBatch=false) {
     try {
         // 调用获取用户列表的接口（与案件包分配共用同一接口或专用接口）
         const users = await request('/user');
-        const userSelect = document.getElementById('receiveUserId');
+        const userSelect = isBatch?document.getElementById('batchReceiveUserId')
+            :document.getElementById('receiveUserId');
 
         if (!userSelect) return; // 防止DOM未加载完成的情况
 
