@@ -13,56 +13,61 @@ function loadMyCasesPage() {
 
 
     mainContent.innerHTML = `
-        <div class="page-title">
-            <h1>我的案件</h1>
+        <div class="page-title" style="margin: 16px 0;">
+            <h1 style="font-size: 20px; color: rgba(0, 0, 0, 0.85);">我的案件</h1>
         </div>
         
         <!-- 搜索区域 -->
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <input type="text" id="myCaseSearchInput" class="form-control" placeholder="输入案由搜索">
-                    <button class="btn btn-primary" onclick="loadMyCases()">
-                        <i class="fa fa-search"></i> 搜索
-                    </button>
+        <div style="margin-bottom: 16px;">
+            <div class="ant-row">
+                <div class="ant-col-md-6">
+                    <div class="ant-input-group">
+                        <input type="text" id="myCaseSearchInput" class="ant-input" placeholder="输入案由搜索">
+                        <button class="ant-btn ant-btn-primary" onclick="loadMyCases()">
+                            <a-icon type="search"></a-icon> 搜索
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- 案件状态筛选 -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="btn-group" role="group">
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('all')">全部</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
+        <div style="margin-bottom: 16px;">
+            <div class="ant-row">
+                <div class="ant-col-md-12">
+                    <div class="ant-btn-group" role="group">
+                        <button class="ant-btn ant-btn-outline-primary" onclick="filterMyCases('all')">全部</button>
+                        <button class="ant-btn ant-btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
+                        <button class="ant-btn ant-btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
+                        <button class="ant-btn ant-btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
+                        <button class="ant-btn ant-btn-outline-primary" onclick="filterMyCases('退回')">退回</button>
+                        <button class="ant-btn ant-btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- 案件表格 -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
+        <div class="ant-table-wrapper">
+            <table class="ant-table ant-table-striped ant-table-hover">
+                <thead class="ant-table-thead">
                     <tr>
-                        <th>案件号</th>
-                        <th>案由</th>
-                        <th>标的额</th> <!-- 之前添加的标的额字段 -->
-                        <th>案件归属地</th>
-                        <th>收案时间</th>
-                        <th>原告</th>
-                        <th>被告</th>
-                        <th>法官</th>
-                        <th>案件助理</th>
-                        <th>状态</th>
-                        <th>操作</th>
+                        <th class="ant-table-cell">案件号</th>
+                        <th class="ant-table-cell">案由</th>
+                        <th class="ant-table-cell">标的额</th>
+                        <th class="ant-table-cell">案件归属地</th>
+                        <th class="ant-table-cell">收案时间</th>
+                        <th class="ant-table-cell">原告</th>
+                        <th class="ant-table-cell">被告</th>
+                        <th class="ant-table-cell">法官</th>
+                        <th class="ant-table-cell">案件助理</th>
+                        <th class="ant-table-cell">状态</th>
+                        <th class="ant-table-cell">操作</th>
                     </tr>
                 </thead>
-                <tbody id="myCaseTableBody">
+                <tbody id="myCaseTableBody" class="ant-table-tbody">
                     <tr>
-                        <td colspan="8" class="text-center">加载中...</td>
+                        <td colspan="11" class="ant-table-cell text-center">加载中...</td>
                     </tr>
                 </tbody>
             </table>
@@ -78,7 +83,8 @@ function loadMyCasesPage() {
     // 加载我的案件列表
     loadMyCases(currentMyCasePage,currentMyCasePageSize);
 
-    document.querySelector('.btn-group .btn[onclick="filterMyCases(\'all\')"]').classList.add('active');
+    document.querySelector('.ant-btn-group .ant-btn[onclick="filterMyCases(\'all\')"]').classList.add('active');
+
 }
 
 /**
@@ -285,41 +291,45 @@ async function loadMyCases(pageNum = 1, pageSize = 10) {
             pageSize: response.pageSize// 每页条数
         });
     } catch (error) {
+        console.error(error);
         document.getElementById('myCaseTableBody').innerHTML = `
             <tr><td colspan="8" class="text-center text-danger">加载案件失败</td></tr>
         `;
     }
 }
-
 /**
  * 渲染分页组件
  * @param {Object} pageInfo 分页信息对象，包含total、pageNum、pageSize、pages等
  */
 function renderMyPagination(pageInfo) {
     const { total, pageNum, pageSize } = pageInfo;
-    const pages= Math.ceil(total / pageSize);
+    const pages = Math.ceil(total / pageSize);
+
+    // 移除旧分页容器（统一处理容器存在性）
+    const oldPagination = document.getElementById('myPaginationContainer');
+    if (oldPagination) {
+        oldPagination.remove();
+    }
+
     if (pages <= 1) {
-        // 只有一页时不显示分页
-        const myPaginationContainer = document.getElementById('myPaginationContainer');
-        if (myPaginationContainer) {
-            myPaginationContainer.innerHTML = `
-                <div class="d-flex justify-content-center mt-2 text-secondary">
-                    共 ${total} 条记录
-                </div>
-            `;
+        // 只有一页时显示简易信息
+        const simpleContainer = document.createElement('div');
+        simpleContainer.id = 'myPaginationContainer';
+        simpleContainer.className = 'd-flex justify-content-center mt-2 text-secondary';
+        simpleContainer.innerHTML = `共 ${total} 条记录`;
+
+        // 使用正确的表格容器插入
+        const tableContainer = document.querySelector('.ant-table-wrapper');
+        if (tableContainer) {
+            tableContainer.after(simpleContainer);
         }
         return;
     }
 
-    // 创建分页容器（如果不存在）
-    let myPaginationContainer = document.getElementById('myPaginationContainer');
-    if (!myPaginationContainer) {
-        myPaginationContainer = document.createElement('div');
-        myPaginationContainer.id = 'myPaginationContainer';
-        myPaginationContainer.className = 'd-flex justify-content-center mt-4';
-        // 插入到表格下方
-        document.querySelector('.table-responsive').after(myPaginationContainer);
-    }
+    // 创建新分页容器
+    const myPaginationContainer = document.createElement('div');
+    myPaginationContainer.id = 'myPaginationContainer';
+    myPaginationContainer.className = 'd-flex justify-content-center mt-4';
 
     // 计算显示的页码范围
     let startPage = Math.max(1, pageNum - 2);
@@ -337,13 +347,11 @@ function renderMyPagination(pageInfo) {
     <nav aria-label="案件列表分页">
         <ul class="pagination">
             <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
+                <a class="page-link" href="#" onclick="loadMyCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
     `;
-
-
 
     // 添加第一页按钮（当当前页不在前5页时）
     if (startPage > 1) {
@@ -382,6 +390,14 @@ function renderMyPagination(pageInfo) {
     `;
 
     myPaginationContainer.innerHTML = paginationHtml;
+
+    // 关键修复：使用my-cases.js对应的表格容器
+    const tableContainer = document.querySelector('.ant-table-wrapper');
+    if (tableContainer) {
+        tableContainer.after(myPaginationContainer);
+    } else {
+        console.error('未找到表格容器(.ant-table-wrapper)，无法渲染分页');
+    }
 }
 
 
@@ -414,82 +430,187 @@ async function filterMyCases(status) {
 /**
  * 渲染我的案件表格
  * @param {Array} cases 案件数组
+ * @param {Object} pageInfo 分页信息
  */
-function renderMyCaseTable(cases) {
+function renderMyCaseTable(cases, pageInfo) {
     const tableBody = document.getElementById('myCaseTableBody');
 
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="11" class="ant-table-cell text-center py-5">
+                    <div style="color: #666; font-size: 14px;">暂无案件数据</div>
+                </td>
+            </tr>
+        `;
+        renderMyCasePagination(pageInfo);
         return;
     }
 
+    // 统一状态样式类映射（与CSS中定义的类名完全对应）
+    const statusClassMap = {
+        '已领取': 'status-received',
+        '反馈': 'status-pre-feedback',
+        '延期': 'status-delayed',
+        '退回': 'status-returned',
+        '已完成': 'status-completed',
+        '待领取': 'status-pending-receive',
+        '完结': 'text-success' // 补充完结状态样式
+    };
+
     let html = '';
-    cases.forEach(caseInfo => {
-        // 状态样式类
-        let statusClass = '';
-        switch (caseInfo.status) {
-            case '待领取':
-                statusClass = 'status-pending-receive';
-                break;
-            case '已领取':
-                statusClass = 'status-received';
-                break;
-            case '反馈':
-                statusClass = 'status-pre-feedback';
-                break;
-            case '延期':
-                statusClass = 'status-delayed';
-                break;
-            case '已完成':
-                statusClass = 'status-completed';
-                break;
-            case '完结':
-                statusClass = 'text-success'; // 绿色表示完结
-                break;
-        }
+    cases.forEach(caseItem => {
+        // 获取对应状态的样式类，默认使用待领取样式
+        const statusClass = statusClassMap[caseItem.status] || 'status-pending-receive';
 
         html += `
-        <tr>
-            <td>${caseInfo.caseNumber}</td>
-            <td>${caseInfo.caseName}</td>
-            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td> <!-- 标的额展示 -->
-            <td>${caseInfo.caseLocation || '-'}</td>
-            <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleDateString() : '-'}</td>
-            <td>${caseInfo.plaintiffName || '-'}</td>
-            <td>${caseInfo.defendantName || '-'}</td>
-            <td>${caseInfo.judge || '-'}</td>
-            <td>${caseInfo.assistantName || '-'}</td>
-            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
-            <td>
-                <button class="btn btn-sm btn-primary" onclick="showmyCaseDetailModal(${caseInfo.caseId})">
-                    <i class="fa fa-eye"></i> 详情
-                </button>
-                <button class="btn btn-sm btn-primary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
-                <!-- 只有已领取状态显示完成按钮 -->
-                ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
-                <button class="btn btn-sm btn-info" onclick="showPreFeedbackModal(${caseInfo.caseId})">
-                    <i class="fa fa-comment"></i> 反馈
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="showDelayModal(${caseInfo.caseId})">
-                    <i class="fa fa-clock-o"></i> 延期
-                </button>
-                ` : caseInfo.status === '反馈' ? `
-                <button class="btn btn-sm btn-danger" onclick="showDelayModal(${caseInfo.caseId})">
-                    <i class="fa fa-clock-o"></i> 延期
-                </button>
-                `:``}
-                <button class="btn btn-sm btn-success" onclick="showCompleteCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-check"></i> 完成
-                </button>
-                <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-undo"></i> 退回
-                </button>
+        <tr class="ant-table-row" style="transition: background-color 0.2s ease;">
+            <td class="ant-table-cell">${caseItem.caseNumber || '-'}</td>
+            <td class="ant-table-cell" style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${caseItem.caseName || '-'}
+            </td>
+            <td class="ant-table-cell">${caseItem.amount != null ? caseItem.amount.toFixed(2) : '0.00'}</td>
+            <td class="ant-table-cell">${caseItem.caseLocation || '-'}</td>
+            <td class="ant-table-cell">${caseItem.courtReceiveTime ? new Date(caseItem.courtReceiveTime).toLocaleString() : '-'}</td>
+            <td class="ant-table-cell">${caseItem.plaintiffName || '-'}</td>
+            <td class="ant-table-cell">${caseItem.defendantName || '-'}</td>
+            <td class="ant-table-cell">${caseItem.judge || '-'}</td>
+            <td class="ant-table-cell">${caseItem.assistantName || '-'}</td>
+            <td class="ant-table-cell">
+                <!-- 使用统一的状态徽章样式和映射的类名 -->
+                <span class="status-badge ${statusClass}">${caseItem.status || '-'}</span>
+            </td>
+            <td class="ant-table-cell">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-info" onclick="showmyCaseDetailModal(${caseItem.caseId})" 
+                            style="margin-right: 4px; transition: all 0.2s ease;">
+                        详情
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="showCaseHistoryModal(${caseItem.caseId})"
+                            style="transition: all 0.2s ease;">
+                        历史
+                    </button>
+                    ${(caseItem.status === '已领取' || caseItem.status === '反馈') ? `
+            <button class="btn btn-outline-info" onclick="showPreFeedbackModal(${caseItem.caseId})"
+                    style="margin-right: 4px; transition: all 0.2s ease;">
+                <i class="fa fa-comment"></i> 反馈
+            </button>
+            <button class="btn btn-outline-danger" onclick="showDelayModal(${caseItem.caseId})"
+                    style="transition: all 0.2s ease;">
+                <i class="fa fa-clock-o"></i> 延期
+            </button>
+        ` : caseItem.status === '反馈' ? `
+            <button class="btn btn-outline-danger" onclick="showDelayModal(${caseItem.caseId})"
+                    style="transition: all 0.2s ease;">
+                <i class="fa fa-clock-o"></i> 延期
+            </button>
+        ` : ''}
+        
+        <button class="btn btn-outline-success" onclick="showCompleteCaseModal(${caseItem.caseId})"
+                style="margin-right: 4px; transition: all 0.2s ease;">
+            <i class="fa fa-check"></i> 完成
+        </button>
+        <button class="btn btn-outline-warning" onclick="showReturnCaseModal(${caseItem.caseId})"
+                style="transition: all 0.2s ease;">
+            <i class="fa fa-undo"></i> 退回
+        </button>
+                </div>
             </td>
         </tr>
         `;
     });
 
     tableBody.innerHTML = html;
+    renderMyCasePagination(pageInfo);
+}
+
+/**
+ * 渲染我的案件分页组件
+ * @param {Object} pageInfo 分页信息对象，包含total、pageNum、pageSize等字段
+ */
+function renderMyCasePagination(pageInfo) {
+    const { total, pageNum, pageSize } = pageInfo || { total: 0, pageNum: 1, pageSize: 10 };
+    const totalPages = Math.ceil(total / pageSize);
+
+    // 移除旧分页容器（如果存在）
+    const oldPagination = document.getElementById('myCasePaginationContainer');
+    if (oldPagination) {
+        oldPagination.remove();
+    }
+
+    // 只有一页时不显示分页
+    if (totalPages <= 1) {
+        return;
+    }
+
+    // 创建新分页容器
+    const paginationContainer = document.createElement('div');
+    paginationContainer.id = 'myCasePaginationContainer';
+    paginationContainer.className = 'd-flex justify-content-center align-items-center mt-4 mb-4';
+
+    // 计算显示的页码范围
+    let startPage = Math.max(1, pageNum - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    let paginationHtml = `
+    <div class="me-4 text-secondary" style="font-size: 13px;">
+        共 ${total} 条，第 ${pageNum}/${totalPages} 页
+    </div>
+    <nav aria-label="案件分页">
+        <ul class="pagination m-0">
+            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadMyCases(${pageNum - 1}, ${currentMyCasePageSize})" aria-label="上一页">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+    `;
+
+    // 添加第一页按钮（当前页不在前5页时）
+    if (startPage > 1) {
+        paginationHtml += `
+            <li class="page-item"><a class="page-link" href="#" onclick="loadMyCases(1, ${currentMyCasePageSize})">1</a></li>
+            ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+        `;
+    }
+
+    // 添加中间页码
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `
+            <li class="page-item ${i === pageNum ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadMyCases(${i}, ${currentMyCasePageSize})">${i}</a>
+            </li>
+        `;
+    }
+
+    // 添加最后一页按钮（当前页不在后5页时）
+    if (endPage < totalPages) {
+        paginationHtml += `
+            ${endPage < totalPages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+            <li class="page-item"><a class="page-link" href="#" onclick="loadMyCases(${totalPages}, ${currentMyCasePageSize})">${totalPages}</a></li>
+        `;
+    }
+
+    // 下一页按钮
+    paginationHtml += `
+            <li class="page-item ${pageNum === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadMyCases(${pageNum + 1}, ${currentMyCasePageSize})" aria-label="下一页">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    `;
+
+    paginationContainer.innerHTML = paginationHtml;
+
+    // 将分页容器添加到表格下方
+    const tableWrapper = document.querySelector('.ant-table-wrapper');
+    if (tableWrapper) {
+        tableWrapper.after(paginationContainer);
+    }
 }
 
 /**

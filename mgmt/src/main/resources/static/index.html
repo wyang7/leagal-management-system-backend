@@ -9,6 +9,12 @@
     <!-- 引入Font Awesome图标 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- 移除Bootstrap CSS，保留必要的外部资源 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ant-design-vue@1.7.8/dist/antd.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ant-design-vue@1.7.8/dist/antd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <style>
         .sidebar {
             flex: 0 0 12.5%; /* 约占屏幕宽度的12.5%，原2列在12列布局中是16.67% */
@@ -122,6 +128,36 @@
         .btn-group .btn.btn-outline-primary:not(.active):hover {
             background-color: rgba(13, 110, 253, 0.1); /* 浅色调悬停 */
         }
+
+        /* 操作按钮组样式优化 */
+        .operation-buttons {
+            display: flex;
+            gap: 4px; /* 按钮间微小间距 */
+        }
+
+        /* 适配ant-design风格的小按钮 */
+        .ant-btn-sm {
+            padding: 0 8px;
+            height: 24px;
+            font-size: 12px;
+            border-radius: 2px;
+        }
+
+        /* 状态徽章样式统一 */
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #fff;
+        }
+
+        .status-pending-receive { background-color: #faad14; }
+        .status-received { background-color: #1890ff; }
+        .status-pre-feedback { background-color: #722ed1; }
+        .status-delayed { background-color: #fa8c16; }
+        .status-completed { background-color: #52c41a; }
+        .status-returned { background-color: #f5222d; }
     </style>
 </head>
 <body>
