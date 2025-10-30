@@ -37,7 +37,6 @@ function loadMyCasesPage() {
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('退回')">退回</button>
                     <button class="btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
                 </div>
             </div>
@@ -275,7 +274,11 @@ async function loadMyCases(pageNum = 1, pageSize = 10) {
         params.append('pageSize', pageSize);
         if (caseName) params.append('caseName', caseName);
         if (username) params.append('userName', username);
-        if (currentMyFilterStatus !== 'all') params.append('status', currentMyFilterStatus);
+        if (currentMyFilterStatus !== 'all') {
+            params.append('status', currentMyFilterStatus);
+        }else {
+            params.append('status', '我的案件'); // 传空表示不筛选状态
+        }
 
         const response = await request(`/case/page?${params.toString()}`);
         renderMyCaseTable(response.records);
@@ -480,12 +483,14 @@ function renderMyCaseTable(cases) {
                     <i class="fa fa-clock-o"></i> 延期
                 </button>
                 `:``}
+                ${(caseInfo.status !== '已完成') ? `
                 <button class="btn btn-sm btn-success" onclick="showCompleteCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-check"></i> 完成
                 </button>
                 <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
                     <i class="fa fa-undo"></i> 退回
                 </button>
+                `:``}
             </td>
         </tr>
         `;

@@ -17,8 +17,11 @@
         <if test="caseName != null and caseName != ''">
             AND case_name LIKE CONCAT(#{caseName}, '%')
         </if>
-        <if test="status != null and status != ''">
+        <if test="status != null and status != '' and status != '我的案件'">
             AND status = #{status}
+        </if>
+        <if test="status != null and status != '' and status == '我的案件'">
+            AND status NOT IN ('退回' ,'完结')
         </if>
         <if test="caseNumber != null and caseNumber != ''">
             AND case_number LIKE CONCAT('%', #{caseNumber}, '%')
@@ -102,8 +105,11 @@
         <if test="caseName != null and caseName != ''">
             AND case_name LIKE CONCAT(#{caseName}, '%')
         </if>
-        <if test="status != null and status != ''">
+        <if test="status != null and status != '' and status != '我的案件'">
             AND c.status = #{status}
+        </if>
+        <if test="status != null and status != '' and status == '我的案件'">
+            AND c.status NOT IN ('退回' ,'完结')
         </if>
         <if test="caseNumber != null and caseNumber != ''">
             AND c.case_number LIKE CONCAT('%', #{caseNumber}, '%')
