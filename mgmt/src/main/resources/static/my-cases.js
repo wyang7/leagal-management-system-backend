@@ -1,4 +1,3 @@
-
 // 分页参数
 let currentMyCasePage = 1;
 const currentMyCasePageSize = 10; // 每页显示10条
@@ -19,12 +18,41 @@ function loadMyCasesPage() {
         
         <!-- 搜索区域 -->
         <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <input type="text" id="myCaseSearchInput" class="form-control" placeholder="输入案由搜索">
-                    <button class="btn btn-primary" onclick="loadMyCases()">
-                        <i class="fa fa-search"></i> 搜索
-                    </button>
+            <div class="col-12 mb-3">
+                <div class="d-flex flex-wrap gap-3 align-items-center p-3 bg-light bg-opacity-50 rounded-3 shadow-sm">
+                    <!-- 案由搜索 -->
+                    <div class="flex-grow-1 min-w-[200px]">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fa fa-file-text-o text-secondary"></i>
+                            </span>
+                            <input type="text" id="myCaseSearchInput" class="form-control" placeholder="输入案由搜索" 
+                               style="transition: border-color 0.2s ease;">
+                        </div>
+                    </div>
+
+                    <!-- 案件归属地下拉框（与案件管理页面样式一致） -->
+                    <div class="flex-grow-1 min-w-[200px]">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fa fa-map-marker text-secondary"></i>
+                            </span>
+                            <select id="myCaseStationSelect" class="form-select">
+                                <option value="">全部驻点</option>
+                                <option value="九堡彭埠">九堡彭埠</option>
+                                <option value="本部">本部</option>
+                                <option value="笕桥">笕桥</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 搜索按钮 -->
+                    <div class="min-w-[100px]">
+                        <button class="btn btn-primary w-100 py-2 hover:bg-primary/90 active:bg-primary/80 transition-all duration-200" 
+                            onclick="loadMyCases()">
+                            <i class="fa fa-search me-1"></i> 搜索
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -269,6 +297,10 @@ async function loadMyCases(pageNum = 1, pageSize = 10) {
 
         // 确保username有效后再发起请求
         const caseName = document.getElementById('myCaseSearchInput').value.trim();
+        // 新增：读取案件归属地下拉框值并传参（与 case-management.js 保持一致的参数名 station）
+        const station = (document.getElementById('myCaseStationSelect') && document.getElementById('myCaseStationSelect').value)
+                        ? document.getElementById('myCaseStationSelect').value.trim() : '';
+
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
         params.append('pageSize', pageSize);
@@ -279,6 +311,8 @@ async function loadMyCases(pageNum = 1, pageSize = 10) {
         }else {
             params.append('status', '我的案件'); // 传空表示不筛选状态
         }
+        // 新增：如果选择了驻点，则加入 station 参数
+        if (station) params.append('station', station);
 
         const response = await request(`/case/page?${params.toString()}`);
         renderMyCaseTable(response.records);
