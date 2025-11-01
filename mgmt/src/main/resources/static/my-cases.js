@@ -15,29 +15,49 @@ function loadMyCasesPage() {
             <div class="ant-card-body">
                 <div class="row g-3 align-items-center">
                     <div class="col-md-3">
-                        <label class="form-label mb-1" style="font-weight:500;">案由</label>
-                        <input type="text" id="myCaseSearchInput" class="form-control ant-input" placeholder="请输入案由" style="border-radius:4px;">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-book text-secondary"></i>
+                            </span>
+                            <input type="text" id="myCaseSearchInput" class="form-control ant-input" placeholder="案由" style="border-radius:0 4px 4px 0;">
+                        </div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label mb-1" style="font-weight:500;">案件归属地</label>
-                        <select id="myCaseStationSelect" class="form-select ant-select" style="border-radius:4px;">
-                            <option value="">全部驻点</option>
-                            <option value="九堡彭埠">九堡彭埠</option>
-                            <option value="本部">本部</option>
-                            <option value="笕桥">笕桥</option>
-                        </select>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-map-marker text-secondary"></i>
+                            </span>
+                            <select id="myCaseStationSelect" class="form-select ant-select" style="border-radius:0 4px 4px 0;">
+                                <option value="">全部驻点</option>
+                                <option value="九堡彭埠">九堡彭埠</option>
+                                <option value="本部">本部</option>
+                                <option value="笕桥">笕桥</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label mb-1" style="font-weight:500;">原告</label>
-                        <input type="text" id="myCasePlaintiffInput" class="form-control ant-input" placeholder="请输入原告" style="border-radius:4px;">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-user text-secondary"></i>
+                            </span>
+                            <input type="text" id="myCasePlaintiffInput" class="form-control ant-input" placeholder="原告" style="border-radius:0 4px 4px 0;">
+                        </div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label mb-1" style="font-weight:500;">被告</label>
-                        <input type="text" id="myCaseDefendantInput" class="form-control ant-input" placeholder="请输入被告" style="border-radius:4px;">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-user-o text-secondary"></i>
+                            </span>
+                            <input type="text" id="myCaseDefendantInput" class="form-control ant-input" placeholder="被告" style="border-radius:0 4px 4px 0;">
+                        </div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label mb-1" style="font-weight:500;">助理</label>
-                        <input type="text" id="myCaseAssistantInput" class="form-control ant-input" placeholder="请输入助理" style="border-radius:4px;">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-user-plus text-secondary"></i>
+                            </span>
+                            <input type="text" id="myCaseAssistantInput" class="form-control ant-input" placeholder="助理" style="border-radius:0 4px 4px 0;">
+                        </div>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="loadMyCases()">
@@ -172,7 +192,7 @@ async function showmyCaseDetailModal(caseId) {
                             </div>
                             <div class="col-md-6">
                                 <strong>关联案件包:</strong> ${caseInfo.taskName || '-'}
-                            </div>
+                            </div }
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -488,52 +508,61 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.assistantName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
-                <div class="dropdown">
-                  <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    案件操作
-                  </button>
-                  <ul class="dropdown-menu">
-                    <li>
-                      <a class="dropdown-item" href="javascript:void(0);" onclick="showmyCaseDetailModal(${caseInfo.caseId})">
-                        <i class="fa fa-eye"></i> 详情
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
-                        <i class="fa fa-history"></i> 历史流转记录
-                      </a>
-                    </li>
-                    ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
-                    <li>
-                      <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
-                        <i class="fa fa-comment"></i> 反馈
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
-                        <i class="fa fa-clock-o"></i> 延期
-                      </a>
-                    </li>
-                    ` : caseInfo.status === '反馈' ? `
-                    <li>
-                      <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
-                        <i class="fa fa-clock-o"></i> 延期
-                      </a>
-                    </li>
-                    `:``}
-                    ${(caseInfo.status !== '已完成') ? `
-                    <li>
-                      <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
-                        <i class="fa fa-check"></i> 完成
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})">
-                        <i class="fa fa-undo"></i> 退回
-                      </a>
-                    </li>
-                    `:``}
-                  </ul>
+                <div class="d-flex gap-2">
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                      案件详情
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showmyCaseDetailModal(${caseInfo.caseId})">
+                          <i class="fa fa-eye"></i> 详情
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
+                          <i class="fa fa-history"></i> 历史流转记录
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                      案件操作
+                    </button>
+                    <ul class="dropdown-menu">
+                      ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
+                          <i class="fa fa-comment"></i> 反馈
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
+                          <i class="fa fa-clock-o"></i> 延期
+                        </a>
+                      </li>
+                      ` : caseInfo.status === '反馈' ? `
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
+                          <i class="fa fa-clock-o"></i> 延期
+                        </a>
+                      </li>
+                      `:``}
+                      ${(caseInfo.status !== '已完成') ? `
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
+                          <i class="fa fa-check"></i> 完成
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})">
+                          <i class="fa fa-undo"></i> 退回
+                        </a>
+                      </li>
+                      `:``}
+                    </ul>
+                  </div>
                 </div>
             </td>
         </tr>
