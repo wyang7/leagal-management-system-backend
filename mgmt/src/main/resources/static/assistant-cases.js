@@ -5,64 +5,62 @@ function loadAssistantCasesPage() {
     setActiveNav('助理案件');
     const mainContent = document.getElementById('mainContent');
 
-
     mainContent.innerHTML = `
-        <div class="page-title">
-            <h1>助理案件</h1>
-        </div>
-        
-        <!-- 搜索区域 -->
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <input type="text" id="assistantCaseSearchInput" class="form-control" placeholder="输入案由搜索">
-                    <button class="btn btn-primary" onclick="searchAssistantCases()">
-                        <i class="fa fa-search"></i> 搜索
-                    </button>
+        <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
+            <div class="ant-card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-book text-secondary"></i>
+                            </span>
+                            <input type="text" id="assistantCaseSearchInput" class="form-control ant-input" placeholder="案由" style="border-radius:0 4px 4px 0;">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="searchAssistantCases()">
+                            <i class="fa fa-search me-1"></i> 查询
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <!-- 案件状态筛选 -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="btn-group" role="group">
-                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('all')">全部</button>
-                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('待领取')">待领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('已领取')">已领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('反馈')">反馈</button>
-                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('延期')">延期</button>
-                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('已完成')">已完成</button>
-                    <button class="btn btn-outline-primary" onclick="filterAssistantCases('退回')">退回</button>
+        <div class="ant-card ant-card-bordered mb-3" style="border-radius:8px;">
+            <div class="ant-card-body">
+                <div class="btn-group mb-2" role="group">
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('all')">全部</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('待领取')">待领取</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('已领取')">已领取</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('反馈')">反馈</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('延期')">延期</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('已完成')">已完成</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('退回')">退回</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
+                        <thead class="ant-table-thead table-light">
+                            <tr>
+                                <th style="white-space:nowrap;">案件号</th>
+                                <th style="white-space:nowrap;">案由</th>
+                                <th style="white-space:nowrap;">标的额</th>
+                                <th style="white-space:nowrap;" title="案件归属地">归属地</th>
+                                <th style="white-space:nowrap;">原告</th>
+                                <th style="white-space:nowrap;">被告</th>
+                                <th style="white-space:nowrap;">法官</th>
+                                <th style="white-space:nowrap;">处理人</th>
+                                <th style="white-space:nowrap;">案件助理</th>
+                                <th style="white-space:nowrap;">状态</th>
+                                <th style="white-space:nowrap;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assistantCaseTableBody">
+                            <tr>
+                                <td colspan="11" class="text-center">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </div>
-        
-        <!-- 案件表格 -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>案件号</th>
-                        <th>案由</th>
-                        <th>标的额</th> <!-- 之前添加的标的额字段 -->
-                        <th>案件归属地</th>
-                        <th>收案时间</th>
-                        <th>原告</th>
-                        <th>被告</th>
-                        <th>法官</th>
-                        <th>处理人</th>
-                        <th>关联案件包</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="assistantCaseTableBody">
-                    <tr>
-                        <td colspan="8" class="text-center">加载中...</td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     `;
 
@@ -300,12 +298,10 @@ async function filterAssistantCases(status) {
  */
 function renderAssistantCaseTable(cases) {
     const tableBody = document.getElementById('assistantCaseTableBody');
-
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="11" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
-
     let html = '';
     cases.forEach(caseInfo => {
         // 状态样式类
@@ -338,27 +334,64 @@ function renderAssistantCaseTable(cases) {
         <tr>
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
-            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td> <!-- 标的额展示 -->
+            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
             <td>${caseInfo.caseLocation || '-'}</td>
-            <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleDateString() : '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.username || '-'}</td>
-            <td>${caseInfo.taskId || '-'}</td>
+            <td>${caseInfo.assistantName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="showAssistantCaseDetailModal(${caseInfo.caseId})">
-                    <i class="fa fa-eye"></i> 详情
-                </button>
-                <button class="btn btn-sm btn-primary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
+                <div class="d-flex gap-2">
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                      案件详情
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showAssistantCaseDetailModal(${caseInfo.caseId})">
+                          <i class="fa fa-eye"></i> 详情
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
+                          <i class="fa fa-history"></i> 历史流转记录
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                      案件操作
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
+                          <i class="fa fa-comment"></i> 反馈
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
+                          <i class="fa fa-clock-o"></i> 延期
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
+                          <i class="fa fa-check"></i> 完成
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})">
+                          <i class="fa fa-undo"></i> 退回
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
             </td>
         </tr>
         `;
     });
-
     tableBody.innerHTML = html;
 }
-
-
-

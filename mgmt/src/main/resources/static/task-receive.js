@@ -5,41 +5,45 @@ function loadTaskReceivePage() {
     setActiveNav('领取案件');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
-        <div class="page-title">
-            <h1>案件包领取</h1>
-        </div>
-        
-        <!-- 搜索区域 -->
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <input type="text" id="receiveTaskSearchInput" class="form-control" placeholder="输入案件包名称搜索">
-                    <button class="btn btn-primary" onclick="searchReceiveTasks()">
-                        <i class="fa fa-search"></i> 搜索
-                    </button>
+        <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
+            <div class="ant-card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-briefcase text-secondary"></i>
+                            </span>
+                            <input type="text" id="receiveTaskSearchInput" class="form-control ant-input" placeholder="案件包名称" style="border-radius:0 4px 4px 0;">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="searchReceiveTasks()">
+                            <i class="fa fa-search me-1"></i> 查询
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <!-- 案件包表格容器 -->
-        <div id="receiveTaskTableContainer">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>任务ID</th>
-                            <th>任务名</th>
-                            <th>创建时间</th>
-                            <th>关联案件数</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="receiveTaskTableBody">
-                        <tr>
-                            <td colspan="5" class="text-center">加载中...</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="ant-card ant-card-bordered mb-3" style="border-radius:8px;">
+            <div class="ant-card-body" id="receiveTaskTableContainer">
+                <div class="table-responsive">
+                    <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
+                        <thead class="ant-table-thead table-light">
+                            <tr>
+                                <th style="white-space:nowrap;">任务ID</th>
+                                <th style="white-space:nowrap;">任务名</th>
+                                <th style="white-space:nowrap;">创建时间</th>
+                                <th style="white-space:nowrap;">关联案件数</th>
+                                <th style="white-space:nowrap;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receiveTaskTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     `;
@@ -70,7 +74,7 @@ function renderReceiveTaskTable(tasks) {
             <td>${task.createdTime ? new Date(task.createdTime).toLocaleString() : ''}</td>
             <td>${task.caseCount || 0}</td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="showReceiveTaskConfirmModal(${task.taskId})">
+                <button class="ant-btn ant-btn-primary btn btn-sm btn-primary" onclick="showReceiveTaskConfirmModal(${task.taskId})">
                     <i class="fa fa-handshake-o"></i> 领取案件包
                 </button>
             </td>

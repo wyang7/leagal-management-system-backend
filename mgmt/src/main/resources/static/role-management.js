@@ -5,40 +5,34 @@ function loadRoleManagementPage() {
     setActiveNav('角色管理');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
-        <div class="page-title">
-            <h1>角色管理</h1>
-        </div>
-        
-        <!-- 新增角色按钮 -->
-        <div class="row mb-3">
-            <div class="col-md-12 text-end">
-                <button class="btn btn-success" onclick="showAddRoleModal()">
-                    <i class="fa fa-plus"></i> 新增角色
-                </button>
+        <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
+            <div class="ant-card-body">
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddRoleModal()">
+                        <i class="fa fa-plus"></i> 新增角色
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
+                        <thead class="ant-table-thead table-light">
+                            <tr>
+                                <th style="white-space:nowrap;">角色ID</th>
+                                <th style="white-space:nowrap;">角色名</th>
+                                <th style="white-space:nowrap;">角色类型</th>
+                                <th style="white-space:nowrap;">驻点信息</th>
+                                <th style="white-space:nowrap;">创建时间</th>
+                                <th style="white-space:nowrap;">关联用户</th>
+                                <th style="white-space:nowrap;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roleTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-        
-        <!-- 角色表格 -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>角色ID</th>
-                        <th>角色名</th>
-                        <th>角色类型</th>
-                        <th>驻点信息</th>
-                        <th>创建时间</th>
-                        <th>关联用户</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="roleTableBody">
-                    <!-- 角色数据将通过JavaScript动态加载 -->
-                    <tr>
-                        <td colspan="6" class="text-center">加载中...</td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     `;
     
@@ -68,7 +62,7 @@ async function loadRoles() {
         renderRoleTable(roles);
     } catch (error) {
         document.getElementById('roleTableBody').innerHTML = `
-            <tr><td colspan="6" class="text-center text-danger">加载角色失败</td></tr>
+            <tr><td colspan="7" class="text-center text-danger">加载角色失败</td></tr>
         `;
     }
 }
@@ -81,7 +75,7 @@ function renderRoleTable(roles) {
     const tableBody = document.getElementById('roleTableBody');
     
     if (!roles || roles.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center">没有找到角色数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center">没有找到角色数据</td></tr>`;
         return;
     }
     
@@ -95,15 +89,15 @@ function renderRoleTable(roles) {
             <td>${role.station || ''}</td>
             <td>${role.createdTime ? new Date(role.createdTime).toLocaleString() : ''}</td>
             <td>
-                <button class="btn btn-sm btn-info" onclick="showRoleUsers(${role.roleId})">
+                <button class="ant-btn ant-btn-info btn btn-sm btn-info" onclick="showRoleUsers(${role.roleId})">
                     <i class="fa fa-users"></i> 查看用户
                 </button>
             </td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="showEditRoleModal(${role.roleId})">
+                <button class="ant-btn ant-btn-primary btn btn-sm btn-primary" onclick="showEditRoleModal(${role.roleId})">
                     <i class="fa fa-edit"></i> 编辑
                 </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteRole(${role.roleId})">
+                <button class="ant-btn ant-btn-danger btn btn-sm btn-danger" onclick="deleteRole(${role.roleId})">
                     <i class="fa fa-trash"></i> 删除
                 </button>
             </td>
@@ -402,4 +396,3 @@ async function unassignUserFromRole(userId, roleId) {
         console.error('解除关联失败:', error);
     }
 }
-    

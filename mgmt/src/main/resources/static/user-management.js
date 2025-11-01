@@ -5,46 +5,51 @@ function loadUserManagementPage() {
     setActiveNav('用户管理');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
-        <div class="page-title">
-            <h1>用户管理</h1>
-        </div>
-        
-        <!-- 搜索和新增区域 -->
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <input type="text" id="userSearchInput" class="form-control" placeholder="输入用户名搜索">
-                    <button class="btn btn-primary" onclick="searchUsers()">
-                        <i class="fa fa-search"></i> 搜索
-                    </button>
+        <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
+            <div class="ant-card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-user text-secondary"></i>
+                            </span>
+                            <input type="text" id="userSearchInput" class="form-control ant-input" placeholder="用户名" style="border-radius:0 4px 4px 0;">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="searchUsers()">
+                            <i class="fa fa-search me-1"></i> 查询
+                        </button>
+                    </div>
+                    <div class="col-md-4 d-flex justify-content-end align-items-end">
+                        <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddUserModal()">
+                            <i class="fa fa-plus"></i> 新增用户
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6 text-end">
-                <button class="btn btn-success" onclick="showAddUserModal()">
-                    <i class="fa fa-plus"></i> 新增用户
-                </button>
-            </div>
         </div>
-        
-        <!-- 用户表格 -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>用户ID</th>
-                        <th>用户名</th>
-                        <th>角色名</th>
-                        <th>创建时间</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="userTableBody">
-                    <!-- 用户数据将通过JavaScript动态加载 -->
-                    <tr>
-                        <td colspan="5" class="text-center">加载中...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="ant-card ant-card-bordered mb-3" style="border-radius:8px;">
+            <div class="ant-card-body">
+                <div class="table-responsive">
+                    <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
+                        <thead class="ant-table-thead table-light">
+                            <tr>
+                                <th style="white-space:nowrap;">用户ID</th>
+                                <th style="white-space:nowrap;">用户名</th>
+                                <th style="white-space:nowrap;">角色名</th>
+                                <th style="white-space:nowrap;">创建时间</th>
+                                <th style="white-space:nowrap;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     `;
     
@@ -120,10 +125,10 @@ function renderUserTable(users) {
             <td>${user.roleName}</td>
             <td>${user.createdTime ? new Date(user.createdTime).toLocaleString() : ''}</td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="showEditUserModal(${user.userId})">
+                <button class="ant-btn ant-btn-primary btn btn-sm btn-primary" onclick="showEditUserModal(${user.userId})">
                     <i class="fa fa-edit"></i> 编辑
                 </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.userId})">
+                <button class="ant-btn ant-btn-danger btn btn-sm btn-danger" onclick="deleteUser(${user.userId})">
                     <i class="fa fa-trash"></i> 删除
                 </button>
             </td>
@@ -377,4 +382,3 @@ async function deleteUser(userId) {
         // 错误处理已在request函数中完成
     }
 }
-    

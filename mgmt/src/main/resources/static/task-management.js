@@ -5,53 +5,58 @@ function loadTaskManagementPage() {
     setActiveNav('案件包');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
-        <div class="page-title">
-            <h1>案件包</h1>
-        </div>
-        
-        <!-- 新增案件包按钮 -->
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <input type="text" id="taskSearchInput" class="form-control" placeholder="输入案件包名称搜索">
-                    <button class="btn btn-primary" onclick="searchTasks()">
-                        <i class="fa fa-search"></i> 搜索
-                    </button>
-                    <button class="btn btn-primary ms-2" onclick="batchPublishTasks()">
-                        <i class="fa fa-paper-plane"></i> 批量发布
-                    </button>
+        <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
+            <div class="ant-card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-briefcase text-secondary"></i>
+                            </span>
+                            <input type="text" id="taskSearchInput" class="form-control ant-input" placeholder="案件包名称" style="border-radius:0 4px 4px 0;">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="searchTasks()">
+                            <i class="fa fa-search me-1"></i> 查询
+                        </button>
+                    </div>
+                    <div class="col-md-4 d-flex justify-content-end align-items-end gap-2">
+                        <button class="ant-btn ant-btn-primary" onclick="batchPublishTasks()">
+                            <i class="fa fa-paper-plane"></i> 批量发布
+                        </button>
+                        <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddTaskModal()">
+                            <i class="fa fa-plus"></i> 新增案件包
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-12 text-end">
-                <button class="btn btn-success" onclick="showAddTaskModal()">
-                    <i class="fa fa-plus"></i> 新增案件包
-                </button>
-            </div>
         </div>
-        
-        <!-- 任务表格 -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th><input type="checkbox" id="selectAllTasks" onclick="toggleSelectAllTasks()"></th>
-                        <th>任务ID</th>
-                        <th>任务名</th>
-                        <th>案件包归属</th>
-                        <th>创建时间</th>
-                        <th>关联案件数</th>
-                        <th>状态</th>
-                        <th>领取人</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="taskTableBody">
-                    <!-- 任务数据将通过JavaScript动态加载 -->
-                    <tr>
-                        <td colspan="6" class="text-center">加载中...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="ant-card ant-card-bordered mb-3" style="border-radius:8px;">
+            <div class="ant-card-body">
+                <div class="table-responsive">
+                    <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
+                        <thead class="ant-table-thead table-light">
+                            <tr>
+                                <th style="white-space:nowrap;"><input type="checkbox" id="selectAllTasks" onclick="toggleSelectAllTasks()"></th>
+                                <th style="white-space:nowrap;">任务ID</th>
+                                <th style="white-space:nowrap;">任务名</th>
+                                <th style="white-space:nowrap;">案件包归属</th>
+                                <th style="white-space:nowrap;">创建时间</th>
+                                <th style="white-space:nowrap;">关联案件数</th>
+                                <th style="white-space:nowrap;">状态</th>
+                                <th style="white-space:nowrap;">领取人</th>
+                                <th style="white-space:nowrap;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="taskTableBody">
+                            <tr>
+                                <td colspan="9" class="text-center">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     `;
 
@@ -121,7 +126,7 @@ function renderTaskTable(tasks) {
     const tableBody = document.getElementById('taskTableBody');
 
     if (!tasks || tasks.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center">没有找到任务数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="9" class="text-center">没有找到任务数据</td></tr>`;
         return;
     }
 
@@ -148,20 +153,20 @@ function renderTaskTable(tasks) {
             <td><span class="${statusClass}">${task.status}</span></td>
             <td>${task.ownerName || '-'}</td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="showEditTaskModal(${task.taskId})">
+                <button class="ant-btn ant-btn-primary btn btn-sm btn-primary" onclick="showEditTaskModal(${task.taskId})">
                     <i class="fa fa-edit"></i> 编辑
                 </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteTask(${task.taskId})">
+                <button class="ant-btn ant-btn-danger btn btn-sm btn-danger" onclick="deleteTask(${task.taskId})">
                     <i class="fa fa-trash"></i> 删除
                 </button>
-                <button class="btn btn-sm btn-info" onclick="showAssignCasesToTaskModal(${task.taskId})">
+                <button class="ant-btn ant-btn-info btn btn-sm btn-info" onclick="showAssignCasesToTaskModal(${task.taskId})">
                     <i class="fa fa-gavel"></i> 关联案件
                 </button>
-                <button class="btn btn-sm btn-secondary" onclick="showAssignTaskToUserModal(${task.taskId})">
+                <button class="ant-btn ant-btn-secondary btn btn-sm btn-secondary" onclick="showAssignTaskToUserModal(${task.taskId})">
                     <i class="fa fa-user"></i> 分派
                 </button>
                 ${task.status === '待发布' ? `
-                <button class="btn btn-sm btn-warning" onclick="publishTask(${task.taskId})">
+                <button class="ant-btn ant-btn-warning btn btn-sm btn-warning" onclick="publishTask(${task.taskId})">
                     <i class="fa fa-paper-plane"></i> 发布
                 </button>
                 ` : ''}
@@ -848,4 +853,3 @@ async function unassignCaseFromTask(caseId) {
         // 错误处理已在request函数中完成
     }
 }
-    
