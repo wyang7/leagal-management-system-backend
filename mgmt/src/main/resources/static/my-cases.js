@@ -27,6 +27,18 @@ function loadMyCasesPage() {
                             <option value="笕桥">笕桥</option>
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">原告</label>
+                        <input type="text" id="myCasePlaintiffInput" class="form-control ant-input" placeholder="请输入原告" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">被告</label>
+                        <input type="text" id="myCaseDefendantInput" class="form-control ant-input" placeholder="请输入被告" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">助理</label>
+                        <input type="text" id="myCaseAssistantInput" class="form-control ant-input" placeholder="请输入助理" style="border-radius:4px;">
+                    </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="loadMyCases()">
                             <i class="fa fa-search me-1"></i> 查询
@@ -271,10 +283,13 @@ async function loadMyCases(pageNum = 1, pageSize = 10) {
         }
 
         // 确保username有效后再发起请求
+        // 查询条件
         const caseName = document.getElementById('myCaseSearchInput').value.trim();
-        // 新增：读取案件归属地下拉框值并传参（与 case-management.js 保持一致的参数名 station）
         const station = (document.getElementById('myCaseStationSelect') && document.getElementById('myCaseStationSelect').value)
                         ? document.getElementById('myCaseStationSelect').value.trim() : '';
+        const plaintiff = document.getElementById('myCasePlaintiffInput') ? document.getElementById('myCasePlaintiffInput').value.trim() : '';
+        const defendant = document.getElementById('myCaseDefendantInput') ? document.getElementById('myCaseDefendantInput').value.trim() : '';
+        const assistant = document.getElementById('myCaseAssistantInput') ? document.getElementById('myCaseAssistantInput').value.trim() : '';
 
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
@@ -283,11 +298,13 @@ async function loadMyCases(pageNum = 1, pageSize = 10) {
         if (username) params.append('userName', username);
         if (currentMyFilterStatus !== 'all') {
             params.append('status', currentMyFilterStatus);
-        }else {
-            params.append('status', '我的案件'); // 传空表示不筛选状态
+        } else {
+            params.append('status', '我的案件');
         }
-        // 新增：如果选择了驻点，则加入 station 参数
         if (station) params.append('station', station);
+        if (plaintiff) params.append('plaintiff', plaintiff);
+        if (defendant) params.append('defendant', defendant);
+        if (assistant) params.append('assistant', assistant);
 
         const response = await request(`/case/page?${params.toString()}`);
         renderMyCaseTable(response.records);
