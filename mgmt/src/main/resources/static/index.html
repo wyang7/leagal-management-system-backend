@@ -122,6 +122,89 @@
         .btn-group .btn.btn-outline-primary:not(.active):hover {
             background-color: rgba(13, 110, 253, 0.1); /* 浅色调悬停 */
         }
+        /* antd 风格样式增强 */
+        .ant-card {
+            background: #fff;
+            border: 1px solid #f0f0f0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px #f0f1f2;
+            margin-bottom: 16px;
+        }
+        .ant-card-body {
+            padding: 16px 24px;
+        }
+        .ant-btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            border: 1px solid #d9d9d9;
+            background: #fff;
+            color: #333;
+            padding: 4px 16px;
+            font-size: 15px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            box-shadow: none;
+        }
+        .ant-btn-primary, .ant-btn.ant-btn-primary {
+            color: #fff;
+            background: #1677ff;
+            border-color: #1677ff;
+        }
+        .ant-btn-primary:hover, .ant-btn.ant-btn-primary:hover {
+            background: #4096ff;
+            border-color: #4096ff;
+        }
+        .ant-btn-default:hover {
+            border-color: #4096ff;
+            color: #1677ff;
+        }
+        .ant-input, .ant-select, .ant-select:focus, .ant-input:focus {
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            box-shadow: none;
+            transition: border-color 0.2s;
+        }
+        .ant-input:focus, .ant-select:focus {
+            border-color: #1677ff;
+        }
+        .ant-table {
+            background: #fff;
+            border-radius: 6px;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .ant-table-thead > tr > th {
+            background: #fafafa;
+            font-weight: 500;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .ant-table > tbody > tr > td, .ant-table > thead > tr > th {
+            border-right: 1px solid #f0f0f0;
+        }
+        .ant-table > tbody > tr > td:last-child, .ant-table > thead > tr > th:last-child {
+            border-right: none;
+        }
+        .ant-table > tbody > tr {
+            transition: background 0.2s;
+        }
+        .ant-table > tbody > tr:hover {
+            background: #f5faff;
+        }
+        /* 按钮组 antd 风格 */
+        .btn-group .ant-btn {
+            margin-right: 8px;
+            margin-bottom: 4px;
+        }
+        .btn-group .ant-btn.active, .btn-group .ant-btn:active {
+            background: #1677ff;
+            color: #fff;
+            border-color: #1677ff;
+        }
+        /* 防止表头换行，统一所有表格 */
+        th, .ant-table-thead > tr > th {
+            white-space: nowrap !important;
+        }
     </style>
 </head>
 <body>

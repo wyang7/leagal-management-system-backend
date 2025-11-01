@@ -10,90 +10,65 @@ function loadMyCasesPage() {
     setActiveNav('我的案件');
     const mainContent = document.getElementById('mainContent');
 
-
     mainContent.innerHTML = `
-        <div class="page-title">
-            <h1>我的案件</h1>
-        </div>
-        
-        <!-- 搜索区域 -->
-        <div class="row mb-3">
-            <div class="col-12 mb-3">
-                <div class="d-flex flex-wrap gap-3 align-items-center p-3 bg-light bg-opacity-50 rounded-3 shadow-sm">
-                    <!-- 案由搜索 -->
-                    <div class="flex-grow-1 min-w-[200px]">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light">
-                                <i class="fa fa-file-text-o text-secondary"></i>
-                            </span>
-                            <input type="text" id="myCaseSearchInput" class="form-control" placeholder="输入案由搜索" 
-                               style="transition: border-color 0.2s ease;">
-                        </div>
+        <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
+            <div class="ant-card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">案由</label>
+                        <input type="text" id="myCaseSearchInput" class="form-control ant-input" placeholder="请输入案由" style="border-radius:4px;">
                     </div>
-
-                    <!-- 案件归属地下拉框（与案件管理页面样式一致） -->
-                    <div class="flex-grow-1 min-w-[200px]">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light">
-                                <i class="fa fa-map-marker text-secondary"></i>
-                            </span>
-                            <select id="myCaseStationSelect" class="form-select">
-                                <option value="">全部驻点</option>
-                                <option value="九堡彭埠">九堡彭埠</option>
-                                <option value="本部">本部</option>
-                                <option value="笕桥">笕桥</option>
-                            </select>
-                        </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">案件归属地</label>
+                        <select id="myCaseStationSelect" class="form-select ant-select" style="border-radius:4px;">
+                            <option value="">全部驻点</option>
+                            <option value="九堡彭埠">九堡彭埠</option>
+                            <option value="本部">本部</option>
+                            <option value="笕桥">笕桥</option>
+                        </select>
                     </div>
-
-                    <!-- 搜索按钮 -->
-                    <div class="min-w-[100px]">
-                        <button class="btn btn-primary w-100 py-2 hover:bg-primary/90 active:bg-primary/80 transition-all duration-200" 
-                            onclick="loadMyCases()">
-                            <i class="fa fa-search me-1"></i> 搜索
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="loadMyCases()">
+                            <i class="fa fa-search me-1"></i> 查询
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- 案件状态筛选 -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="btn-group" role="group">
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('all')">全部</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
-                    <button class="btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
+        <div class="ant-card ant-card-bordered mb-3" style="border-radius:8px;">
+            <div class="ant-card-body">
+                <div class="btn-group mb-2" role="group">
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('all')">全部</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
+                        <thead class="ant-table-thead table-light">
+                            <tr>
+                                <th style="white-space:nowrap;">案件号</th>
+                                <th style="white-space:nowrap;">案由</th>
+                                <th style="white-space:nowrap;">标的额</th>
+                                <th style="white-space:nowrap;" title="案件归属地">归属地</th>
+                                <th style="white-space:nowrap;">收案时间</th>
+                                <th style="white-space:nowrap;">原告</th>
+                                <th style="white-space:nowrap;">被告</th>
+                                <th style="white-space:nowrap;">法官</th>
+                                <th style="white-space:nowrap;">案件助理</th>
+                                <th style="white-space:nowrap;">状态</th>
+                                <th style="white-space:nowrap;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myCaseTableBody">
+                            <tr>
+                                <td colspan="11" class="text-center">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </div>
-        
-        <!-- 案件表格 -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>案件号</th>
-                        <th>案由</th>
-                        <th>标的额</th> <!-- 之前添加的标的额字段 -->
-                        <th>案件归属地</th>
-                        <th>收案时间</th>
-                        <th>原告</th>
-                        <th>被告</th>
-                        <th>法官</th>
-                        <th>案件助理</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="myCaseTableBody">
-                    <tr>
-                        <td colspan="8" class="text-center">加载中...</td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     `;
 
