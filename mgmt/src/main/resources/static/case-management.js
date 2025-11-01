@@ -17,163 +17,100 @@ function loadCaseManagementPage(station) {
     setActiveNav('案件管理');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
-        <div class="page-title">
-            <h1>案件管理 - ${station}</h1>
-        </div>
-        
-        <!-- 搜索和新增区域 -->
-        <div class="row mb-4">
-    <!-- 搜索区域 - 占满整行，在小屏幕自动堆叠 -->
-        <div class="col-12 mb-3">
-        <div class="d-flex flex-wrap gap-3 align-items-center p-3 bg-light bg-opacity-50 rounded-3 shadow-sm">
-        <!-- 案由搜索 -->
-            <div class="flex-grow-1 min-w-[200px]">
-                <div class="input-group">
-                    <span class="input-group-text bg-light">
-                        <i class="fa fa-file-text-o text-secondary"></i>
-                    </span>
-                    <input type="text" id="caseSearchInput" class="form-control" placeholder="输入案由搜索" 
-                       style="transition: border-color 0.2s ease;">
-                </div>
-            </div>
-
-        <!-- 案号搜索 -->
-            <div class="flex-grow-1 min-w-[200px]">
-                <div class="input-group">
-                    <span class="input-group-text bg-light">
-                        <i class="fa fa-hashtag text-secondary"></i>
-                    </span>
-                    <input type="text" id="caseNumberSearchInput" class="form-control" placeholder="输入案号搜索"
-                       style="transition: border-color 0.2s ease;">
-                </div>
-            </div>
-
-        <!-- 原告搜索 -->
-            <div class="flex-grow-1 min-w-[200px]">
-                <div class="input-group">
-                    <span class="input-group-text bg-light">
-                        <i class="fa fa-user text-primary"></i>
-                    </span>
-                    <input type="text" id="plaintiffSearchInput" class="form-control" placeholder="输入原告搜索"
-                       style="transition: border-color 0.2s ease;">
-                </div>
-            </div>
-
-        <!-- 被告搜索 -->
-            <div class="flex-grow-1 min-w-[200px]">
-                <div class="input-group">
-                    <span class="input-group-text bg-light">
-                        <i class="fa fa-user-o text-danger"></i>
-                    </span>
-                    <input type="text" id="defendantSearchInput" class="form-control" placeholder="输入被告搜索"
-                       style="transition: border-color 0.2s ease;">
-                </div>
-            </div>
-
-        <!-- 处理人搜索 -->
-            <div class="flex-grow-1 min-w-[200px]">
-                <div class="input-group">
-                    <span class="input-group-text bg-light">
-                        <i class="fa fa-user-circle text-info"></i>
-                    </span>
-                    <input type="text" id="userNameSearchInput" class="form-control" placeholder="输入处理人搜索"
-                       style="transition: border-color 0.2s ease;">
-                </div>
-            </div>
-
-        <!-- 助理搜索 -->
-            <div class="flex-grow-1 min-w-[200px]">
-                <div class="input-group">
-                    <span class="input-group-text bg-light">
-                        <i class="fa fa-user-plus text-success"></i>
-                    </span>
-                    <input type="text" id="assistantSearchInput" class="form-control" placeholder="输入助理搜索"
-                       style="transition: border-color 0.2s ease;">
-                </div>
-            </div>
-            
-        <!-- 收案时间搜索 -->
-            <div class="flex-grow-1 min-w-[200px]">
-                <div class="input-group">
-                    <span class="input-group-text bg-light"><i class="fa fa-calendar text-success"></i></span>
-                    <input type="date" id="receiveTimeSearchInput" class="form-control" placeholder="法院收案日期">
-                </div>
-            </div>
-
-        <!-- 搜索按钮 -->
-            <div class="min-w-[100px]">
-                <button class="btn btn-primary w-100 py-2 hover:bg-primary/90 active:bg-primary/80 transition-all duration-200" 
-                    onclick="loadCases()">
-                    <i class="fa fa-search me-1"></i> 搜索
-                </button>
-            </div>
-        </div>
-</div>
-
-    <!-- 按钮区域 - 独立一行，右对齐 -->
-        <div class="col-12">
-            <div class="d-flex justify-content-end gap-3">
-                <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="importCasesFromExcel(event)">
-                <button class="btn btn-secondary" onclick="document.getElementById('excelFileInput').click()">
-                    <i class="fa fa-upload me-1"></i> 导入Excel
-                </button>
-                <button class="btn btn-success" onclick="showAddCaseModal()">
-                    <i class="fa fa-plus me-1"></i> 新增案件
-                </button>
-                <button class="btn btn-primary" onclick="showBatchAssignModal()">
-                    <i class="fa fa-users"></i> 批量分派
-                </button>
-                <button class="btn btn-success" onclick="showBatchAssignTaskModal()">
-                    <i class="fa fa-plus me-1"></i> 批量关联案件包
-                </button>
-            </div>
-        </div>
-    </div>
-        
-        <!-- 案件状态筛选 -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="btn-group" role="group">
-                    <button class="btn btn-outline-primary" onclick="filterCases('all')">全部</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('待领取')">待领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('反馈')">反馈</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('延期')">延期</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
-                    <button class="btn btn-outline-primary" onclick="filterCases('完结')">完结</button>
+        <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
+            <div class="ant-card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">案由</label>
+                        <input type="text" id="caseSearchInput" class="form-control ant-input" placeholder="请输入案由" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">案号</label>
+                        <input type="text" id="caseNumberSearchInput" class="form-control ant-input" placeholder="请输入案号" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">原告</label>
+                        <input type="text" id="plaintiffSearchInput" class="form-control ant-input" placeholder="请输入原告" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">被告</label>
+                        <input type="text" id="defendantSearchInput" class="form-control ant-input" placeholder="请输入被告" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">处理人</label>
+                        <input type="text" id="userNameSearchInput" class="form-control ant-input" placeholder="请输入处理人" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">助理</label>
+                        <input type="text" id="assistantSearchInput" class="form-control ant-input" placeholder="请输入助理" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-weight:500;">收案时间</label>
+                        <input type="date" id="receiveTimeSearchInput" class="form-control ant-input" style="border-radius:4px;">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="loadCases()">
+                            <i class="fa fa-search me-1"></i> 查询
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <!-- 案件表格 -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th><input type="checkbox" id="selectAllCases"></th>
-                        <th>案件号</th>
-                        <th>案由</th>
-                        <th>标的额</th>
-                        <th>案件归属地</th>
-                        <th>收案时间</th>
-                        <th>原告</th>
-                        <th>被告</th>
-                        <th>法官</th>
-                        <th>案件助理</th>
-                        <th>关联案件包</th>
-                        <th>状态</th>
-                        <th>处理人</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="caseTableBody">
-                    <!-- 案件数据将通过JavaScript动态加载 -->
-                    <tr>
-                        <td colspan="8" class="text-center">加载中...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="ant-card ant-card-bordered mb-3" style="border-radius:8px;">
+            <div class="ant-card-body">
+                <div class="d-flex justify-content-end gap-2 mb-2">
+                    <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="importCasesFromExcel(event)">
+                    <button class="ant-btn" onclick="document.getElementById('excelFileInput').click()">
+                        <i class="fa fa-upload me-1"></i> 导入Excel
+                    </button>
+                    <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddCaseModal()">
+                        <i class="fa fa-plus me-1"></i> 新增案件
+                    </button>
+                    <button class="ant-btn ant-btn-primary" onclick="showBatchAssignModal()">
+                        <i class="fa fa-users"></i> 批量分派
+                    </button>
+                    <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showBatchAssignTaskModal()">
+                        <i class="fa fa-plus me-1"></i> 批量关联案件包
+                    </button>
+                </div>
+                <div class="btn-group mb-2" role="group">
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('all')">全部</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('待领取')">待领取</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('反馈')">反馈</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('延期')">延期</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('完结')">完结</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
+                        <thead class="ant-table-thead table-light">
+                            <tr>
+                                <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases"></th>
+                                <th style="white-space:nowrap;">案件号</th>
+                                <th style="white-space:nowrap;">案由</th>
+                                <th style="white-space:nowrap;">标的额</th>
+                                <th style="white-space:nowrap;" title="案件归属地">归属地</th>
+                                <th style="white-space:nowrap;">收案时间</th>
+                                <th style="white-space:nowrap;">原告</th>
+                                <th style="white-space:nowrap;">被告</th>
+                                <th style="white-space:nowrap;">法官</th>
+                                <th style="white-space:nowrap;">案件助理</th>
+                                <th style="white-space:nowrap;">关联案件包</th>
+                                <th style="white-space:nowrap;">状态</th>
+                                <th style="white-space:nowrap;">处理人</th>
+                                <th style="white-space:nowrap;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="caseTableBody">
+                            <tr>
+                                <td colspan="14" class="text-center">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     `;
     
@@ -682,12 +619,10 @@ function handleSelectAllChange() {
  */
 function renderCaseTable(cases) {
     const tableBody = document.getElementById('caseTableBody');
-
     if (!cases || cases.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="14" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
-    
     let html = '';
     cases.forEach(caseInfo => {
         // 状态样式类
@@ -767,9 +702,7 @@ function renderCaseTable(cases) {
         </tr>
         `;
     });
-    
     tableBody.innerHTML = html;
-
     // 重新绑定全选事件（因为表格内容已刷新）
     const selectAllCheckbox = document.getElementById('selectAllCases');
     if (selectAllCheckbox) {
@@ -1584,4 +1517,3 @@ async function returnCase(caseId) {
         // 错误处理已在request函数中完成
     }
 }
-    
