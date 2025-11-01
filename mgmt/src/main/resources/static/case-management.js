@@ -95,12 +95,10 @@ function loadCaseManagementPage(station) {
                                 <th style="white-space:nowrap;">案由</th>
                                 <th style="white-space:nowrap;">标的额</th>
                                 <th style="white-space:nowrap;" title="案件归属地">归属地</th>
-                                <th style="white-space:nowrap;">收案时间</th>
                                 <th style="white-space:nowrap;">原告</th>
                                 <th style="white-space:nowrap;">被告</th>
                                 <th style="white-space:nowrap;">法官</th>
                                 <th style="white-space:nowrap;">案件助理</th>
-                                <th style="white-space:nowrap;">关联案件包</th>
                                 <th style="white-space:nowrap;">状态</th>
                                 <th style="white-space:nowrap;">处理人</th>
                                 <th style="white-space:nowrap;">操作</th>
@@ -108,7 +106,7 @@ function loadCaseManagementPage(station) {
                         </thead>
                         <tbody id="caseTableBody">
                             <tr>
-                                <td colspan="14" class="text-center">加载中...</td>
+                                <td colspan="12" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -628,7 +626,7 @@ function handleSelectAllChange() {
 function renderCaseTable(cases) {
     const tableBody = document.getElementById('caseTableBody');
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="14" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
     let html = '';
@@ -666,46 +664,66 @@ function renderCaseTable(cases) {
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
             <td>${caseInfo.caseLocation || '-'}</td>
-            <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleDateString() : '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
-            <td>${caseInfo.taskName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="showAssignTaskModal(${caseInfo.caseId}, ${caseInfo.taskId || 'null'})">
-                    <i class="fa fa-link"></i> 关联案件包
-                </button>
-                <button class="btn btn-sm btn-primary" onclick="showEditCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-edit"></i> 编辑
-                </button>
-                <button class="btn btn-sm btn-secondary" onclick="showCaseDetailModal(${caseInfo.caseId})">
-                    <i class="fa fa-eye"></i> 详情
-                </button>
-                <button class="btn btn-sm btn-secondary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
-               ${ (App.user.roleType === '管理员' && App.user.station === '总部') ? `
-                <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseInfo.caseId})">
-                    <i class="fa fa-trash"></i> 删除
-                </button>
-                ` : ''}
-                <button class="btn btn-sm btn-success" onclick="showReceiveCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-handshake-o"></i> 分派案件
-                </button>
-                ${caseInfo.status === '已领取' ? `
-                <button class="btn btn-sm btn-info" onclick="completeCase(${caseInfo.caseId})">
-                    <i class="fa fa-check"></i> 完成
-                </button>
-                ` : ''}
-                ${caseInfo.status === '已领取' ? `
-                <button class="btn btn-sm btn-warning" onclick="returnCase(${caseInfo.caseId})">
-                    <i class="fa fa-check"></i> 退回
-                </button>
-                ` : ''}
-                ${(caseInfo.status !== '完结' && caseInfo.status !== '待领取') ? `
-                <button class="btn btn-sm btn-success me-1" onclick="showFinishCaseModal(${caseInfo.caseId})">完结</button>` 
-                : ''}
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    案件操作
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseDetailModal(${caseInfo.caseId})">
+                        <i class="fa fa-eye"></i> 详情
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
+                        <i class="fa fa-history"></i> 历史流转记录
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})">
+                        <i class="fa fa-edit"></i> 编辑
+                      </a>
+                    </li>
+                    ${(App.user.roleType === '管理员' && App.user.station === '总部') ? `
+                    <li>
+                      <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})">
+                        <i class="fa fa-trash"></i> 删除
+                      </a>
+                    </li>
+                    ` : ''}
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})">
+                        <i class="fa fa-handshake-o"></i> 分派案件
+                      </a>
+                    </li>
+                    ${caseInfo.status === '已领取' ? `
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="completeCase(${caseInfo.caseId})">
+                        <i class="fa fa-check"></i> 完成
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="returnCase(${caseInfo.caseId})">
+                        <i class="fa fa-undo"></i> 退回
+                      </a>
+                    </li>
+                    ` : ''}
+                    ${(caseInfo.status !== '完结' && caseInfo.status !== '待领取') ? `
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showFinishCaseModal(${caseInfo.caseId})">
+                        <i class="fa fa-flag-checkered"></i> 完结
+                      </a>
+                    </li>
+                    ` : ''}
+                  </ul>
+                </div>
             </td>
         </tr>
         `;

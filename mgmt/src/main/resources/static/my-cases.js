@@ -64,7 +64,6 @@ function loadMyCasesPage() {
                                 <th style="white-space:nowrap;">案由</th>
                                 <th style="white-space:nowrap;">标的额</th>
                                 <th style="white-space:nowrap;" title="案件归属地">归属地</th>
-                                <th style="white-space:nowrap;">收案时间</th>
                                 <th style="white-space:nowrap;">原告</th>
                                 <th style="white-space:nowrap;">被告</th>
                                 <th style="white-space:nowrap;">法官</th>
@@ -75,7 +74,7 @@ function loadMyCasesPage() {
                         </thead>
                         <tbody id="myCaseTableBody">
                             <tr>
-                                <td colspan="11" class="text-center">加载中...</td>
+                                <td colspan="10" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -445,12 +444,10 @@ async function filterMyCases(status, pageNum = 1, pageSize = 10) {
  */
 function renderMyCaseTable(cases) {
     const tableBody = document.getElementById('myCaseTableBody');
-
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="10" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
-
     let html = '';
     cases.forEach(caseInfo => {
         // 状态样式类
@@ -483,40 +480,61 @@ function renderMyCaseTable(cases) {
         <tr>
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
-            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td> <!-- 标的额展示 -->
+            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
             <td>${caseInfo.caseLocation || '-'}</td>
-            <td>${caseInfo.courtReceiveTime ? new Date(caseInfo.courtReceiveTime).toLocaleDateString() : '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="showmyCaseDetailModal(${caseInfo.caseId})">
-                    <i class="fa fa-eye"></i> 详情
-                </button>
-                <button class="btn btn-sm btn-primary me-1" onclick="showCaseHistoryModal(${caseInfo.caseId})">历史流转记录</button>
-                <!-- 只有已领取状态显示完成按钮 -->
-                ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
-                <button class="btn btn-sm btn-info" onclick="showPreFeedbackModal(${caseInfo.caseId})">
-                    <i class="fa fa-comment"></i> 反馈
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="showDelayModal(${caseInfo.caseId})">
-                    <i class="fa fa-clock-o"></i> 延期
-                </button>
-                ` : caseInfo.status === '反馈' ? `
-                <button class="btn btn-sm btn-danger" onclick="showDelayModal(${caseInfo.caseId})">
-                    <i class="fa fa-clock-o"></i> 延期
-                </button>
-                `:``}
-                ${(caseInfo.status !== '已完成') ? `
-                <button class="btn btn-sm btn-success" onclick="showCompleteCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-check"></i> 完成
-                </button>
-                <button class="btn btn-sm btn-warning" onclick="showReturnCaseModal(${caseInfo.caseId})">
-                    <i class="fa fa-undo"></i> 退回
-                </button>
-                `:``}
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    案件操作
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showmyCaseDetailModal(${caseInfo.caseId})">
+                        <i class="fa fa-eye"></i> 详情
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
+                        <i class="fa fa-history"></i> 历史流转记录
+                      </a>
+                    </li>
+                    ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
+                        <i class="fa fa-comment"></i> 反馈
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
+                        <i class="fa fa-clock-o"></i> 延期
+                      </a>
+                    </li>
+                    ` : caseInfo.status === '反馈' ? `
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
+                        <i class="fa fa-clock-o"></i> 延期
+                      </a>
+                    </li>
+                    `:``}
+                    ${(caseInfo.status !== '已完成') ? `
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
+                        <i class="fa fa-check"></i> 完成
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})">
+                        <i class="fa fa-undo"></i> 退回
+                      </a>
+                    </li>
+                    `:``}
+                  </ul>
+                </div>
             </td>
         </tr>
         `;
