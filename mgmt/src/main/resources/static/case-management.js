@@ -14,6 +14,9 @@ function loadCaseManagementPage(station) {
     // 记录当前选中的驻点
     currentStation = station;
 
+    // 修复BUG：切换驻点时重置状态筛选为全部
+    currentFilterStatus = 'all';
+
     setActiveNav('案件管理');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
@@ -122,10 +125,15 @@ function loadCaseManagementPage(station) {
     createCaseHistoryModalContainer();
     // 创建批量分派模态框
     createBatchAssignModal();
-    // 加载案件列表（默认第一页）
+    // 加载案件列表（默认第一页，状态为全部）
     loadCases(1, 10, station);
 
-    document.querySelector('.btn-group .btn[onclick="filterCases(\'all\')"]').classList.add('active');
+    // 修复BUG：切换驻点时按钮高亮重置为全部
+    setTimeout(() => {
+        document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+        const allBtn = document.querySelector('.btn-group .btn[onclick="filterCases(\'all\')"]');
+        if (allBtn) allBtn.classList.add('active');
+    }, 0);
 }
 
 /**
