@@ -849,16 +849,10 @@ function showFinishCaseModal(caseId) {
                     <div class="mb-3">
                         <label class="form-label">完结备注</label>
                         <select class="form-select" id="finishRemark">
-                            <option value="司法确认">司法确认</option>
-                            <option value="撤诉">撤诉</option>
-                            <option value="民初">民初</option>
                             <option value="拒绝调解">拒绝调解</option>
                             <option value="联系不上">联系不上</option>
+                            <option value="差距较大">差距较大</option>
                         </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">退回法院时间</label>
-                        <input type="date" class="form-control" id="returnCourtTime">
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
@@ -879,15 +873,9 @@ function showFinishCaseModal(caseId) {
 async function confirmFinishCase() {
     const caseId = document.getElementById('finishCaseId').value;
     const completionRemark = document.getElementById('finishRemark').value;
-    const returnCourtTime = document.getElementById('returnCourtTime').value;
 
     if (!completionRemark) {
         alert('请选择完结备注');
-        return;
-    }
-
-    if (!returnCourtTime) {
-        alert('请选择退回法院时间');
         return;
     }
 
@@ -895,8 +883,7 @@ async function confirmFinishCase() {
         await request('/case/complete', 'POST', {
             caseId:caseId,
             status: '完结',
-            completionRemark:completionRemark,
-            returnCourtTime:returnCourtTime
+            completionRemark:completionRemark
         });
         // 关闭模态框
         const modal = bootstrap.Modal.getInstance(document.getElementById('finishCaseModal'));

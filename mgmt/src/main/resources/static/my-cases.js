@@ -821,8 +821,13 @@ function showCompleteCaseModal(caseId) {
                     <form id="completeCaseForm">
                         <input type="hidden" id="completeCaseId" value="${caseId}">
                         <div class="form-group">
-                            <label for="completionNotes">请输入案件完成情况</label>
-                            <textarea id="completionNotes" class="form-control" rows="5" required placeholder="请详细描述案件完成情况..."></textarea>
+                            <label for="completionNotes">请选择案件完成情况</label>
+                            <select id="completionNotes" class="form-select" required>
+                                <option value="">请选择</option>
+                                <option value="司法确认">司法确认</option>
+                                <option value="撤诉">撤诉</option>
+                                <option value="民初">民初</option>
+                            </select>
                         </div>
                     </form>
                 </div>
@@ -850,7 +855,7 @@ async function submitCaseCompletion() {
     const notes = document.getElementById('completionNotes').value.trim();
 
     if (!notes) {
-        alert('请输入案件完成情况');
+        alert('请选择案件完成情况');
         return;
     }
 
