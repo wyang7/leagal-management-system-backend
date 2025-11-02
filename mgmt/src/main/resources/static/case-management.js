@@ -773,16 +773,16 @@ function showFinishCaseModal(caseId) {
     createFinishCaseModalContainer(); // 确保容器存在
     const modalContainer = document.getElementById('finishCaseModalContainer');
 
-    // 模态框HTML（使用新ID）
+    // 模态框HTML（antd风格）
     const modalHtml = `
     <div class="modal fade" id="finishCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">案件完结确认</h5>
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-flag-checkered text-primary me-2"></i>案件完结确认</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="background:#fafcff;">
                     <!-- 完结备注和退回时间表单 -->
                     <input type="hidden" id="finishCaseId" value="${caseId}">
                     <div class="mb-3">
@@ -800,9 +800,9 @@ function showFinishCaseModal(caseId) {
                         <input type="date" class="form-control" id="returnCourtTime">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmFinishCase()">确认完结</button>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="confirmFinishCase()" style="border-radius:4px;">确认完结</button>
                 </div>
             </div>
         </div>
@@ -1098,12 +1098,12 @@ function createCaseModal(taskOptions, assistantOptions) {
         <!-- 案件表单模态框 -->
         <div class="modal fade" id="caseModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="caseModalTitle">新增案件</h5>
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title" id="caseModalTitle"><i class="fa fa-plus text-primary me-2"></i>新增案件</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body" style="background:#fafcff;">
                         <form id="caseForm">
                             <input type="hidden" id="caseId">
                             <div class="form-group">
@@ -1166,9 +1166,9 @@ function createCaseModal(taskOptions, assistantOptions) {
                             </div>
                         </form>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-primary" onclick="saveCase()">保存</button>
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                        <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="saveCase()" style="border-radius:4px;">保存</button>
                     </div>
                 </div>
             </div>
@@ -1371,16 +1371,16 @@ function showReceiveCaseModal(caseId) {
     // 先加载用户列表数据
     loadUsersForReceiveDropdown();
 
-    // 创建领取案件模态框
+    // 创建领取案件模态框（antd风格）
     const modalHtml = `
     <div class="modal fade" id="receiveCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">领取案件</h5>
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-handshake-o text-primary me-2"></i>领取案件</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="background:#fafcff;">
                     <input type="hidden" id="receiveCaseId" value="${caseId}">
                     <div class="form-group">
                         <label for="receiveUserId">选择领取用户</label>
@@ -1390,9 +1390,9 @@ function showReceiveCaseModal(caseId) {
                     </div>
                     <p class="text-muted mt-2">请选择要领取此案件的用户，领取后案件状态将变为"已领取"</p>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmAssignCase()">确认分派案件</button>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="confirmAssignCase()" style="border-radius:4px;">确认分派案件</button>
                 </div>
             </div>
         </div>
@@ -1558,5 +1558,75 @@ async function returnCase(caseId) {
         alert('案件已标记为退回');
     } catch (error) {
         // 错误处理已在request函数中完成
+    }
+}
+
+/**
+ * 创建案件历史记录模态框容器
+ */
+function createCaseHistoryModalContainer() {
+    if (!document.getElementById('caseHistoryModalContainer')) {
+        const container = document.createElement('div');
+        container.id = 'caseHistoryModalContainer';
+        document.body.appendChild(container);
+    }
+}
+
+/**
+ * 显示案件历史流转记录模态框（antd风格）
+ * @param {number} caseId 案件ID
+ */
+async function showCaseHistoryModal(caseId) {
+    createCaseHistoryModalContainer();
+    const modalContainer = document.getElementById('caseHistoryModalContainer');
+    try {
+        const historyList = await request(`/case/history/${caseId}`);
+        let historyHtml = '';
+        if (historyList && historyList.length > 0) {
+            historyHtml = historyList.map(item => `
+                <div class="mb-3 pb-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-primary">${item.action || '-'}</span>
+                        <span class="text-muted small">${item.createTime ? new Date(item.createTime).toLocaleString() : '-'}</span>
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-muted">操作人：</span>${item.operatorName || '-'}
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-muted">状态变更：</span>
+                        <span>${item.beforeStatus || '-'} <i class="fa fa-arrow-right mx-1"></i> ${item.afterStatus || '-'}</span>
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-muted">备注：</span>${item.remarks ? item.remarks.replace(/\n/g, '<br>') : '-'}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            historyHtml = `<div class="text-center text-muted">暂无流转记录</div>`;
+        }
+
+        const modalHtml = `
+        <div class="modal fade" id="caseHistoryModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title"><i class="fa fa-history text-primary me-2"></i>案件历史流转记录</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="background:#fafcff;max-height:60vh;overflow-y:auto;">
+                        ${historyHtml}
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        modalContainer.innerHTML = modalHtml;
+        const historyModal = new bootstrap.Modal(document.getElementById('caseHistoryModal'));
+        historyModal.show();
+    } catch (error) {
+        alert('加载历史流转记录失败');
     }
 }

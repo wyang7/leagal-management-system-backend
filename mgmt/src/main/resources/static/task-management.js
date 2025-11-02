@@ -315,8 +315,8 @@ function showAssignTaskToUserModal(taskId) {
     const modalHtml = `
     <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
                     <h5 class="modal-title">分派案件包给用户</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -331,7 +331,7 @@ function showAssignTaskToUserModal(taskId) {
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary" onclick="confirmAssignTask()">确认分派</button>
                 </div>
@@ -582,12 +582,12 @@ function showAssignCasesToTaskModal(taskId) {
         const modalHtml = `
         <div class="modal fade" id="assignCasesModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
                         <h5 class="modal-title">关联案件到案件包</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body" style="background:#fafcff;">
                         <input type="hidden" id="currentTaskId" value="${taskId}">
                         <div class="row">
                             <!-- 左侧：可选案件 -->
@@ -633,7 +633,7 @@ function showAssignCasesToTaskModal(taskId) {
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                         <button type="button" class="btn btn-primary" onclick="confirmAssignCasesToTask()">确认关联</button>
                         <button type="button" class="btn btn-danger" onclick="removeAssignedCases()">移除选中</button>

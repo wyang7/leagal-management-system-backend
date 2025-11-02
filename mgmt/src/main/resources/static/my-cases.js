@@ -574,16 +574,16 @@ async function showDelayModal(caseId) {
     createDelayModalContainer();
     const modalContainer = document.getElementById('delayModalContainer');
 
-    // 渲染弹窗HTML
+    // 渲染弹窗HTML（antd风格）
     modalContainer.innerHTML = `
     <div class="modal fade" id="delayModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">案件延期申请</h5>
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-clock-o text-primary me-2"></i>案件延期申请</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="background:#fafcff;">
                     <form id="delayForm">
                         <input type="hidden" id="delayCaseId" value="${caseId}">
                         <div class="form-group">
@@ -592,9 +592,9 @@ async function showDelayModal(caseId) {
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="submitDelay()">确认提交</button>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitDelay()" style="border-radius:4px;">确认提交</button>
                 </div>
             </div>
         </div>
@@ -654,16 +654,16 @@ async function showPreFeedbackModal(caseId) {
     createPreFeedbackModalContainer();
     const modalContainer = document.getElementById('preFeedbackModalContainer');
 
-    // 渲染弹窗HTML
+    // 渲染弹窗HTML（antd风格）
     modalContainer.innerHTML = `
     <div class="modal fade" id="preFeedbackModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">案件反馈</h5>
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-comment text-primary me-2"></i>案件反馈</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="background:#fafcff;">
                     <form id="preFeedbackForm">
                         <input type="hidden" id="preFeedbackCaseId" value="${caseId}">
                         <div class="form-group">
@@ -672,9 +672,9 @@ async function showPreFeedbackModal(caseId) {
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="submitPreFeedback()">确认提交</button>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitPreFeedback()" style="border-radius:4px;">确认提交</button>
                 </div>
             </div>
         </div>
@@ -724,16 +724,16 @@ async function submitPreFeedback() {
 function showReturnCaseModal(caseId) {
     const modalContainer = document.getElementById('completeCaseModalContainer');
 
-    // 创建模态框
+    // 创建模态框（antd风格）
     const modalHtml = `
     <div class="modal fade" id="returnCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">退回案件原因</h5>
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-undo text-primary me-2"></i>退回案件原因</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="background:#fafcff;">
                     <form id="returnCaseForm">
                         <input type="hidden" id="returnCaseId" value="${caseId}">
                         <div class="form-group">
@@ -742,9 +742,9 @@ function showReturnCaseModal(caseId) {
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-warning" onclick="submitCaseReturn()">提交退回</button>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                    <button type="button" class="ant-btn ant-btn-warning btn btn-warning" onclick="submitCaseReturn()" style="border-radius:4px;">提交退回</button>
                 </div>
             </div>
         </div>
@@ -803,16 +803,16 @@ function createCompleteCaseModalContainer() {
 function showCompleteCaseModal(caseId) {
     const modalContainer = document.getElementById('completeCaseModalContainer');
 
-    // 创建模态框
+    // 创建模态框（antd风格）
     const modalHtml = `
     <div class="modal fade" id="completeCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">案件完成情况</h5>
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-check text-primary me-2"></i>案件完成情况</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="background:#fafcff;">
                     <form id="completeCaseForm">
                         <input type="hidden" id="completeCaseId" value="${caseId}">
                         <div class="form-group">
@@ -821,9 +821,9 @@ function showCompleteCaseModal(caseId) {
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="submitCaseCompletion()">提交</button>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitCaseCompletion()" style="border-radius:4px;">提交</button>
                 </div>
             </div>
         </div>
@@ -864,5 +864,75 @@ async function submitCaseCompletion() {
         alert('案件已成功标记为完成');
     } catch (error) {
         console.error('提交失败:', error);
+    }
+}
+
+/**
+ * 创建案件历史记录模态框容器
+ */
+function createCaseHistoryModalContainer() {
+    if (!document.getElementById('caseHistoryModalContainer')) {
+        const container = document.createElement('div');
+        container.id = 'caseHistoryModalContainer';
+        document.body.appendChild(container);
+    }
+}
+
+/**
+ * 显示案件历史流转记录模态框（antd风格）
+ * @param {number} caseId 案件ID
+ */
+async function showCaseHistoryModal(caseId) {
+    createCaseHistoryModalContainer();
+    const modalContainer = document.getElementById('caseHistoryModalContainer');
+    try {
+        const historyList = await request(`/case/history/${caseId}`);
+        let historyHtml = '';
+        if (historyList && historyList.length > 0) {
+            historyHtml = historyList.map(item => `
+                <div class="mb-3 pb-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-primary">${item.action || '-'}</span>
+                        <span class="text-muted small">${item.createTime ? new Date(item.createTime).toLocaleString() : '-'}</span>
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-muted">操作人：</span>${item.operatorName || '-'}
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-muted">状态变更：</span>
+                        <span>${item.beforeStatus || '-'} <i class="fa fa-arrow-right mx-1"></i> ${item.afterStatus || '-'}</span>
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-muted">备注：</span>${item.remarks ? item.remarks.replace(/\n/g, '<br>') : '-'}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            historyHtml = `<div class="text-center text-muted">暂无流转记录</div>`;
+        }
+
+        const modalHtml = `
+        <div class="modal fade" id="caseHistoryModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title"><i class="fa fa-history text-primary me-2"></i>案件历史流转记录</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="background:#fafcff;max-height:60vh;overflow-y:auto;">
+                        ${historyHtml}
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        modalContainer.innerHTML = modalHtml;
+        const historyModal = new bootstrap.Modal(document.getElementById('caseHistoryModal'));
+        historyModal.show();
+    } catch (error) {
+        alert('加载历史流转记录失败');
     }
 }
