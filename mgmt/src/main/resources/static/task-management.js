@@ -42,7 +42,7 @@ function loadTaskManagementPage() {
                                 <th style="white-space:nowrap;">任务ID</th>
                                 <th style="white-space:nowrap;">任务名</th>
                                 <th style="white-space:nowrap;">案件包归属</th>
-                                <th style="white-space:nowrap;">创建时间</th>
+                                <th style="white-space:nowrap;">领取时间</th>
                                 <th style="white-space:nowrap;">关联案件数</th>
                                 <th style="white-space:nowrap;">状态</th>
                                 <th style="white-space:nowrap;">领取人</th>
@@ -148,7 +148,7 @@ function renderTaskTable(tasks) {
             <td>${task.taskId}</td>
             <td>${task.taskName}</td>
             <td>${task.station || '-'}</td>
-            <td>${task.createdTime ? new Date(task.createdTime).toLocaleString() : ''}</td>
+            <td>${task.receiveTime ? new Date(task.receiveTime).toLocaleString() : '-'}</td>
             <td>${task.caseCount || 0}</td>
             <td><span class="${statusClass}">${task.status}</span></td>
             <td>${task.ownerName || '-'}</td>

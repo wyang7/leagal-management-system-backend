@@ -127,6 +127,7 @@ function loadCaseManagementPage(station) {
                                 <th style="white-space:nowrap;">被告</th>
                                 <th style="white-space:nowrap;">法官</th>
                                 <th style="white-space:nowrap;">案件助理</th>
+                                <th style="white-space:nowrap;">领取时间</th>
                                 <th style="white-space:nowrap;">状态</th>
                                 <th style="white-space:nowrap;">处理人</th>
                                 <th style="white-space:nowrap;">操作</th>
@@ -634,7 +635,7 @@ function handleSelectAllChange() {
 function renderCaseTable(cases) {
     const tableBody = document.getElementById('caseTableBody');
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="13" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
     let html = '';
@@ -676,6 +677,7 @@ function renderCaseTable(cases) {
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
+            <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>

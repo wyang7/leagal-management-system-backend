@@ -88,6 +88,7 @@ function loadMyCasesPage() {
                                 <th style="white-space:nowrap;">被告</th>
                                 <th style="white-space:nowrap;">法官</th>
                                 <th style="white-space:nowrap;">案件助理</th>
+                                <th style="white-space:nowrap;">领取时间</th>
                                 <th style="white-space:nowrap;">状态</th>
                                 <th style="white-space:nowrap;">操作</th>
                             </tr>
@@ -449,7 +450,7 @@ async function filterMyCases(status, pageNum = 1, pageSize = 10) {
 function renderMyCaseTable(cases) {
     const tableBody = document.getElementById('myCaseTableBody');
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="10" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="11" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
     let html = '';
@@ -490,6 +491,7 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
+            <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
                 <div class="d-flex gap-2">
