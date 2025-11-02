@@ -261,120 +261,100 @@ async function showCaseDetailModal(caseId) {
     try {
         const caseInfo = await request(`/case/detail/${caseId}`);
         const modalContainer = document.getElementById('caseDetailModalContainer');
+        const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleString() : '-';
 
-        // 格式化日期
-        const formatDate = (dateStr) => {
-            return dateStr ? new Date(dateStr).toLocaleString() : '-';
-        };
-
-        // 创建模态框
         const modalHtml = `
         <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">案件详情</h5>
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title"><i class="fa fa-info-circle text-primary me-2"></i>案件详情</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6" style="display: none;">
-                                <strong>案件ID:</strong> ${caseInfo.caseId}
+                    <div class="modal-body" style="background:#fafcff;">
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-2" style="display: none;">
+                                <span class="text-muted">案件ID：</span><span class="fw-bold">${caseInfo.caseId}</span>
                             </div>
-                            <div class="col-md-6">
-                                <strong>案件号:</strong> ${caseInfo.caseNumber || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <strong>案由:</strong> ${caseInfo.caseName || '-'}
-                            </div>
-                            <div class="col-md-6">
-                                <strong>标的额:</strong> ${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">案件号：</span><span class="fw-bold">${caseInfo.caseNumber || '-'}</span>
                             </div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <strong>案件归属地:</strong> ${caseInfo.caseLocation || '-'}
+                        <hr>
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">案由：</span>${caseInfo.caseName || '-'}
                             </div>
-                            <div class="col-md-6">
-                                <strong>法官:</strong> ${caseInfo.judge || '-'}
-                            </div>
-                            <div class="col-md-6">
-                                <strong>收案时间:</strong> ${formatDate(caseInfo.courtReceiveTime)}
-                            </div>
-                            <div class="col-md-6">
-                                <strong>退回法院时间:</strong> ${formatDate(caseInfo.returnCourtTime)}
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">标的额：</span>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}
                             </div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <strong>原告:</strong> ${caseInfo.plaintiffName || '-'}
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">案件归属地：</span>${caseInfo.caseLocation || '-'}
                             </div>
-                            <div class="col-md-6">
-                                <strong>被告:</strong> ${caseInfo.defendantName || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <strong>案件助理:</strong> ${caseInfo.assistantName || '-'}
-                            </div>
-                            <div class="col-md-6">
-                                <strong>关联案件包:</strong> ${caseInfo.taskName || '-'}
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">法官：</span>${caseInfo.judge || '-'}
                             </div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <strong>状态:</strong> ${caseInfo.status || '-'}
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">收案时间：</span>${formatDate(caseInfo.courtReceiveTime)}
                             </div>
-                            <div class="col-md-6">
-                                <strong>处理人:</strong> ${caseInfo.userName || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <strong>反馈情况:</strong>
-                                <div class="mt-2 p-3 bg-light rounded">
-                                    ${caseInfo.preFeedback ? caseInfo.preFeedback.replace(/\n/g, '<br>') : '无'}
-                                </div>
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">退回法院时间：</span>${formatDate(caseInfo.returnCourtTime)}
                             </div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <strong>退回情况:</strong>
-                                <div class="mt-2 p-3 bg-light rounded">
-                                    ${caseInfo.returnReason ? caseInfo.returnReason.replace(/\n/g, '<br>') : '无'}
-                                </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">原告：</span>${caseInfo.plaintiffName || '-'}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">被告：</span>${caseInfo.defendantName || '-'}
                             </div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <strong>案件完成情况:</strong>
-                                <div class="mt-2 p-3 bg-light rounded">
-                                    ${caseInfo.completionNotes ? caseInfo.completionNotes.replace(/\n/g, '<br>') : '无'}
-                                </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">案件助理：</span>${caseInfo.assistantName || '-'}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">关联案件包：</span>${caseInfo.taskName || '-'}
                             </div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <strong>完结备注:</strong>
-                                <div class="mt-2 p-3 bg-light rounded">
-                                    ${caseInfo.completionRemark ? caseInfo.completionRemark.replace(/\n/g, '<br>') : '无'}
-                                </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">状态：</span>${caseInfo.status || '-'}
                             </div>
+                            <div class="col-md-6 mb-2">
+                                <span class="text-muted">处理人：</span>${caseInfo.userName || '-'}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-2">
+                            <span class="text-muted">反馈情况：</span>
+                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.preFeedback ? caseInfo.preFeedback.replace(/\n/g, '<br>') : '无'}</div>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted">退回情况：</span>
+                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.returnReason ? caseInfo.returnReason.replace(/\n/g, '<br>') : '无'}</div>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted">案件完成情况：</span>
+                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionNotes ? caseInfo.completionNotes.replace(/\n/g, '<br>') : '无'}</div>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted">完结备注：</span>
+                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionRemark ? caseInfo.completionRemark.replace(/\n/g, '<br>') : '无'}</div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
                     </div>
                 </div>
             </div>
         </div>
         `;
-
         modalContainer.innerHTML = modalHtml;
-
-        // 显示模态框
         const detailModal = new bootstrap.Modal(document.getElementById('caseDetailModal'));
         detailModal.show();
     } catch (error) {

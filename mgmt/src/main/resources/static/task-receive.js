@@ -89,8 +89,7 @@ function renderReceiveTaskTable(tasks) {
  * 显示领取案件包确认模态框
  */
 function showReceiveTaskConfirmModal(taskId) {
-    // 修复容器ID不一致问题（与create函数保持一致）
-    const modalContainer = document.getElementById('taskReceiveModalContainer');
+    let modalContainer = document.getElementById('taskReceiveModalContainer');
 
     // 检查容器是否存在
     if (!modalContainer) {
@@ -106,18 +105,18 @@ function showReceiveTaskConfirmModal(taskId) {
     const modalHtml = `
     <div class="modal fade" id="receiveTaskModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">确认领取案件包</h5>
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-handshake-o text-primary me-2"></i>确认领取案件包</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="background:#fafcff;">
                     <p>您确定要领取此案件包吗？领取后案件包下的所有案件将分配给您处理。</p>
                     <input type="hidden" id="receiveTaskId" value="${taskId}">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmReceiveTask()">确认领取</button>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="confirmReceiveTask()" style="border-radius:4px;">确认领取</button>
                 </div>
             </div>
         </div>

@@ -169,30 +169,27 @@ async function loadRolesForUserForm() {
 function createUserModal(roleOptions) {
     return new Promise((resolve) => {
         const modalContainer = document.getElementById('userModalContainer');
-        
-        // 检查模态框是否已存在，如果不存在则创建
         if (!document.getElementById('userModal')) {
             const modalHtml = `
-            <!-- 用户表单模态框 -->
             <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="userModalTitle">新增用户</h5>
+                    <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                        <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                            <h5 class="modal-title" id="userModalTitle"><i class="fa fa-user text-primary me-2"></i>新增用户</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body" style="background:#fafcff;">
                             <form id="userForm">
                                 <input type="hidden" id="userId">
-                                <div class="form-group">
+                                <div class="form-group mb-2">
                                     <label for="username">用户名</label>
                                     <input type="text" id="username" class="form-control" required>
                                 </div>
-                                <div class="form-group">
+                                <div class="form-group mb-2">
                                     <label for="password">密码</label>
                                     <input type="password" id="password" class="form-control" required>
                                 </div>
-                                <div class="form-group">
+                                <div class="form-group mb-2">
                                     <label for="roleId">角色</label>
                                     <select id="roleId" class="form-control" required>
                                         ${roleOptions}
@@ -200,22 +197,17 @@ function createUserModal(roleOptions) {
                                 </div>
                             </form>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="button" class="btn btn-primary" onclick="saveUser()">保存</button>
+                        <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                            <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                            <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="saveUser()" style="border-radius:4px;">保存</button>
                         </div>
                     </div>
                 </div>
             </div>
             `;
-            
             modalContainer.innerHTML = modalHtml;
-            // 等待DOM渲染完成
-            setTimeout(() => {
-                resolve();
-            }, 0);
+            setTimeout(() => { resolve(); }, 0);
         } else {
-            // 如果模态框已存在，更新角色下拉框
             document.getElementById('roleId').innerHTML = roleOptions;
             resolve();
         }

@@ -283,15 +283,13 @@ async function deleteRole(roleId) {
 async function showRoleUsers(roleId) {
     try {
         const users = await request(`/role/${roleId}/users`);
-        
-        // 创建用户列表HTML
         let userListHtml = '<ul class="list-group">';
         if (users && users.length > 0) {
             users.forEach(user => {
                 userListHtml += `
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     ${user.username} (ID: ${user.userId})
-                    <button class="btn btn-sm btn-warning" onclick="unassignUserFromRole(${user.userId}, ${roleId})">
+                    <button class="ant-btn ant-btn-warning btn btn-sm btn-warning" onclick="unassignUserFromRole(${user.userId}, ${roleId})">
                         解除关联
                     </button>
                 </li>
@@ -301,37 +299,30 @@ async function showRoleUsers(roleId) {
             userListHtml += '<li class="list-group-item">该角色暂无关联用户</li>';
         }
         userListHtml += '</ul>';
-        
-        // 创建模态框
         const modalHtml = `
         <div class="modal fade" id="roleUsersModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">角色关联用户</h5>
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title"><i class="fa fa-users text-primary me-2"></i>角色关联用户</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body" style="background:#fafcff;">
                         ${userListHtml}
                         <hr>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
                     </div>
                 </div>
             </div>
         </div>
         `;
-        
-        // 添加到页面并显示
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = modalHtml;
         document.body.appendChild(tempContainer);
-        
         const roleUsersModal = new bootstrap.Modal(document.getElementById('roleUsersModal'));
         roleUsersModal.show();
-        
-        // 模态框关闭后移除元素
         document.getElementById('roleUsersModal').addEventListener('hidden.bs.modal', function() {
             tempContainer.remove();
         });

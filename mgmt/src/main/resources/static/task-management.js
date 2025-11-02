@@ -224,26 +224,23 @@ async function batchPublishTasks() {
  */
 function createTaskModal() {
     const modalContainer = document.getElementById('taskModalContainer');
-    
-    // 检查模态框是否已存在，如果不存在则创建
     if (!document.getElementById('taskModal')) {
         const modalHtml = `
-        <!-- 任务表单模态框 -->
         <div class="modal fade" id="taskModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="taskModalTitle">新增案件包</h5>
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title" id="taskModalTitle"><i class="fa fa-briefcase text-primary me-2"></i>新增案件包</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body" style="background:#fafcff;">
                         <form id="taskForm">
                             <input type="hidden" id="taskId">
-                            <div class="form-group">
+                            <div class="form-group mb-2">
                                 <label for="taskName">任务名</label>
                                 <input type="text" id="taskName" class="form-control" required>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group mb-2">
                                 <label for="taskStation">案件包归属地</label>
                                 <select id="taskStation" class="form-control" required>
                                     <option value="">请选择归属地</option>
@@ -255,15 +252,14 @@ function createTaskModal() {
                             </div>
                         </form>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-primary" onclick="saveTask()">保存</button>
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                        <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="saveTask()" style="border-radius:4px;">保存</button>
                     </div>
                 </div>
             </div>
         </div>
         `;
-        
         modalContainer.innerHTML = modalHtml;
     }
 }
