@@ -95,6 +95,9 @@ function loadCaseManagementPage(station) {
                     <button class="ant-btn" onclick="document.getElementById('excelFileInput').click()">
                         <i class="fa fa-upload me-1"></i> 导入Excel
                     </button>
+                    <button class="ant-btn" onclick="exportCases()">
+                        <i class="fa fa-download me-1"></i> 导出案件
+                    </button>
                     <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddCaseModal()">
                         <i class="fa fa-plus me-1"></i> 新增案件
                     </button>
@@ -1782,3 +1785,49 @@ async function showCaseHistoryModal(caseId) {
         alert('加载历史流转记录失败');
     }
 }
+
+/**
+ * 导出案件功能
+ */
+async function exportCases() {
+    const selectedCaseIds = getSelectedCaseIds();
+    let params = {};
+    if (selectedCaseIds.length > 0) {
+        params.caseIds = selectedCaseIds;
+    } else {
+        // 当前查询条件
+        params = {
+            caseName: document.getElementById('caseSearchInput').value.trim(),
+            caseNumber: document.getElementById('caseNumberSearchInput').value.trim(),
+            plaintiff: document.getElementById('plaintiffSearchInput').value.trim(),
+            defendant: document.getElementById('defendantSearchInput').value.trim(),
+            userName: document.getElementById('userNameSearchInput').value.trim(),
+            assistant: document.getElementById('assistantSearchInput').value.trim(),
+            courtReceiveTime: document.getElementById('receiveTimeSearchInput').value.trim(),
+            status: currentFilterStatus !== 'all' ? currentFilterStatus : undefined,
+            station: currentStation || undefined
+        };
+    }
+    // 请求后端导出接口，返回文件流
+    const url = '/api/case/export';
+    const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params)
+    };
+    try {
+        const response = await fetch(url, fetchOptions);
+        if (!response.ok) throw new Error('导出失败');
+        const blob = await response.blob();
+        // 文件名
+        const filename = '案件导出_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        // 下载
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    } catch (e) {
+        alert('导出失败，请重试');
+    }
+}
+

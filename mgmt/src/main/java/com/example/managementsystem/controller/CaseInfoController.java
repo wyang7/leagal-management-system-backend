@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
  * <p>
@@ -746,5 +749,88 @@ public class CaseInfoController {
 
         // 累积记录（如果已有记录则换行添加，否则直接使用新记录）
         return StringUtils.isEmpty(existingRemark) ? newRecord : existingRemark + "\n" + newRecord;
+    }
+
+    /**
+     * 导出案件（支持勾选或当前查询条件）
+     */
+    @PostMapping("/export")
+    public void exportCases(@RequestBody Map<String, Object> params, HttpServletResponse response) {
+        try {
+            List<CaseInfo> exportList;
+            // 1. 判断是否有勾选
+            if (params.containsKey("caseIds")) {
+                List<Integer> intIds = (List<Integer>) params.get("caseIds");
+                List<Long> caseIds = intIds.stream().map(Integer::longValue).collect(Collectors.toList());
+                exportList = caseInfoService.listByIds(caseIds);
+            } else {
+                // 2. 按当前查询条件导出全部
+                String caseName = (String) params.get("caseName");
+                String caseNumber = (String) params.get("caseNumber");
+                String plaintiff = (String) params.get("plaintiff");
+                String defendant = (String) params.get("defendant");
+                String userName = (String) params.get("userName");
+                String assistant = (String) params.get("assistant");
+                String courtReceiveTime = (String) params.get("courtReceiveTime");
+                String status = (String) params.get("status");
+                String station = (String) params.get("station");
+                Map<String, Object> pageResult = caseInfoService.getCasePage(
+                        caseName, status, userName, assistant, courtReceiveTime, caseNumber, plaintiff, defendant, station, 1, 10000
+                );
+                exportList = (List<CaseInfo>) pageResult.get("records");
+            }
+
+            // 3. 字段去重合并（详情+列表字段）
+            String[] headers = {
+                "案件号", "案由", "标的额", "案件归属地", "原告", "被告", "法官", "案件助理", "领取时间", "退回法院时间",
+                "状态", "处理人", "法院收案时间", "反馈情况", "退回情况", "案件完成情况", "完结备注", "关联案件包"
+            };
+
+            // 4. 创建Excel
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("案件导出");
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+            int rowIdx = 1;
+            for (CaseInfo c : exportList) {
+                Row row = sheet.createRow(rowIdx++);
+                int col = 0;
+                row.createCell(col++).setCellValue(c.getCaseNumber() == null ? "" : c.getCaseNumber());
+                row.createCell(col++).setCellValue(c.getCaseName() == null ? "" : c.getCaseName());
+                row.createCell(col++).setCellValue(c.getAmount() == null ? 0 : c.getAmount().doubleValue());
+                row.createCell(col++).setCellValue(c.getCaseLocation() == null ? "" : c.getCaseLocation());
+                row.createCell(col++).setCellValue(c.getPlaintiffName() == null ? "" : c.getPlaintiffName());
+                row.createCell(col++).setCellValue(c.getDefendantName() == null ? "" : c.getDefendantName());
+                row.createCell(col++).setCellValue(c.getJudge() == null ? "" : c.getJudge());
+                row.createCell(col++).setCellValue(c.getAssistantName() == null ? "" : c.getAssistantName());
+                row.createCell(col++).setCellValue(c.getReceiveTime() == null ? "" : c.getReceiveTime().toString());
+                row.createCell(col++).setCellValue(c.getReturnCourtTime() == null ? "" : c.getReturnCourtTime());
+                row.createCell(col++).setCellValue(c.getStatus() == null ? "" : c.getStatus());
+                row.createCell(col++).setCellValue(c.getUsername() == null ? "" : c.getUsername());
+                row.createCell(col++).setCellValue(c.getCourtReceiveTime() == null ? "" : c.getCourtReceiveTime());
+                row.createCell(col++).setCellValue(c.getPreFeedback() == null ? "" : c.getPreFeedback());
+                row.createCell(col++).setCellValue(c.getReturnReason() == null ? "" : c.getReturnReason());
+                row.createCell(col++).setCellValue(c.getCompletionNotes() == null ? "" : c.getCompletionNotes());
+                row.createCell(col++).setCellValue(c.getCompletionRemark() == null ? "" : c.getCompletionRemark());
+                row.createCell(col++).setCellValue(c.getTaskName() == null ? "" : c.getTaskName());
+            }
+            // 自动列宽
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            // 5. 响应下载
+            String filename = "案件导出_" + java.time.LocalDate.now() + ".xlsx";
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(filename, "UTF-8"));
+            workbook.write(response.getOutputStream());
+            response.flushBuffer(); // 确保数据全部写出
+            workbook.close();
+        } catch (Exception e) {
+            // 不能向response写入任何非二进制内容，否则会破坏Excel文件
+            // 仅记录日志
+            e.printStackTrace();
+        }
     }
 }

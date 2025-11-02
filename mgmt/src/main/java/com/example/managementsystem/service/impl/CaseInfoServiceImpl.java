@@ -9,6 +9,7 @@ import com.example.managementsystem.service.ICaseInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.managementsystem.service.IUserService;
 import org.apache.ibatis.annotations.Param;
+import org.apache.poi.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -165,7 +166,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         // 计算分页起始位置(MyBatis中通常从0开始)
         int offset = (pageNum - 1) * pageSize;
         Long userId=null;
-        if (null!=userName){
+        if (StringUtil.isNotBlank(userName)){
             User user = userService.searchUserByUsername(userName);
             if (user == null) {
                 return null;
@@ -173,7 +174,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             userId = user.getUserId();
         }
         Long assistantId=null;
-        if (null!=assistant){
+        if (StringUtil.isNotBlank(assistant)){
             User user = userService.searchUserByUsername(assistant);
             if (user == null) {
                 return null;
