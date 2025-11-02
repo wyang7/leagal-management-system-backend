@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
 import java.io.Serializable;
+import java.time.LocalDateTime;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -49,7 +51,10 @@ public class Task implements Serializable {
     private String ownerName;
 
     @TableField("station")
-    private String station; // 驻点（九堡彭埠、本部、笕桥、总部）
+    private String station;
+
+    @TableField("receive_time")
+    private LocalDateTime receiveTime;
 
     /**
      * 创建时间

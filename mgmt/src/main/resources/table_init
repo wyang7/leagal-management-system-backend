@@ -62,6 +62,9 @@ create table management_system.task
     comment '任务表' charset = utf8mb4;
 
 
+ALTER TABLE task ADD COLUMN receive_time DATETIME COMMENT '领取时间';
+
+
 
 -- 案件表
 create table management_system.case_info

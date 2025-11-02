@@ -102,9 +102,10 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
             return false;
         }
 
-        // 1. 更新案件包状态为已领取
+        // 1. 更新案件包状态为已领取，并写入领取时间
         task.setStatus("已领取");
         task.setOwnerId(userId);
+        task.setReceiveTime(LocalDateTime.now());
         boolean taskUpdated = updateById(task);
 
         if (!taskUpdated) {

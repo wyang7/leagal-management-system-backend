@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -419,8 +420,9 @@ public class CaseInfoController {
         if (caseById == null) {
             return Result.fail("案件不存在");
         }
-        Long mediatorReceiveTime = caseById.getMediatorReceiveTime();
-        if (mediatorReceiveTime != null && System.currentTimeMillis()-mediatorReceiveTime < 24*60*60*1000) {
+        LocalDateTime receiveTime = caseById.getReceiveTime();
+        if (receiveTime != null &&
+                (System.currentTimeMillis()-receiveTime.atZone(ZoneId.of("UTC")).toInstant().toEpochMilli() < 24*60*60*1000)) {
             return Result.fail("案件不允许在领取后24小时之内退回");
         }
         // 记录原状态
