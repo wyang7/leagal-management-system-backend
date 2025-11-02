@@ -683,10 +683,10 @@ function renderCaseTable(cases) {
             <td>
                 <div class="d-flex gap-2">
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <button class="btn btn-sm btn-info dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="detail" data-case-id="${caseInfo.caseId}">
                       案件详情
                     </button>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu" style="display:none;">
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseDetailModal(${caseInfo.caseId})">
                           <i class="fa fa-eye"></i> 详情
@@ -700,10 +700,10 @@ function renderCaseTable(cases) {
                     </ul>
                   </div>
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">
                       案件操作
                     </button>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu" style="display:none;">
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})">
                           <i class="fa fa-edit"></i> 编辑
@@ -756,9 +756,68 @@ function renderCaseTable(cases) {
         // 添加新的事件监听
         selectAllCheckbox.addEventListener('change', handleSelectAllChange);
     }
-
+    bindFixedDropdownMenus();
 }
 
+
+/**
+ * 绑定固定位置的下拉菜单
+ */
+function bindFixedDropdownMenus() {
+    // 先移除所有已存在的全局浮动菜单
+    document.querySelectorAll('.my-fixed-dropdown-menu').forEach(el => el.remove());
+
+    // 关闭菜单的事件
+    function closeAllDropdownMenus() {
+        document.querySelectorAll('.my-fixed-dropdown-menu').forEach(el => el.remove());
+    }
+
+    // 绑定按钮点击
+    document.querySelectorAll('.my-dropdown-btn').forEach(btn => {
+        btn.onclick = function(e) {
+            e.stopPropagation();
+            // 先关闭其它
+            closeAllDropdownMenus();
+
+            // 获取原ul
+            const ul = btn.parentElement.querySelector('.dropdown-menu');
+            if (!ul) return;
+
+            // 克隆ul内容
+            const menu = ul.cloneNode(true);
+            menu.classList.add('my-fixed-dropdown-menu');
+            menu.style.display = 'block';
+            menu.style.position = 'fixed';
+            menu.style.zIndex = 3000;
+            menu.style.minWidth = btn.offsetWidth + 'px';
+
+            // 计算按钮在页面的位置
+            const rect = btn.getBoundingClientRect();
+            // 判断空间，优先下方，若下方空间不足则上方
+            const menuHeight = 40 * menu.children.length;
+            let top = rect.bottom;
+            if (top + menuHeight > window.innerHeight) {
+                top = rect.top - menuHeight;
+            }
+            menu.style.left = rect.left + 'px';
+            menu.style.top = top + 'px';
+
+            // 点击菜单项后关闭
+            menu.onclick = function(ev) {
+                ev.stopPropagation();
+                closeAllDropdownMenus();
+            };
+
+            // 添加到body
+            document.body.appendChild(menu);
+
+            // 点击页面其它地方关闭
+            setTimeout(() => {
+                document.addEventListener('click', closeAllDropdownMenus, { once: true });
+            }, 0);
+        };
+    });
+}
 
 // 4. 添加完结案件的模态框函数
 // 创建完结案件模态框容器
@@ -803,8 +862,8 @@ function showFinishCaseModal(caseId) {
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
-                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="confirmFinishCase()" style="border-radius:4px;">确认完结</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmFinishCase()" style="border-radius:4px;">确认完结</button>
                 </div>
             </div>
         </div>

@@ -454,7 +454,7 @@ function renderMyCaseTable(cases) {
         return;
     }
     let html = '';
-    cases.forEach(caseInfo => {
+    cases.forEach((caseInfo, idx) => {
         // 状态样式类
         let statusClass = '';
         switch (caseInfo.status) {
@@ -496,10 +496,10 @@ function renderMyCaseTable(cases) {
             <td>
                 <div class="d-flex gap-2">
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <button class="btn btn-sm btn-info dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="detail" data-case-id="${caseInfo.caseId}">
                       案件详情
                     </button>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu" style="display:none;">
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showmyCaseDetailModal(${caseInfo.caseId})">
                           <i class="fa fa-eye"></i> 详情
@@ -513,10 +513,10 @@ function renderMyCaseTable(cases) {
                     </ul>
                   </div>
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">
                       案件操作
                     </button>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu" style="display:none;">
                       ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
@@ -556,6 +556,9 @@ function renderMyCaseTable(cases) {
     });
 
     tableBody.innerHTML = html;
+
+    // 绑定自定义下拉菜单浮层逻辑
+    bindFixedDropdownMenus();
 }
 
 /**
@@ -937,4 +940,63 @@ async function showCaseHistoryModal(caseId) {
     } catch (error) {
         alert('加载历史流转记录失败');
     }
+}
+
+/**
+ * 绑定自定义下拉菜单浮层逻辑
+ */
+function bindFixedDropdownMenus() {
+    // 先移除所有已存在的全局浮动菜单
+    document.querySelectorAll('.my-fixed-dropdown-menu').forEach(el => el.remove());
+
+    // 关闭菜单的事件
+    function closeAllDropdownMenus() {
+        document.querySelectorAll('.my-fixed-dropdown-menu').forEach(el => el.remove());
+    }
+
+    // 绑定按钮点击
+    document.querySelectorAll('.my-dropdown-btn').forEach(btn => {
+        btn.onclick = function(e) {
+            e.stopPropagation();
+            // 先关闭其它
+            closeAllDropdownMenus();
+
+            // 获取原ul
+            const ul = btn.parentElement.querySelector('.dropdown-menu');
+            if (!ul) return;
+
+            // 克隆ul内容
+            const menu = ul.cloneNode(true);
+            menu.classList.add('my-fixed-dropdown-menu');
+            menu.style.display = 'block';
+            menu.style.position = 'fixed';
+            menu.style.zIndex = 3000;
+            menu.style.minWidth = btn.offsetWidth + 'px';
+
+            // 计算按钮在页面的位置
+            const rect = btn.getBoundingClientRect();
+            // 判断空间，优先下方，若下方空间不足则上方
+            const menuHeight = 40 * menu.children.length;
+            let top = rect.bottom;
+            if (top + menuHeight > window.innerHeight) {
+                top = rect.top - menuHeight;
+            }
+            menu.style.left = rect.left + 'px';
+            menu.style.top = top + 'px';
+
+            // 点击菜单项后关闭
+            menu.onclick = function(ev) {
+                ev.stopPropagation();
+                closeAllDropdownMenus();
+            };
+
+            // 添加到body
+            document.body.appendChild(menu);
+
+            // 点击页面其它地方关闭
+            setTimeout(() => {
+                document.addEventListener('click', closeAllDropdownMenus, { once: true });
+            }, 0);
+        };
+    });
 }
