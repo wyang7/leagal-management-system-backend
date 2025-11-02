@@ -714,7 +714,22 @@ public class CaseInfoController {
         return success ? Result.success() : Result.fail("完结案件失败");
     }
 
-
+    /**
+     * 批量更新退回法院时间
+     */
+    @PostMapping("/batch-update-return-court-time")
+    public Result<?> batchUpdateReturnCourtTime(@RequestBody Map<String, Object> params) {
+        List<Long> caseIds = (List<Long>) params.get("caseIds");
+        String returnCourtTime = (String) params.get("returnCourtTime");
+        if (caseIds == null || caseIds.isEmpty() || returnCourtTime == null || returnCourtTime.isEmpty()) {
+            return Result.fail("参数错误");
+        }
+        int successCount = caseInfoService.batchUpdateReturnCourtTime(caseIds, returnCourtTime);
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("successCount", successCount);
+        resultMap.put("totalCount", caseIds.size());
+        return Result.success(resultMap);
+    }
 
 
 

@@ -274,4 +274,19 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         return baseMapper.selectList(queryWrapper);
     }
 
+    @Override
+    public int batchUpdateReturnCourtTime(List<Long> caseIds, String returnCourtTime) {
+        if (caseIds == null || caseIds.isEmpty() || returnCourtTime == null || returnCourtTime.isEmpty()) {
+            return 0;
+        }
+        CaseInfo caseInfo = new CaseInfo();
+        caseInfo.setReturnCourtTime(returnCourtTime);
+
+        QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("case_id", caseIds)
+            .in("status", Arrays.asList("已完成", "完结")); // 只允许已完成和完结状态批量写入
+
+        return baseMapper.update(caseInfo, queryWrapper);
+    }
+
 }

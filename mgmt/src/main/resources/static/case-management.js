@@ -7,6 +7,7 @@ let currentStation= '';
 // 新增全局变量跟踪当前分页和筛选状态
 let currentPage = 1;
 const pageSize = 10;
+// 新增全局变量，跟踪当前状态
 let currentFilterStatus = 'all';
 
 function loadCaseManagementPage(station) {
@@ -103,6 +104,9 @@ function loadCaseManagementPage(station) {
                     <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showBatchAssignTaskModal()">
                         <i class="fa fa-plus me-1"></i> 批量关联案件包
                     </button>
+                    <button class="ant-btn ant-btn-warning" id="batchReturnCourtTimeBtn" style="display:none;" onclick="showBatchReturnCourtTimeModal()">
+                        <i class="fa fa-calendar"></i> 批量退回法院时间
+                    </button>
                 </div>
                 <div class="btn-group mb-2" role="group">
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('all')">全部</button>
@@ -128,6 +132,7 @@ function loadCaseManagementPage(station) {
                                 <th style="white-space:nowrap;">法官</th>
                                 <th style="white-space:nowrap;">案件助理</th>
                                 <th style="white-space:nowrap;">领取时间</th>
+                                <th style="white-space:nowrap;">退法院时间</th>
                                 <th style="white-space:nowrap;">状态</th>
                                 <th style="white-space:nowrap;">处理人</th>
                                 <th style="white-space:nowrap;">操作</th>
@@ -152,6 +157,8 @@ function loadCaseManagementPage(station) {
     createCaseHistoryModalContainer();
     // 创建批量分派模态框
     createBatchAssignModal();
+    // 创建批量退回法院时间模态框
+    createBatchReturnCourtTimeModal();
     // 加载案件列表（默认第一页，状态为全部）
     loadCases(1, 10, station);
 
@@ -161,6 +168,101 @@ function loadCaseManagementPage(station) {
         const allBtn = document.querySelector('.btn-group .btn[onclick="filterCases(\'all\')"]');
         if (allBtn) allBtn.classList.add('active');
     }, 0);
+}
+
+// 控制批量退回法院时间按钮显示
+function updateBatchReturnCourtTimeBtnVisibility() {
+    const btn = document.getElementById('batchReturnCourtTimeBtn');
+    if (!btn) return;
+    if (currentFilterStatus === '已完成' || currentFilterStatus === '完结') {
+        btn.style.display = '';
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+// 创建批量退回法院时间模态框
+function createBatchReturnCourtTimeModal() {
+    if (!document.getElementById('batchReturnCourtTimeModal')) {
+        const modalHtml = `
+        <div class="modal fade" id="batchReturnCourtTimeModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title"><i class="fa fa-calendar text-warning me-2"></i>批量设置退回法院时间</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="background:#fafcff;">
+                        <div class="mb-3">
+                            <label class="form-label">请选择退回法院时间（精确到天）</label>
+                            <input type="date" id="batchReturnCourtTimeInput" class="form-control" required>
+                        </div>
+                        <div class="text-danger" id="batchReturnCourtTimeError" style="display:none;"></div>
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="submitBatchReturnCourtTime()" style="border-radius:4px;">批量写入</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+}
+
+/**
+ * 显示批量退回法院时间弹窗
+ */
+function showBatchReturnCourtTimeModal() {
+    const selectedCaseIds = getSelectedCaseIds();
+    if (!selectedCaseIds.length) {
+        alert('请先选择要批量设置退回法院时间的案件');
+        return;
+    }
+    // 清空上次输入和错误提示
+    document.getElementById('batchReturnCourtTimeInput').value = '';
+    document.getElementById('batchReturnCourtTimeError').style.display = 'none';
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('batchReturnCourtTimeModal'));
+    modal.show();
+}
+
+/**
+ * 提交批量退回法院时间
+ */
+async function submitBatchReturnCourtTime() {
+    const selectedCaseIds = getSelectedCaseIds();
+    const returnCourtTime = document.getElementById('batchReturnCourtTimeInput').value;
+    const errorDiv = document.getElementById('batchReturnCourtTimeError');
+    errorDiv.style.display = 'none';
+
+    if (!selectedCaseIds.length) {
+        errorDiv.textContent = '请选择要批量设置的案件';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    if (!returnCourtTime) {
+        errorDiv.textContent = '请选择退回法院时间';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    try {
+        await request('/case/batch-update-return-court-time', 'POST', {
+            caseIds: selectedCaseIds,
+            returnCourtTime: returnCourtTime
+        });
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('batchReturnCourtTimeModal'));
+        modal.hide();
+        // 刷新列表
+        loadCases();
+        alert('批量退回法院时间设置成功');
+    } catch (e) {
+        errorDiv.textContent = '批量设置失败，请重试';
+        errorDiv.style.display = 'block';
+    }
 }
 
 /**
@@ -593,6 +695,7 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
 
         currentPage = pageNum;
         currentFilterStatus = status;
+        updateBatchReturnCourtTimeBtnVisibility();
 
         loadCases(currentPage, pageSize, currentStation);
 
@@ -678,6 +781,7 @@ function renderCaseTable(cases) {
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
+            <td>${caseInfo.returnCourtTime ? caseInfo.returnCourtTime.split(' ')[0] : '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>

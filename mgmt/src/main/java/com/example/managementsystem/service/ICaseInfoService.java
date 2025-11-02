@@ -94,4 +94,12 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     boolean completeCase(Long caseId, String completionRemark, String returnCourtTime);
 
     List<CaseInfo> getSelfReceivedCheckableCases();
+
+    /**
+     * 批量更新退回法院时间
+     * @param caseIds 案件ID列表
+     * @param returnCourtTime 退回法院时间
+     * @return 成功更新的数量
+     */
+    int batchUpdateReturnCourtTime(List<Long> caseIds, String returnCourtTime);
 }
