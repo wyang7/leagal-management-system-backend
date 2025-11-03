@@ -10,6 +10,10 @@ const pageSize = 10;
 // 新增全局变量，跟踪当前状态
 let currentFilterStatus = 'all';
 
+// 新增全局排序参数
+let currentSortField = '';
+let currentSortOrder = 'asc'; // 'asc' or 'desc'
+
 function loadCaseManagementPage(station) {
 
     // 记录当前选中的驻点
@@ -126,7 +130,12 @@ function loadCaseManagementPage(station) {
                         <thead class="ant-table-thead table-light">
                             <tr>
                                 <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases"></th>
-                                <th style="white-space:nowrap;">案件号</th>
+                                <th style="white-space:nowrap;">
+                                    案件号
+                                    <span class="sort-btn" onclick="toggleSort('caseNumber')">
+                                        <i class="fa fa-sort${currentSortField==='caseNumber'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
+                                    </span>
+                                </th>
                                 <th style="white-space:nowrap;">案由</th>
                                 <th style="white-space:nowrap;">标的额</th>
                                 <th style="white-space:nowrap;" title="案件归属地">归属地</th>
@@ -134,8 +143,18 @@ function loadCaseManagementPage(station) {
                                 <th style="white-space:nowrap;">被告</th>
                                 <th style="white-space:nowrap;">法官</th>
                                 <th style="white-space:nowrap;">案件助理</th>
-                                <th style="white-space:nowrap;">领取时间</th>
-                                <th style="white-space:nowrap;">退法院时间</th>
+                                <th style="white-space:nowrap;">
+                                    领取时间
+                                    <span class="sort-btn" onclick="toggleSort('receiveTime')">
+                                        <i class="fa fa-sort${currentSortField==='receiveTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
+                                    </span>
+                                </th>
+                                <th style="white-space:nowrap;">
+                                    退法院时间
+                                    <span class="sort-btn" onclick="toggleSort('returnCourtTime')">
+                                        <i class="fa fa-sort${currentSortField==='returnCourtTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
+                                    </span>
+                                </th>
                                 <th style="white-space:nowrap;">状态</th>
                                 <th style="white-space:nowrap;">处理人</th>
                                 <th style="white-space:nowrap;">操作</th>
@@ -511,6 +530,10 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         if (courtReceiveTime) params.append('courtReceiveTime', courtReceiveTime);
         if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
         if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
+        if (currentSortField) {
+            params.append('sortField', currentSortField);
+            params.append('sortOrder', currentSortOrder);
+        }
 
         const response = await request(`/case/page?${params.toString()}`);
         // 渲染表格和分页组件
@@ -866,6 +889,19 @@ function renderCaseTable(cases) {
     bindFixedDropdownMenus();
 }
 
+
+/**
+ * 排序按钮切换
+ */
+function toggleSort(field) {
+    if (currentSortField === field) {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortField = field;
+        currentSortOrder = 'asc';
+    }
+    loadCases(currentPage, pageSize, currentStation);
+}
 
 /**
  * 绑定固定位置的下拉菜单

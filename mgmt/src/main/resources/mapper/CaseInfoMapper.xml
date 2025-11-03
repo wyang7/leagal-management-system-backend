@@ -141,8 +141,21 @@
                 </otherwise>
             </choose>
         </if>
-        ORDER BY c.case_id DESC
-            LIMIT #{offset}, #{pageSize}
+        <if test="sortField != null and sortField != ''">
+            ORDER BY
+            <choose>
+                <when test="sortField == 'caseNumber'">c.case_number</when>
+                <when test="sortField == 'receiveTime'">c.receive_time</when>
+                <when test="sortField == 'returnCourtTime'">c.return_court_time</when>
+                <otherwise>c.updated_time</otherwise>
+            </choose>
+            <if test="sortOrder != null and sortOrder == 'desc'"> DESC </if>
+            <if test="sortOrder != null and sortOrder == 'asc'"> ASC </if>
+        </if>
+        <if test="sortField == null or sortField == ''">
+            ORDER BY c.updated_time DESC
+        </if>
+        LIMIT #{offset}, #{pageSize}
     </select>
 
     <!-- 根据任务ID查询案件 -->

@@ -89,15 +89,17 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * @param offset 起始位置
      * @param pageSize 每页条数
      */
-    List<CaseInfo> selectCasePage(@Param("offset") int offset, @Param("pageSize") int pageSize
-    ,@Param("caseName") String caseName,@Param("status") String status,
+    List<CaseInfo> selectCasePage(@Param("offset") int offset, @Param("pageSize") int pageSize,
+                                  @Param("caseName") String caseName,@Param("status") String status,
                                   @Param("caseNumber") String caseNumber,
                                   @Param("plaintiff") String plaintiff,
                                   @Param("defendant") String defendant,
                                   @Param("receiveTime") String receiveTime,
                                   @Param("assistantId") Long assistantId,
                                   @Param("userId") Long userId,
-                                  @Param("station") String station);
+                                  @Param("station") String station,
+                                  @Param("sortField") String sortField,
+                                  @Param("sortOrder") String sortOrder);
 
 
     List<CaseInfo> selectByStatusList(@Param("statusList") List<String> statusList,

@@ -112,7 +112,10 @@ public class CaseInfoController {
             @RequestParam(required = false) String userName,
             @RequestParam(required = false) String assistant,
             @RequestParam(required = false) String courtReceiveTime,
-            @RequestParam(required = false) String station) {
+            @RequestParam(required = false) String station,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortOrder
+    ) {
 
         // 校验分页参数合法性
         if (pageNum < 1) {
@@ -123,8 +126,10 @@ public class CaseInfoController {
         }
 
         // 调用服务层获取分页数据
-        Map<String, Object> pageResult = caseInfoService.getCasePage(caseName,status, userName,assistant,courtReceiveTime,caseNumber, plaintiff, defendant
-                ,station,pageNum, pageSize);
+        Map<String, Object> pageResult = caseInfoService.getCasePage(
+            caseName, status, userName, assistant, courtReceiveTime, caseNumber, plaintiff, defendant,
+            station, pageNum, pageSize, sortField, sortOrder
+        );
 
         // 返回统一格式的响应
         return Result.success(pageResult);
@@ -775,7 +780,8 @@ public class CaseInfoController {
                 String status = (String) params.get("status");
                 String station = (String) params.get("station");
                 Map<String, Object> pageResult = caseInfoService.getCasePage(
-                        caseName, status, userName, assistant, courtReceiveTime, caseNumber, plaintiff, defendant, station, 1, 10000
+                        caseName, status, userName, assistant, courtReceiveTime, caseNumber, plaintiff, defendant
+                        , station, 1, 10000,null,null
                 );
                 exportList = (List<CaseInfo>) pageResult.get("records");
             }
