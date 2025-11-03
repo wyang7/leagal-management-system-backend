@@ -327,7 +327,7 @@ function renderAssistantCaseTable(cases) {
             <td>${caseInfo.assistantName || '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-column gap-2">
                   <div class="dropdown">
                     <button class="btn btn-sm btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
                       案件详情

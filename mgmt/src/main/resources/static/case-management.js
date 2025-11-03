@@ -130,12 +130,7 @@ function loadCaseManagementPage(station) {
                         <thead class="ant-table-thead table-light">
                             <tr>
                                 <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases"></th>
-                                <th style="white-space:nowrap;">
-                                    案件号
-                                    <span class="sort-btn" onclick="toggleSort('caseNumber')">
-                                        <i class="fa fa-sort${currentSortField==='caseNumber'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
-                                    </span>
-                                </th>
+                                <th style="white-space:nowrap;">案件号</th>
                                 <th style="white-space:nowrap;">案由</th>
                                 <th style="white-space:nowrap;">标的额</th>
                                 <th style="white-space:nowrap;" title="案件归属地">归属地</th>
@@ -811,7 +806,7 @@ function renderCaseTable(cases) {
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-column gap-2">
                   <div class="dropdown">
                     <button class="btn btn-sm btn-info dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="detail" data-case-id="${caseInfo.caseId}">
                       案件详情

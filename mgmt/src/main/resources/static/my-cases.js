@@ -494,7 +494,7 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-column gap-2">
                   <div class="dropdown">
                     <button class="btn btn-sm btn-info dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="detail" data-case-id="${caseInfo.caseId}">
                       案件详情
