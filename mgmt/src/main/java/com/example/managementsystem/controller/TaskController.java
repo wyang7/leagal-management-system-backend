@@ -175,4 +175,28 @@ public class TaskController {
         boolean success = taskService.receiveTask(taskId, userId,operatorId,false);
         return success ? Result.success() : Result.fail("领取案件包失败，当前案件已到达领取上限");
     }
+
+    /**
+     * 批量创建案件包
+     */
+    @PostMapping("/batch-create")
+    public Result<?> batchCreateTasks(@RequestBody Map<String, Object> params) {
+        List<String> names = (List<String>) params.get("names");
+        String station = (String) params.get("station");
+        if (names == null || names.isEmpty() || station == null || station.isEmpty()) {
+            return Result.fail("参数错误");
+        }
+        try {
+            for (String name : names) {
+                Task task = new Task();
+                task.setTaskName(name);
+                task.setStation(station);
+                task.setStatus("待发布");
+                taskService.save(task);
+            }
+            return Result.success();
+        } catch (Exception e) {
+            return Result.fail("批量创建失败：" + e.getMessage());
+        }
+    }
 }

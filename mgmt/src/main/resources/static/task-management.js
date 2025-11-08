@@ -28,6 +28,9 @@ function loadTaskManagementPage() {
                         <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddTaskModal()">
                             <i class="fa fa-plus"></i> 新增案件包
                         </button>
+                        <button class="ant-btn ant-btn-info" onclick="showBatchCreateTaskModal()">
+                            <i class="fa fa-clone"></i> 批量创建案件包
+                        </button>
                     </div>
                 </div>
             </div>
@@ -847,5 +850,95 @@ async function unassignCaseFromTask(caseId) {
         return await request('/case/remove-task', 'PUT', caseInfo);
     } catch (error) {
         // 错误处理已在request函数中完成
+    }
+}
+
+/**
+ * 显示批量创建案件包模态框
+ */
+function showBatchCreateTaskModal() {
+    createTaskModalContainer();
+    const modalContainer = document.getElementById('taskModalContainer');
+    const todayStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    modalContainer.innerHTML = `
+    <div class="modal fade" id="batchCreateTaskModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-clone text-info me-2"></i>批量创建案件包</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <form id="batchCreateTaskForm">
+                        <div class="form-group mb-2">
+                            <label>案件包数量</label>
+                            <input type="number" id="batchTaskCount" class="form-control" min="1" max="50" value="5" required>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label>案件包归属地</label>
+                            <select id="batchTaskStation" class="form-control" required>
+                                <option value="">请选择归属地</option>
+                                <option value="九堡彭埠">九堡彭埠</option>
+                                <option value="本部">本部</option>
+                                <option value="笕桥">笕桥</option>
+                                <option value="总部">总部</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label>案件包名称前缀</label>
+                            <input type="text" id="batchTaskPrefix" class="form-control" value="案件包-${todayStr}-" required>
+                            <small class="text-secondary">自动编号，如“案件包-20240612-01”</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitBatchCreateTask()">批量创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    const modal = new bootstrap.Modal(document.getElementById('batchCreateTaskModal'));
+    modal.show();
+}
+
+/**
+ * 批量创建案件包
+ */
+async function submitBatchCreateTask() {
+    const count = parseInt(document.getElementById('batchTaskCount').value);
+    const station = document.getElementById('batchTaskStation').value;
+    const prefix = document.getElementById('batchTaskPrefix').value.trim();
+
+    if (!count || count < 1) {
+        alert('请输入有效的案件包数量');
+        return;
+    }
+    if (!station) {
+        alert('请选择案件包归属地');
+        return;
+    }
+    if (!prefix) {
+        alert('请输入案件包名称前缀');
+        return;
+    }
+
+    // 生成案件包名称列表
+    const names = [];
+    for (let i = 1; i <= count; i++) {
+        names.push(`${prefix}${String(i).padStart(2,'0')}`);
+    }
+
+    try {
+        await request('/task/batch-create', 'POST', {
+            names: names,
+            station: station
+        });
+        bootstrap.Modal.getInstance(document.getElementById('batchCreateTaskModal')).hide();
+        alert(`成功批量创建 ${count} 个案件包`);
+        loadTasks(currentTaskPage, taskPageSize);
+    } catch (error) {
+        alert('批量创建失败: ' + (error.message || '未知错误'));
     }
 }
