@@ -477,8 +477,11 @@ function renderMyCaseTable(cases) {
             case '退回':
                 statusClass = 'status-returned';
                 break;
-            case '失败':
+            case '调解失败':
                 statusClass = 'status-failed'; // 红色表示失败
+                break;
+            case '结案':
+                statusClass = 'status-closed';
                 break;
         }
 

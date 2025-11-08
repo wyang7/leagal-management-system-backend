@@ -114,6 +114,9 @@ function loadCaseManagementPage(station) {
                     <button class="ant-btn ant-btn-warning" id="batchReturnCourtTimeBtn" style="display:none;" onclick="showBatchReturnCourtTimeModal()">
                         <i class="fa fa-calendar"></i> 批量退回法院时间
                     </button>
+                    <button class="ant-btn ant-btn-danger" id="batchFailedBtn" style="display:none;margin-left:8px;" onclick="showBatchFailedModal()">
+                        <i class="fa fa-flag-checkered"></i> 批量调解失败
+                    </button>
                 </div>
                 <div class="btn-group mb-2" role="group">
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('all')">全部</button>
@@ -694,6 +697,7 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
         currentPage = pageNum;
         currentFilterStatus = status;
         updateBatchReturnCourtTimeBtnVisibility();
+        updateBatchFailedBtnVisibility();
 
         renderCaseTableHeader(); // 新增：切换状态时重建表头
         loadCases(currentPage, pageSize, currentStation);
@@ -764,13 +768,11 @@ function renderCaseTable(cases) {
             case '退回':
                 statusClass = 'status-returned';
                 break;
-            case '失败':
-                statusClass = 'status-failed'; // 统一样式
-                statusText = '调解失败';
+            case '调解失败':
+                statusClass = 'status-failed';
                 break;
             case '结案':
                 statusClass = 'status-closed';
-                statusText = '结案';
                 break;
         }
 
@@ -1055,7 +1057,7 @@ async function confirmFinishCase() {
     try {
         await request('/case/complete', 'POST', {
             caseId:caseId,
-            status: '失败',
+            status: '调解失败',
             completionRemark:completionRemark
         });
         // 关闭模态框
@@ -1842,3 +1844,97 @@ async function confirmCloseCase() {
     }
 }
 
+// 批量调解失败相关逻辑
+
+function updateBatchFailedBtnVisibility() {
+    const btn = document.getElementById('batchFailedBtn');
+    if (!btn) return;
+    if (currentFilterStatus === '退回') {
+        btn.style.display = '';
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+// 在页面渲染按钮区域添加批量调解失败按钮
+function renderBatchFailedBtn() {
+    if (!document.getElementById('batchFailedBtn')) {
+        const btnHtml = `<button class="ant-btn ant-btn-danger" id="batchFailedBtn" style="display:none;margin-left:8px;" onclick="showBatchFailedModal()">
+            <i class="fa fa-flag-checkered"></i> 批量调解失败
+        </button>`;
+        const btnGroup = document.querySelector('.d-flex.justify-content-end.gap-2.mb-2');
+        if (btnGroup) btnGroup.insertAdjacentHTML('beforeend', btnHtml);
+    }
+    updateBatchFailedBtnVisibility();
+}
+
+// 批量调解失败弹窗
+function showBatchFailedModal() {
+    const selectedCaseIds = getSelectedCaseIds();
+    if (!selectedCaseIds.length) {
+        alert('请先选择要批量调解失败的案件');
+        return;
+    }
+    const modalHtml = `
+    <div class="modal fade" id="batchFailedModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog" style="z-index:3000;">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-flag-checkered text-danger me-2"></i>批量调解失败</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <div class="mb-3">
+                        <label class="form-label">调解失败备注</label>
+                        <select class="form-select" id="batchFailedRemark">
+                            <option value="拒绝调解">拒绝调解</option>
+                            <option value="联系不上">联系不上</option>
+                            <option value="差距较大">差距较大</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmBatchFailed()" style="border-radius:4px;">确认批量调解失败</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = modalHtml;
+    document.body.appendChild(tempContainer);
+    const modal = new bootstrap.Modal(document.getElementById('batchFailedModal'));
+    modal.show();
+    document.getElementById('batchFailedModal').addEventListener('hidden.bs.modal', function() {
+        tempContainer.remove();
+    });
+}
+
+// 批量调解失败确认
+async function confirmBatchFailed() {
+    const selectedCaseIds = getSelectedCaseIds();
+    const remark = document.getElementById('batchFailedRemark').value;
+    if (!remark) {
+        alert('请选择调解失败备注');
+        return;
+    }
+    try {
+        await request('/case/batch-failed', 'POST', {
+            caseIds: selectedCaseIds,
+            completionRemark: remark
+        });
+        const modal = bootstrap.Modal.getInstance(document.getElementById('batchFailedModal'));
+        modal.hide();
+        loadCases();
+        alert('批量调解失败操作成功');
+    } catch (error) {
+        alert('批量调解失败操作失败');
+    }
+}
+
+// 在页面初始化和状态切换时调用
+function afterPageInitOrFilter() {
+    renderBatchFailedBtn();
+    updateBatchFailedBtnVisibility();
+}

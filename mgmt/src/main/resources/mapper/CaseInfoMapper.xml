@@ -21,7 +21,7 @@
             AND status = #{status}
         </if>
         <if test="status != null and status != '' and status == '我的案件'">
-            AND status NOT IN ('退回' ,'失败')
+            AND status NOT IN ('退回' ,'调解失败')
         </if>
         <if test="caseNumber != null and caseNumber != ''">
             AND case_number LIKE CONCAT('%', #{caseNumber}, '%')
@@ -109,7 +109,7 @@
             AND c.status = #{status}
         </if>
         <if test="status != null and status != '' and status == '我的案件'">
-            AND c.status NOT IN ('退回' ,'失败')
+            AND c.status NOT IN ('退回' ,'调解失败')
         </if>
         <if test="caseNumber != null and caseNumber != ''">
             AND c.case_number LIKE CONCAT('%', #{caseNumber}, '%')

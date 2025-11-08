@@ -113,4 +113,13 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * 写入案件操作历史
      */
     void addCaseHistory(Long caseId, String action, String afterStatus, String remarks, Long operatorId);
+
+    /**
+     * 批量更新案件状态
+     * @param caseIds 案件ID列表
+     * @param status 新状态
+     * @param completionRemark 调解失败备注
+     * @return 更新数量
+     */
+    int batchUpdateStatus(List<Integer> caseIds, String status, String completionRemark,Long operatorId);
 }

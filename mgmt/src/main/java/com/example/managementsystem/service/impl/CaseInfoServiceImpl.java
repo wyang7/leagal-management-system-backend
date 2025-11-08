@@ -314,4 +314,24 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         );
     }
 
+    @Override
+    public int batchUpdateStatus(List<Integer> caseIds, String status, String completionRemark,Long operatorId) {
+        int count = 0;
+        for (Integer id : caseIds) {
+            CaseInfo caseInfo = getById(id.longValue());
+            if (caseInfo != null) {
+                caseInfo.setStatus(status);
+                caseInfo.setCompletionRemark(completionRemark);
+                caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                boolean success = updateById(caseInfo);
+                if (success) {
+                    count++;
+                    // 写入案件操作历史
+                    addCaseHistory(caseInfo.getCaseId(), "批量调解失败", status, completionRemark, operatorId);
+                }
+            }
+        }
+        return count;
+    }
+
 }

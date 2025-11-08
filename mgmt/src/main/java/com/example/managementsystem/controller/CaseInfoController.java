@@ -845,4 +845,24 @@ public class CaseInfoController {
             e.printStackTrace();
         }
     }
+
+    /**
+     * 批量调解失败接口
+     * 接收案件ID列表和备注，批量更新状态为失败并写入操作历史。
+     */
+    @PostMapping("/batch-failed")
+    public Result<?> batchFailed(@RequestBody Map<String, Object> params, HttpSession session) {
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        Long operatorId = currentUser.getUserId();
+        List<Integer> caseIds = (List<Integer>) params.get("caseIds");
+        String completionRemark = (String) params.get("completionRemark");
+        if (caseIds == null || caseIds.isEmpty()) {
+            return Result.fail("未选中案件");
+        }
+        int count = caseInfoService.batchUpdateStatus(caseIds, "调解失败", completionRemark,operatorId);
+        return Result.success(count);
+    }
 }
