@@ -90,7 +90,7 @@ create table management_system.case_info
     delay_reason          text                                  null,
     mediator_receive_time bigint                                null,
     judge                 varchar(20)                           null comment '法官',
-    completion_remark     varchar(255)                          null comment '完结备注（司法确认、撤诉、民初、拒绝调解、联系不上）',
+    completion_remark     varchar(255)                          null comment '调解失败备注（司法确认、撤诉、民初、拒绝调解、联系不上）',
     return_court_time     varchar(50)                           null comment '退回法院时间',
     constraint uk_case_number
         unique (case_number),

@@ -279,7 +279,7 @@
         ORDER BY case_id DESC
     </select>
 
-    <!-- 更新案件为完结状态 -->
+    <!-- 更新案件为调解失败状态 -->
     <update id="updateCompleteStatus">
         UPDATE case_info
         SET

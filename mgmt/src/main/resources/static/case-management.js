@@ -438,7 +438,7 @@ async function showCaseDetailModal(caseId) {
                             <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionNotes ? caseInfo.completionNotes.replace(/\n/g, '<br>') : '无'}</div>
                         </div>
                         <div class="mb-2">
-                            <span class="text-muted">完结备注：</span>
+                            <span class="text-muted">调解失败备注：</span>
                             <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionRemark ? caseInfo.completionRemark.replace(/\n/g, '<br>') : '无'}</div>
                         </div>
                     </div>
@@ -986,9 +986,9 @@ function bindFixedDropdownMenus() {
     });
 }
 
-// 显示完结案件模态框
+// 显示调解失败案件模态框
 function showFinishCaseModal(caseId) {
-    // 创建完结案件模态框（antd风格）
+    // 创建调解失败案件模态框（antd风格）
     const modalHtml = `
     <div class="modal fade" id="finishCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -998,10 +998,10 @@ function showFinishCaseModal(caseId) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background:#fafcff;">
-                    <!-- 完结备注和退回时间表单 -->
+                    <!-- 调解失败备注和退回时间表单 -->
                     <input type="hidden" id="finishCaseId" value="${caseId}">
                     <div class="mb-3">
-                        <label class="form-label">完结备注</label>
+                        <label class="form-label">调解失败备注</label>
                         <select class="form-select" id="finishRemark">
                             <option value="拒绝调解">拒绝调解</option>
                             <option value="联系不上">联系不上</option>
@@ -1033,13 +1033,13 @@ function showFinishCaseModal(caseId) {
     });
 }
 
-// 5. 添加确认完结的函数
+// 5. 添加确认调解失败的函数
 async function confirmFinishCase() {
     const caseId = document.getElementById('finishCaseId').value;
     const completionRemark = document.getElementById('finishRemark').value;
 
     if (!completionRemark) {
-        alert('请选择完结备注');
+        alert('请选择调解失败备注');
         return;
     }
 
@@ -1056,8 +1056,8 @@ async function confirmFinishCase() {
         loadCases();
         alert('案件已标记为调解失败');
     } catch (error) {
-        console.error('完结案件失败:', error);
-        alert('完结案件失败');
+        console.error('调解失败案件失败:', error);
+        alert('调解失败案件失败');
     }
 }
 

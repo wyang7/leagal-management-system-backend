@@ -86,9 +86,9 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     boolean save(CaseInfo caseInfo);
 
     /**
-     * 完结案件（更新状态、备注、退回法院时间）
+     * 调解失败案件（更新状态、备注、退回法院时间）
      * @param caseId 案件ID
-     * @param completionRemark 完结备注
+     * @param completionRemark 调解失败备注
      * @param returnCourtTime 退回法院时间
      * @return 是否成功
      */

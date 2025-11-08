@@ -244,7 +244,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         if (caseInfo == null) {
             return false;
         }
-        // 2. 校验状态是否允许完结（根据业务规则调整，例如：已领取、待结案、反馈、退回等状态可转为失败）
+        // 2. 校验状态是否允许调解失败（根据业务规则调整，例如：已领取、待结案、反馈、退回等状态可转为失败）
         String currentStatus = caseInfo.getStatus();
         if (!"已领取".equals(currentStatus) && !"待结案".equals(currentStatus) && !"反馈".equals(currentStatus)
                  && !"退回".equals(currentStatus)) {

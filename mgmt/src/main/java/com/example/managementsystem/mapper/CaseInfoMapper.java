@@ -108,7 +108,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                                       @Param("station") String station);
 
     /**
-     * 更新案件为完结状态，包含备注和退回法院时间
+     * 更新案件为调解失败状态，包含备注和退回法院时间
      */
     int updateCompleteStatus(
             @Param("caseId") Long caseId,

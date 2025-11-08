@@ -704,7 +704,7 @@ public class CaseInfoController {
         }
     }
 
-    // 添加完结案件的接口
+    // 添加调解失败案件的接口
     @PostMapping("/complete")
     public Result<?> completeCase(@RequestBody CaseInfo caseInfo, HttpSession session) {
         CaseInfo existingCase = caseInfoService.getById(caseInfo.getCaseId());
@@ -719,7 +719,7 @@ public class CaseInfoController {
 
         String finalCompletionRemark = buildAccumulatedRemark(existingCase.getCompletionRemark(), caseInfo.getCompletionRemark(), operatorId);
         boolean success = caseInfoService.completeCase(caseInfo.getCaseId(), finalCompletionRemark, caseInfo.getReturnCourtTime());
-        return success ? Result.success() : Result.fail("完结案件失败");
+        return success ? Result.success() : Result.fail("提交调解失败案件失败");
     }
 
     /**
@@ -789,7 +789,7 @@ public class CaseInfoController {
             // 3. 字段去重合并（详情+列表字段）
             String[] headers = {
                 "案件号", "案由", "标的额", "案件归属地", "原告", "被告", "法官", "案件助理", "领取时间", "退回法院时间",
-                "状态", "处理人", "法院收案时间", "反馈情况", "退回情况", "案件完成情况", "完结备注", "关联案件包"
+                "状态", "处理人", "法院收案时间", "反馈情况", "退回情况", "案件完成情况", "调解失败备注", "关联案件包"
             };
 
             // 4. 创建Excel
