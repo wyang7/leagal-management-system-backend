@@ -428,11 +428,11 @@ public class CaseInfoController {
         if (caseById == null) {
             return Result.fail("案件不存在");
         }
-        LocalDateTime receiveTime = caseById.getReceiveTime();
-        if (receiveTime != null &&
-                (System.currentTimeMillis()-receiveTime.atZone(ZoneId.of("UTC")).toInstant().toEpochMilli() < 24*60*60*1000)) {
-            return Result.fail("案件不允许在领取后24小时之内退回");
-        }
+//        LocalDateTime receiveTime = caseById.getReceiveTime();
+//        if (receiveTime != null &&
+//                (System.currentTimeMillis()-receiveTime.atZone(ZoneId.of("UTC")).toInstant().toEpochMilli() < 24*60*60*1000)) {
+//            return Result.fail("案件不允许在领取后24小时之内退回");
+//        }
         // 记录原状态
         String beforeStatus = caseById.getStatus();
         boolean success = caseInfoService.returnCase(caseId, returnReason);
