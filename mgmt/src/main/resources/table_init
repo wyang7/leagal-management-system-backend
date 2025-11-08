@@ -74,7 +74,7 @@ create table management_system.case_info
     case_number           varchar(50)                           not null comment '案件号',
     case_name             varchar(100)                          not null comment '案件名',
     task_id               bigint                                null comment '绑定的任务ID',
-    status                varchar(20)                           not null comment '案件状态：待发布->待领取->已领取->已完成',
+    status                varchar(20)                           not null comment '案件状态：待发布->待领取->已领取->待结案',
     user_id               bigint                                null comment '案件绑定用户ID',
     created_time          timestamp default CURRENT_TIMESTAMP   null comment '创建时间',
     updated_time          timestamp default CURRENT_TIMESTAMP   null on update CURRENT_TIMESTAMP comment '更新时间',

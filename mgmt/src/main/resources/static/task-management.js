@@ -690,7 +690,7 @@ async function loadAvailableCases(taskId) {
     try {
         const searchTerm = document.getElementById('availableCasesSearch')?.value.trim() || '';
         // 获取所有案件
-        const cases = await request(`/case/filter-by-status?statusList=待领取&statusList=已完成&taskId=${taskId}&caseName=${encodeURIComponent(searchTerm)}`);
+        const cases = await request(`/case/filter-by-status?statusList=待领取&statusList=待结案&taskId=${taskId}&caseName=${encodeURIComponent(searchTerm)}`);
         const unassignedCases = cases.filter(c => !c.taskId);
         const tableBody = document.getElementById('availableCasesTableBody');
 
@@ -722,7 +722,7 @@ async function loadAvailableCases(taskId) {
  */
 async function loadAssignedCases(taskId) {
     try {
-        const cases = await request(`/case/filter-by-status?statusList=待领取&statusList=已完成&taskId=${taskId}`);
+        const cases = await request(`/case/filter-by-status?statusList=待领取&statusList=待结案&taskId=${taskId}`);
         const assignedCases = cases.filter(c => {
             console.log("taskId"+c.taskId);
            return  c.taskId === taskId

@@ -11,18 +11,23 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         .sidebar {
-            flex: 0 0 12.5%; /* 约占屏幕宽度的12.5%，原2列在12列布局中是16.67% */
-            max-width: 12.5%;
+            flex: 0 0 11%; /* 原8%，改为11% */
+            max-width: 11%;
         }
         .nav-link {
             color: #333;
+            font-size: 15px; /* 字体稍微变小 */
+            white-space: nowrap; /* 菜单名不换行 */
         }
         .nav-link.active {
             background-color: #0d6efd;
             color: white;
         }
+        /* 主内容区宽度调整 */
         .content {
             padding: 20px;
+            width: 89%;
+            max-width: 89%;
         }
         .status-badge {
             padding: 5px 12px; /* 增加水平内边距 */
@@ -53,6 +58,14 @@
         }
         .status-pre-feedback {
             background-color: #6610f2; /* 紫色作为反馈的标识色，可根据需求调整 */
+        }
+        .status-failed {
+            background: #ffccc7;
+            color: #cf1322;
+            border-radius: 4px;
+            padding: 5px 12px;
+            font-weight: 500;
+            display: inline-block;
         }
 
         .text-success {
@@ -222,7 +235,7 @@
 
     <div class="row">
         <!-- 侧边栏导航 -->
-        <div class="col-md-2 sidebar p-0">
+        <div class="col-md-1 sidebar p-0">
             <div class="d-flex flex-column p-3">
                 <ul class="nav nav-pills flex-column mb-auto" id="sidebarNav">
                     <!-- 导航项将通过JavaScript动态生成 -->
@@ -231,7 +244,7 @@
         </div>
 
         <!-- 主内容区域 -->
-        <main class="col-md-10 content" id="mainContent">
+        <main class="col-md-11 content" id="mainContent">
             <!-- 页面内容将通过JavaScript动态加载 -->
         </main>
     </div>

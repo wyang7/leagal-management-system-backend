@@ -67,7 +67,7 @@ public class CaseInfo implements Serializable {
     private String taskName;
 
     /**
-     * 案件状态：待领取->已领取->已完成
+     * 案件状态：待领取->已领取->待结案
      */
     private String status;
 

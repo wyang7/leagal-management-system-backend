@@ -33,7 +33,7 @@ function loadAssistantCasesPage() {
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('已领取')">已领取</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('反馈')">反馈</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('延期')">延期</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('已完成')">已完成</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('待结案')">已完成</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterAssistantCases('退回')">退回</button>
                 </div>
                 <div class="table-responsive">
@@ -303,7 +303,7 @@ function renderAssistantCaseTable(cases) {
             case '延期':
                 statusClass = 'status-delayed';
                 break;
-            case '已完成':
+            case '待结案':
                 statusClass = 'status-completed';
                 break;
             case '退回':

@@ -683,7 +683,7 @@ public class CaseInfoController {
 
 
         // 更新状态和完成情况
-        caseInfo.setStatus("已完成");
+        caseInfo.setStatus("待结案");
         String finalNotes = buildAccumulatedRemark(caseInfo.getCompletionNotes(), notes, operatorId);
         caseInfo.setCompletionNotes(finalNotes);
         boolean success = caseInfoService.updateById(caseInfo);
@@ -693,9 +693,9 @@ public class CaseInfoController {
                     caseId,
                     operatorId,
                     operatorName,
-                    "完成案件",
+                    "提交结案审核",
                     caseInfo.getStatus(),
-                    "已完成",
+                    "待结案",
                     notes
             );
             return Result.success();

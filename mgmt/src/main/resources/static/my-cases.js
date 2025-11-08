@@ -74,7 +74,7 @@ function loadMyCasesPage() {
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('已领取')">已领取</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('已完成')">已完成</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('待结案')">待结案</button>
                 </div>
                 <div class="table-responsive">
                     <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
@@ -471,14 +471,14 @@ function renderMyCaseTable(cases) {
             case '延期':
                 statusClass = 'status-delayed';
                 break;
-            case '已完成':
+            case '待结案':
                 statusClass = 'status-completed';
                 break;
             case '退回':
                 statusClass = 'status-returned';
                 break;
-            case '完结':
-                statusClass = 'text-success'; // 绿色表示完结
+            case '失败':
+                statusClass = 'status-failed'; // 红色表示失败
                 break;
         }
 
@@ -561,10 +561,10 @@ function renderMyCaseTable(cases) {
                         </a>
                       </li>
                       `:``}
-                      ${(caseInfo.status !== '已完成') ? `
+                      ${(caseInfo.status !== '待结案') ? `
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-check"></i> 完成
+                          <i class="fa fa-check"></i> 提交结案审核
                         </a>
                       </li>
                       <li>
@@ -847,7 +847,7 @@ function showCompleteCaseModal(caseId) {
                     <form id="completeCaseForm">
                         <input type="hidden" id="completeCaseId" value="${caseId}">
                         <div class="form-group">
-                            <label for="completionNotes">请选择案件完成情况</label>
+                            <label for="completionNotes">请选择结案方式</label>
                             <select id="completionNotes" class="form-select" required>
                                 <option value="">请选择</option>
                                 <option value="司法确认">司法确认</option>
@@ -881,7 +881,7 @@ async function submitCaseCompletion() {
     const notes = document.getElementById('completionNotes').value.trim();
 
     if (!notes) {
-        alert('请选择案件完成情况');
+        alert('请选择结案方式');
         return;
     }
 
@@ -897,7 +897,7 @@ async function submitCaseCompletion() {
 
         // 重新加载我的案件列表
         loadMyCases(currentMyCasePage,currentMyCasePageSize);
-        alert('案件已成功标记为完成');
+        alert('案件已成功标记为待结案');
     } catch (error) {
         console.error('提交失败:', error);
     }

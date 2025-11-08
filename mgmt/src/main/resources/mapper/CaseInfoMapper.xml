@@ -21,7 +21,7 @@
             AND status = #{status}
         </if>
         <if test="status != null and status != '' and status == '我的案件'">
-            AND status NOT IN ('退回' ,'完结')
+            AND status NOT IN ('退回' ,'失败')
         </if>
         <if test="caseNumber != null and caseNumber != ''">
             AND case_number LIKE CONCAT('%', #{caseNumber}, '%')
@@ -109,7 +109,7 @@
             AND c.status = #{status}
         </if>
         <if test="status != null and status != '' and status == '我的案件'">
-            AND c.status NOT IN ('退回' ,'完结')
+            AND c.status NOT IN ('退回' ,'失败')
         </if>
         <if test="caseNumber != null and caseNumber != ''">
             AND c.case_number LIKE CONCAT('%', #{caseNumber}, '%')
@@ -231,7 +231,7 @@
                 LEFT JOIN
             user u ON c.assistant_id = u.user_id
         WHERE
-            c.user_id = #{userId} and c.status!='退回' and c.status!='完结'
+            c.user_id = #{userId} and c.status!='退回' and c.status!='失败'
         ORDER BY c.case_id DESC
     </select>
 
@@ -276,7 +276,6 @@
                 </otherwise>
             </choose>
         </if>
-
         ORDER BY case_id DESC
     </select>
 
@@ -290,7 +289,6 @@
             updated_time = NOW()
         WHERE case_id = #{caseId}
     </update>
-
 
 
 

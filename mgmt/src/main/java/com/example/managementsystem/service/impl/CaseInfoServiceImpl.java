@@ -90,10 +90,9 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     public boolean updateCaseStatus(Long caseId, String status) {
         // 验证状态是否合法
         if ( !"待领取".equals(status) &&
-            !"已领取".equals(status) && !"已完成".equals(status)) {
+            !"已领取".equals(status) && !"待结案".equals(status)) {
             return false;
         }
-        
         CaseInfo caseInfo = new CaseInfo();
         caseInfo.setCaseId(caseId);
         caseInfo.setStatus(status);
@@ -245,22 +244,19 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         if (caseInfo == null) {
             return false;
         }
-
-        // 2. 校验状态是否允许完结（根据业务规则调整，例如：已领取、已完成等状态可转为完结）
+        // 2. 校验状态是否允许完结（根据业务规则调整，例如：已领取、待结案、反馈、退回等状态可转为失败）
         String currentStatus = caseInfo.getStatus();
-        if (!"已领取".equals(currentStatus) && !"已完成".equals(currentStatus) && !"反馈".equals(currentStatus)
+        if (!"已领取".equals(currentStatus) && !"待结案".equals(currentStatus) && !"反馈".equals(currentStatus)
                  && !"退回".equals(currentStatus)) {
-            return false;  // 不允许从当前状态转为完结
+            return false;  // 不允许从当前状态转为失败
         }
-
         // 3. 更新案件状态和字段
         int rows = baseMapper.updateCompleteStatus(
                 caseId,
-                "完结",  // 目标状态
+                "失败",  // 目标状态
                 completionRemark,
                 returnCourtTime
         );
-
         return rows > 0;
     }
 
@@ -289,11 +285,9 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         }
         CaseInfo caseInfo = new CaseInfo();
         caseInfo.setReturnCourtTime(returnCourtTime);
-
         QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("case_id", caseIds)
-            .in("status", Arrays.asList("已完成", "完结")); // 只允许已完成和完结状态批量写入
-
+            .in("status", Arrays.asList("待结案", "失败")); // 只允许待结案和失败状态批量写入
         return baseMapper.update(caseInfo, queryWrapper);
     }
 

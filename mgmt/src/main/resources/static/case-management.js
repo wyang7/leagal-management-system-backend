@@ -121,9 +121,9 @@ function loadCaseManagementPage(station) {
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('反馈')">反馈</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('延期')">延期</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('待结案')">待结案</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('完结')">完结</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('失败')">调解失败</button>
                 </div>
                 <div class="table-responsive">
                     <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
@@ -139,902 +139,6 @@ function loadCaseManagementPage(station) {
         </div>
     `;
 
-    // 创建案件模态框容器
-    createCaseModalContainer();
-    // 创建案件详情模态框容器
-    createCaseDetailModalContainer();
-    // 创建案件历史记录模态框容器
-    createCaseHistoryModalContainer();
-    // 创建批量分派模态框
-    createBatchAssignModal();
-    // 创建批量退回法院时间模态框
-    createBatchReturnCourtTimeModal();
-    // 加载案件列表（默认第一页，状态为全部）
-    loadCases(1, 10, station);
-
-    // 修复BUG：切换驻点时按钮高亮重置为全部
-    setTimeout(() => {
-        document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
-        const allBtn = document.querySelector('.btn-group .btn[onclick="filterCases(\'all\')"]');
-        if (allBtn) allBtn.classList.add('active');
-    }, 0);
-}
-
-// 控制批量退回法院时间按钮显示
-function updateBatchReturnCourtTimeBtnVisibility() {
-    const btn = document.getElementById('batchReturnCourtTimeBtn');
-    if (!btn) return;
-    if (currentFilterStatus === '已完成' || currentFilterStatus === '完结') {
-        btn.style.display = '';
-    } else {
-        btn.style.display = 'none';
-    }
-}
-
-// 创建批量退回法院时间模态框
-function createBatchReturnCourtTimeModal() {
-    if (!document.getElementById('batchReturnCourtTimeModal')) {
-        const modalHtml = `
-        <div class="modal fade" id="batchReturnCourtTimeModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
-                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                        <h5 class="modal-title"><i class="fa fa-calendar text-warning me-2"></i>批量设置退回法院时间</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" style="background:#fafcff;">
-                        <div class="mb-3">
-                            <label class="form-label">请选择退回法院时间（精确到天）</label>
-                            <input type="date" id="batchReturnCourtTimeInput" class="form-control" required>
-                        </div>
-                        <div class="text-danger" id="batchReturnCourtTimeError" style="display:none;"></div>
-                    </div>
-                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-primary" onclick="submitBatchReturnCourtTime()" style="border-radius:4px;">批量写入</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-}
-
-/**
- * 显示批量退回法院时间弹窗
- */
-function showBatchReturnCourtTimeModal() {
-    const selectedCaseIds = getSelectedCaseIds();
-    if (!selectedCaseIds.length) {
-        alert('请先选择要批量设置退回法院时间的案件');
-        return;
-    }
-    // 清空上次输入和错误提示
-    document.getElementById('batchReturnCourtTimeInput').value = '';
-    document.getElementById('batchReturnCourtTimeError').style.display = 'none';
-    // 显示模态框
-    const modal = new bootstrap.Modal(document.getElementById('batchReturnCourtTimeModal'));
-    modal.show();
-}
-
-/**
- * 提交批量退回法院时间
- */
-async function submitBatchReturnCourtTime() {
-    const selectedCaseIds = getSelectedCaseIds();
-    const returnCourtTime = document.getElementById('batchReturnCourtTimeInput').value;
-    const errorDiv = document.getElementById('batchReturnCourtTimeError');
-    errorDiv.style.display = 'none';
-
-    if (!selectedCaseIds.length) {
-        errorDiv.textContent = '请选择要批量设置的案件';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    if (!returnCourtTime) {
-        errorDiv.textContent = '请选择退回法院时间';
-        errorDiv.style.display = 'block';
-        return;
-    }
-
-    try {
-        await request('/case/batch-update-return-court-time', 'POST', {
-            caseIds: selectedCaseIds,
-            returnCourtTime: returnCourtTime
-        });
-        // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(document.getElementById('batchReturnCourtTimeModal'));
-        modal.hide();
-        // 刷新列表
-        loadCases();
-        alert('批量退回法院时间设置成功');
-    } catch (e) {
-        errorDiv.textContent = '批量设置失败，请重试';
-        errorDiv.style.display = 'block';
-    }
-}
-
-/**
- * 创建批量分派模态框
- */
-function createBatchAssignModal() {
-    const modalHtml = `
-    <div class="modal fade" id="batchAssignModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">批量分派案件</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">选择负责人</label>
-                        <select class="form-select" id="batchReceiveUserId" required>
-                            <option value="">-- 请选择负责人 --</option>
-                            <!-- 这里通过JS动态加载用户列表 -->
-                        </select>
-                    </div>
-                    <div class="text-danger" id="batchAssignError" style="display: none;"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmBatchAssign()">确认分派</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-    // 添加到页面
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    // 加载可选用户列表（实际项目中从接口获取）
-    loadUsersForReceiveDropdown(true);
-}
-
-/**
- * 显示批量分派模态框
- */
-function showBatchAssignModal() {
-    const checkedBoxes = getSelectedCaseIds();
-
-    if (checkedBoxes.length === 0) {
-        alert('请选择要分派的案件');
-        return;
-    }
-    // 重置模态框状态
-    document.getElementById('batchAssignError').style.display = 'none';
-    // 显示模态框
-    new bootstrap.Modal(document.getElementById('batchAssignModal')).show();
-}
-
-/**
- * 确认批量分派
- */
-async function confirmBatchAssign() {
-    const userId = document.getElementById('batchReceiveUserId').value;
-    const checkedBoxes = getSelectedCaseIds();
-
-    if (!userId) {
-        document.getElementById('batchAssignError').textContent = '请选择负责人';
-        document.getElementById('batchAssignError').style.display = 'block';
-        return;
-    }
-
-    try {
-        await request(`/case/batch-assign`, 'POST', {
-            caseIds: checkedBoxes,
-            userId: userId
-        });
-        alert(`成功分派 ${checkedBoxes.length} 个案件`);
-        // 关闭模态框并刷新列表
-        bootstrap.Modal.getInstance(document.getElementById('batchAssignModal')).hide();
-        loadCases(); // 刷新案件列表
-        document.getElementById('selectAllCases').checked = false; // 取消全选
-    } catch (error) {
-        alert('批量分派失败: ' + (error.message || '未知错误'));
-    }
-}
-
-/**
- * 创建案件详情模态框容器
- */
-function createCaseDetailModalContainer() {
-    if (!document.getElementById('caseDetailModalContainer')) {
-        const container = document.createElement('div');
-        container.id = 'caseDetailModalContainer';
-        document.body.appendChild(container);
-    }
-}
-
-/**
- * 显示案件详情模态框（与my-cases.js中的实现相同，可以考虑抽取到common.js中复用）
- * @param {number} caseId 案件ID
- */
-async function showCaseDetailModal(caseId) {
-    try {
-        const caseInfo = await request(`/case/detail/${caseId}`);
-        const modalContainer = document.getElementById('caseDetailModalContainer');
-        const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleString() : '-';
-
-        const modalHtml = `
-        <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
-                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                        <h5 class="modal-title"><i class="fa fa-info-circle text-primary me-2"></i>案件详情</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" style="background:#fafcff;">
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2" style="display: none;">
-                                <span class="text-muted">案件ID：</span><span class="fw-bold">${caseInfo.caseId}</span>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案件号：</span><span class="fw-bold">${caseInfo.caseNumber || '-'}</span>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案由：</span>${caseInfo.caseName || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">标的额：</span>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案件归属地：</span>${caseInfo.caseLocation || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">法官：</span>${caseInfo.judge || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">收案时间：</span>${formatDate(caseInfo.courtReceiveTime)}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">退回法院时间：</span>${formatDate(caseInfo.returnCourtTime)}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">原告：</span>${caseInfo.plaintiffName || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">被告：</span>${caseInfo.defendantName || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案件助理：</span>${caseInfo.assistantName || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">关联案件包：</span>${caseInfo.taskName || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">状态：</span>${caseInfo.status || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">处理人：</span>${caseInfo.userName || '-'}
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-2">
-                            <span class="text-muted">反馈情况：</span>
-                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.preFeedback ? caseInfo.preFeedback.replace(/\n/g, '<br>') : '无'}</div>
-                        </div>
-                        <div class="mb-2">
-                            <span class="text-muted">退回情况：</span>
-                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.returnReason ? caseInfo.returnReason.replace(/\n/g, '<br>') : '无'}</div>
-                        </div>
-                        <div class="mb-2">
-                            <span class="text-muted">案件完成情况：</span>
-                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionNotes ? caseInfo.completionNotes.replace(/\n/g, '<br>') : '无'}</div>
-                        </div>
-                        <div class="mb-2">
-                            <span class="text-muted">完结备注：</span>
-                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionRemark ? caseInfo.completionRemark.replace(/\n/g, '<br>') : '无'}</div>
-                        </div>
-                    </div>
-                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
-        modalContainer.innerHTML = modalHtml;
-        const detailModal = new bootstrap.Modal(document.getElementById('caseDetailModal'));
-        detailModal.show();
-    } catch (error) {
-        console.error('获取案件详情失败:', error);
-        alert('获取案件详情失败');
-    }
-}
-
-/**
- * 创建案件模态框容器
- */
-function createCaseModalContainer() {
-    if (!document.getElementById('caseModalContainer')) {
-        const container = document.createElement('div');
-        container.id = 'caseModalContainer';
-        document.body.appendChild(container);
-    }
-}
-
-/**
- * 加载案件列表（支持分页）
- */
-async function loadCases(pageNum = 1, pageSize = 10, station) {
-    try {
-
-        // 使用当前选中的驻点或传入的驻点参数
-        const currentStationTemp = station || currentStation;
-        currentPage = pageNum;
-
-        // 发起分页查询请求
-        const caseName = document.getElementById('caseSearchInput').value.trim();
-        const caseNumber = document.getElementById('caseNumberSearchInput').value.trim();
-        const plaintiff = document.getElementById('plaintiffSearchInput').value.trim();
-        const defendant = document.getElementById('defendantSearchInput').value.trim();
-        const userName = document.getElementById('userNameSearchInput').value.trim();
-        const assistant = document.getElementById('assistantSearchInput').value.trim();
-        const courtReceiveTime = document.getElementById('receiveTimeSearchInput').value.trim();
-
-        const params = new URLSearchParams();
-        params.append('pageNum', pageNum);
-        params.append('pageSize', pageSize);
-        if (caseName) params.append('caseName', caseName);
-        if (caseNumber) params.append('caseNumber', caseNumber);
-        if (plaintiff) params.append('plaintiff', plaintiff);   // 原告参数
-        if (defendant) params.append('defendant', defendant); // 被告参数
-        if (userName) params.append('userName', userName); // 处理人参数
-        if (assistant) params.append('assistant', assistant); // 案件助理参数
-        if (courtReceiveTime) params.append('courtReceiveTime', courtReceiveTime);
-        if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
-        if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
-        if (currentSortField) {
-            params.append('sortField', currentSortField);
-            params.append('sortOrder', currentSortOrder);
-        }
-
-        const response = await request(`/case/page?${params.toString()}`);
-        // 渲染表格和分页组件
-        renderCaseTableHeader(); // 新增：每次加载数据时重建表头
-        renderCaseTable(response.records);
-        // 渲染分页组件（假设后端返回的分页信息包含total、pageNum、pageSize、pages等字段）
-        renderPagination({
-            total: response.total,      // 总记录数
-            pageNum: response.pageNum,  // 当前页码
-            pageSize: response.pageSize// 每页条数
-        });
-    } catch (error) {
-        document.getElementById('caseTableBody').innerHTML = `
-            <tr><td colspan="14" class="text-center text-danger">加载案件失败</td></tr>
-        `;
-        // 清除分页组件
-        document.getElementById('paginationContainer')?.remove();
-    }
-}
-
-async function importCasesFromExcel(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
-        // 校验数据量
-        if (rows.length - 1 > 5000) {
-            alert('单次导入数据不能超过5000条');
-            return;
-        }
-        const expected = ['案件号','案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额', '助理', '法官'];
-        if (rows[0].join() !== expected.join()) {
-            alert('Excel表头格式不正确');
-            return;
-        }
-        const caseList = [];
-        const dateRegFull = /^\d{4}\.\d{1,2}\.\d{1,2}$/; // 2025.8.15
-        const dateRegNoYear = /^\d{1,2}\.\d{1,2}$/;      // 8.15
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            // 校验字段缺失
-            if (!row || row.length < 9 || row.slice(1,7).some(cell => cell === undefined || cell === null || cell === '')
-            ) {
-                alert(`第${i+1}行存在字段缺失`);
-                return;
-            }
-            // 校验日期格式
-            const dateStr = row[2] + '';
-            if (!dateRegFull.test(dateStr) && !dateRegNoYear.test(dateStr)) {
-                alert(`第${i+1}行法院收案时间格式错误，需为2025.8.15或8.15`);
-                return;
-            }
-            caseList.push({
-                caseNumber: row[0],
-                caseLocation: row[1],
-                courtReceiveTime: row[2],
-                plaintiffName: row[3],
-                defendantName: row[4],
-                caseName: row[5],
-                amount: parseFloat(row[6]) || 0 ,
-                assistantName: row[7],
-                judge: row[8]
-            });
-        }
-        try {
-            await request('/case/import-excel', 'POST', caseList);
-            alert('导入成功');
-            loadCases();
-        } catch (e) {
-            alert('导入失败');
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-/**
- * 渲染分页组件
- * @param {Object} pageInfo 分页信息对象，包含total、pageNum、pageSize、pages等
- */
-function renderPagination(pageInfo) {
-    const { total, pageNum, pageSize } = pageInfo;
-    const pages= Math.ceil(total / pageSize);
-    if (pages <= 1) {
-        // 只有一页时不显示分页
-        const paginationContainer = document.getElementById('paginationContainer');
-        if (paginationContainer) {
-            paginationContainer.innerHTML = `
-                <div class="d-flex justify-content-center mt-2 text-secondary">
-                    共 ${total} 条记录
-                </div>
-            `;
-        }
-        return;
-    }
-
-    // 创建分页容器（如果不存在）
-    let paginationContainer = document.getElementById('paginationContainer');
-    if (!paginationContainer) {
-        paginationContainer = document.createElement('div');
-        paginationContainer.id = 'paginationContainer';
-        paginationContainer.className = 'd-flex justify-content-center mt-4';
-        // 插入到表格下方
-        document.querySelector('.table-responsive').after(paginationContainer);
-    }
-
-    // 计算显示的页码范围
-    let startPage = Math.max(1, pageNum - 2);
-    let endPage = Math.min(pages, startPage + 4);
-
-    // 调整页码范围，确保显示5个页码
-    if (endPage - startPage < 4) {
-        startPage = Math.max(1, endPage - 4);
-    }
-
-    let paginationHtml = `
-    <div class="d-flex justify-content-center mb-2 text-secondary">
-        共 ${total} 条记录，当前第 ${pageNum}/${pages} 页
-    </div>
-    <nav aria-label="案件列表分页">
-        <ul class="pagination">
-            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-            </li>
-    `;
-
-
-
-    // 添加第一页按钮（当当前页不在前5页时）
-    if (startPage > 1) {
-        paginationHtml += `
-            <li class="page-item"><a class="page-link" href="#" onclick="loadCases(1, ${pageSize})">1</a></li>
-            ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
-        `;
-    }
-
-    // 添加中间页码
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHtml += `
-            <li class="page-item ${i === pageNum ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="loadCases(${i}, ${pageSize})">${i}</a>
-            </li>
-        `;
-    }
-
-    // 添加最后一页按钮（当当前页不在后5页时）
-    if (endPage < pages) {
-        paginationHtml += `
-            ${endPage < pages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
-            <li class="page-item"><a class="page-link" href="#" onclick="loadCases(${pages}, ${pageSize})">${pages}</a></li>
-        `;
-    }
-
-    // 下一页按钮
-    paginationHtml += `
-            <li class="page-item ${pageNum === pages ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadCases(${pageNum + 1}, ${pageSize})" aria-label="下一页">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
-    `;
-
-    paginationContainer.innerHTML = paginationHtml;
-}
-
-/**
- * 根据状态筛选案件（支持分页）
- */
-async function filterCases(status, pageNum = 1, pageSize = 10) {
-    try {
-        const allButtons = document.querySelectorAll('.btn-group .btn.btn-outline-primary');
-        allButtons.forEach(button => {
-            button.classList.remove('active');
-        });
-
-        const currentButton = document.querySelector(`.btn-group .btn[onclick="filterCases('${status}')"]`);
-        if (currentButton) {
-            currentButton.classList.add('active');
-        }
-
-        currentPage = pageNum;
-        currentFilterStatus = status;
-        updateBatchReturnCourtTimeBtnVisibility();
-
-        renderCaseTableHeader(); // 新增：切换状态时重建表头
-        loadCases(currentPage, pageSize, currentStation);
-
-        // 更新按钮样式（保持不变）
-        document.querySelectorAll('.btn-group .btn').forEach(btn => {
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-outline-primary');
-        });
-    } catch (error) {
-        console.error('筛选失败:', error);
-        document.getElementById('paginationContainer')?.remove();
-    }
-}
-
-// 页面加载完成后初始化全选功能
-document.addEventListener('DOMContentLoaded', function() {
-    // 为全选复选框添加事件监听
-    const selectAllCheckbox = document.getElementById('selectAllCases');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', handleSelectAllChange);
-    }
-});
-
-// 处理全选复选框变化事件
-function handleSelectAllChange() {
-    const selectAllCheckbox = document.getElementById('selectAllCases');
-    // 获取所有行复选框
-    const caseCheckboxes = document.querySelectorAll('.case-checkbox');
-
-    // 同步所有行复选框状态与全选框一致
-    caseCheckboxes.forEach(checkbox => {
-        checkbox.checked = selectAllCheckbox.checked;
-    });
-}
-
-/**
- * 渲染案件表格
- * @param {Array} cases 案件数组
- */
-function renderCaseTable(cases) {
-    const tableBody = document.getElementById('caseTableBody');
-    if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="13" class="text-center">没有找到案件数据</td></tr>`;
-        return;
-    }
-    let html = '';
-    cases.forEach(caseInfo => {
-        // 状态样式类
-        let statusClass = '';
-        switch (caseInfo.status) {
-            case '待领取':
-                statusClass = 'status-pending-receive';
-                break;
-            case '已领取':
-                statusClass = 'status-received';
-                break;
-            case '反馈':
-                statusClass = 'status-pre-feedback';
-                break;
-            case '延期':
-                statusClass = 'status-delayed';
-                break;
-            case '已完成':
-                statusClass = 'status-completed';
-                break;
-            case '退回':
-                statusClass = 'status-returned';
-                break;
-            case '完结':
-                statusClass = 'text-success'; // 绿色表示完结
-                break;
-        }
-
-        html += `
-        <tr>
-            <td><input type="checkbox" class="case-checkbox" value="${caseInfo.caseId}"></td>
-            <td>${caseInfo.caseNumber}</td>
-            <td>${caseInfo.caseName}</td>
-            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
-            <td>${caseInfo.caseLocation || '-'}</td>
-            <td>${caseInfo.plaintiffName || '-'}</td>
-            <td>${caseInfo.defendantName || '-'}</td>
-            <td>${caseInfo.judge || '-'}</td>
-            <td>${caseInfo.assistantName || '-'}</td>
-            <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
-            ${
-                (currentFilterStatus === '已完成' || currentFilterStatus === '完结')
-                ? `<td>${caseInfo.returnCourtTime ? caseInfo.returnCourtTime.split(' ')[0] : '-'}</td>`
-                : ''
-            }
-            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
-            <td>${caseInfo.username || '-'}</td>
-            <td>
-                <div class="d-flex flex-column gap-2">
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-info dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="detail" data-case-id="${caseInfo.caseId}">
-                      案件详情
-                    </button>
-                    <ul class="dropdown-menu" style="display:none;">
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseDetailModal(${caseInfo.caseId})">
-                          <i class="fa fa-eye"></i> 详情
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
-                          <i class="fa fa-history"></i> 历史流转记录
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">
-                      案件操作
-                    </button>
-                    <ul class="dropdown-menu" style="display:none;">
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-edit"></i> 编辑
-                        </a>
-                      </li>
-                      ${(App.user.roleType === '管理员' && App.user.station === '总部') ? `
-                      <li>
-                        <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})">
-                          <i class="fa fa-trash"></i> 删除
-                        </a>
-                      </li>
-                      ` : ''}
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-handshake-o"></i> 分派案件
-                        </a>
-                      </li>
-                      ${caseInfo.status === '已领取' ? `
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="completeCase(${caseInfo.caseId})">
-                          <i class="fa fa-check"></i> 完成
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="returnCase(${caseInfo.caseId})">
-                          <i class="fa fa-undo"></i> 退回
-                        </a>
-                      </li>
-                      ` : ''}
-                      ${(caseInfo.status !== '完结' && caseInfo.status !== '待领取') ? `
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showFinishCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-flag-checkered"></i> 完结
-                        </a>
-                      </li>
-                      ` : ''}
-                    </ul>
-                  </div>
-                </div>
-            </td>
-        </tr>
-        `;
-    });
-    tableBody.innerHTML = html;
-    // 重新绑定全选事件（因为表格内容已刷新）
-    const selectAllCheckbox = document.getElementById('selectAllCases');
-    if (selectAllCheckbox) {
-        // 先移除可能存在的旧事件监听
-        selectAllCheckbox.removeEventListener('change', handleSelectAllChange);
-        // 添加新的事件监听
-        selectAllCheckbox.addEventListener('change', handleSelectAllChange);
-    }
-    bindFixedDropdownMenus();
-}
-
-
-// === 新增：动态渲染表头函数 ===
-function renderCaseTableHeader() {
-    const thead = document.querySelector('.ant-table-thead');
-    if (!thead) return;
-    let headerHtml = `
-        <tr>
-            <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases"></th>
-            <th style="white-space:nowrap;">案件号</th>
-            <th style="white-space:nowrap;">案由</th>
-            <th style="white-space:nowrap;">标的额</th>
-            <th style="white-space:nowrap;" title="案件归属地">归属地</th>
-            <th style="white-space:nowrap;">原告</th>
-            <th style="white-space:nowrap;">被告</th>
-            <th style="white-space:nowrap;">法官</th>
-            <th style="white-space:nowrap;">案件助理</th>
-            <th style="white-space:nowrap;">
-                领取时间
-                <span class="sort-btn" onclick="toggleSort('receiveTime')">
-                    <i class="fa fa-sort${currentSortField==='receiveTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
-                </span>
-            </th>
-            ${
-                (currentFilterStatus === '已完成' || currentFilterStatus === '完结')
-                ? `<th style="white-space:nowrap;">
-                    退法院时间
-                    <span class="sort-btn" onclick="toggleSort('returnCourtTime')">
-                        <i class="fa fa-sort${currentSortField==='returnCourtTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
-                    </span>
-                </th>`
-                : ''
-            }
-            <th style="white-space:nowrap;">状态</th>
-            <th style="white-space:nowrap;">处理人</th>
-            <th style="white-space:nowrap;">操作</th>
-        </tr>
-    `;
-    thead.innerHTML = headerHtml;
-    // 重新绑定全选事件
-    const selectAllCheckbox = document.getElementById('selectAllCases');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.removeEventListener('change', handleSelectAllChange);
-        selectAllCheckbox.addEventListener('change', handleSelectAllChange);
-    }
-}
-
-// === 修改：loadCaseManagementPage，去掉thead内容，初次渲染后调用 renderCaseTableHeader ===
-function loadCaseManagementPage(station) {
-
-    // 记录当前选中的驻点
-    currentStation = station;
-
-    // 修复BUG：切换驻点时重置状态筛选为全部
-    currentFilterStatus = 'all';
-
-    setActiveNav('案件管理');
-    const mainContent = document.getElementById('mainContent');
-    mainContent.innerHTML = `
-        <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
-            <div class="ant-card-body">
-                <div class="row g-3 align-items-center">
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
-                                <i class="fa fa-book text-secondary"></i>
-                            </span>
-                            <input type="text" id="caseSearchInput" class="form-control ant-input" placeholder="案由" style="border-radius:0 4px 4px 0;">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
-                                <i class="fa fa-hashtag text-secondary"></i>
-                            </span>
-                            <input type="text" id="caseNumberSearchInput" class="form-control ant-input" placeholder="案号" style="border-radius:0 4px 4px 0;">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
-                                <i class="fa fa-user text-secondary"></i>
-                            </span>
-                            <input type="text" id="plaintiffSearchInput" class="form-control ant-input" placeholder="原告" style="border-radius:0 4px 4px 0;">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
-                                <i class="fa fa-user-o text-secondary"></i>
-                            </span>
-                            <input type="text" id="defendantSearchInput" class="form-control ant-input" placeholder="被告" style="border-radius:0 4px 4px 0;">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
-                                <i class="fa fa-user text-secondary"></i>
-                            </span>
-                            <input type="text" id="userNameSearchInput" class="form-control ant-input" placeholder="处理人" style="border-radius:0 4px 4px 0;">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
-                                <i class="fa fa-user-plus text-secondary"></i>
-                            </span>
-                            <input type="text" id="assistantSearchInput" class="form-control ant-input" placeholder="助理" style="border-radius:0 4px 4px 0;">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
-                                <i class="fa fa-calendar text-secondary"></i>
-                            </span>
-                            <input type="date" id="receiveTimeSearchInput" class="form-control ant-input" style="border-radius:0 4px 4px 0;">
-                        </div>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="loadCases()">
-                            <i class="fa fa-search me-1"></i> 查询
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="ant-card ant-card-bordered mb-3" style="border-radius:8px;">
-            <div class="ant-card-body">
-                <div class="d-flex justify-content-end gap-2 mb-2">
-                    <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display:none" onchange="importCasesFromExcel(event)">
-                    <button class="ant-btn" onclick="document.getElementById('excelFileInput').click()">
-                        <i class="fa fa-upload me-1"></i> 导入Excel
-                    </button>
-                    <button class="ant-btn" onclick="exportCases()">
-                        <i class="fa fa-download me-1"></i> 导出案件
-                    </button>
-                    <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddCaseModal()">
-                        <i class="fa fa-plus me-1"></i> 新增案件
-                    </button>
-                    <button class="ant-btn ant-btn-primary" onclick="showBatchAssignModal()">
-                        <i class="fa fa-users"></i> 批量分派
-                    </button>
-                    <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showBatchAssignTaskModal()">
-                        <i class="fa fa-plus me-1"></i> 批量关联案件包
-                    </button>
-                    <button class="ant-btn ant-btn-warning" id="batchReturnCourtTimeBtn" style="display:none;" onclick="showBatchReturnCourtTimeModal()">
-                        <i class="fa fa-calendar"></i> 批量退回法院时间
-                    </button>
-                </div>
-                <div class="btn-group mb-2" role="group">
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('all')">全部</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('待领取')">待领取</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('已领取')">已领取</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('反馈')">反馈</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('延期')">延期</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('已完成')">已完成</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('完结')">完结</button>
-                </div>
-                <div class="table-responsive">
-                    <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
-                        <thead class="ant-table-thead table-light"></thead>
-                        <tbody id="caseTableBody">
-                            <tr>
-                                <td colspan="13" class="text-center">加载中...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
-    
     // 创建案件模态框容器
     createCaseModalContainer();
     // 创建案件详情模态框容器
@@ -1062,7 +166,7 @@ function loadCaseManagementPage(station) {
 function updateBatchReturnCourtTimeBtnVisibility() {
     const btn = document.getElementById('batchReturnCourtTimeBtn');
     if (!btn) return;
-    if (currentFilterStatus === '已完成' || currentFilterStatus === '完结') {
+    if (currentFilterStatus === '待结案' || currentFilterStatus === '调解失败') {
         btn.style.display = '';
     } else {
         btn.style.display = 'none';
@@ -1254,7 +358,7 @@ async function showCaseDetailModal(caseId) {
         const modalContainer = document.getElementById('caseDetailModalContainer');
         const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleString() : '-';
 
-        const modalHtml = `
+        modalContainer.innerHTML = `
         <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
@@ -1345,7 +449,6 @@ async function showCaseDetailModal(caseId) {
             </div>
         </div>
         `;
-        modalContainer.innerHTML = modalHtml;
         const detailModal = new bootstrap.Modal(document.getElementById('caseDetailModal'));
         detailModal.show();
     } catch (error) {
@@ -1412,6 +515,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
             pageSize: response.pageSize// 每页条数
         });
     } catch (error) {
+        console.log("error2", error);
         document.getElementById('caseTableBody').innerHTML = `
             <tr><td colspan="14" class="text-center text-danger">加载案件失败</td></tr>
         `;
@@ -1637,8 +741,8 @@ function renderCaseTable(cases) {
     }
     let html = '';
     cases.forEach(caseInfo => {
-        // 状态样式类
         let statusClass = '';
+        let statusText = caseInfo.status;
         switch (caseInfo.status) {
             case '待领取':
                 statusClass = 'status-pending-receive';
@@ -1652,17 +756,19 @@ function renderCaseTable(cases) {
             case '延期':
                 statusClass = 'status-delayed';
                 break;
-            case '已完成':
+            case '待结案':
                 statusClass = 'status-completed';
+                statusText = '待结案';
                 break;
             case '退回':
                 statusClass = 'status-returned';
                 break;
-            case '完结':
-                statusClass = 'text-success'; // 绿色表示完结
+            case '失败':
+                statusClass = 'status-failed'; // 统一样式
+                statusText = '调解失败';
                 break;
         }
-        
+
         html += `
         <tr>
             <td><input type="checkbox" class="case-checkbox" value="${caseInfo.caseId}"></td>
@@ -1676,11 +782,11 @@ function renderCaseTable(cases) {
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
             ${
-                (currentFilterStatus === '已完成' || currentFilterStatus === '完结')
+                (currentFilterStatus === '待结案' || currentFilterStatus === '调解失败')
                 ? `<td>${caseInfo.returnCourtTime ? caseInfo.returnCourtTime.split(' ')[0] : '-'}</td>`
                 : ''
             }
-            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>
                 <div class="d-flex flex-column gap-2">
@@ -1726,7 +832,7 @@ function renderCaseTable(cases) {
                       ${caseInfo.status === '已领取' ? `
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="completeCase(${caseInfo.caseId})">
-                          <i class="fa fa-check"></i> 完成
+                          <i class="fa fa-check"></i> 提交结案审核
                         </a>
                       </li>
                       <li>
@@ -1735,10 +841,10 @@ function renderCaseTable(cases) {
                         </a>
                       </li>
                       ` : ''}
-                      ${(caseInfo.status !== '完结' && caseInfo.status !== '待领取') ? `
+                      ${(caseInfo.status !== '失败' && caseInfo.status !== '待领取') ? `
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showFinishCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-flag-checkered"></i> 完结
+                          <i class="fa fa-flag-checkered"></i> 调解失败
                         </a>
                       </li>
                       ` : ''}
@@ -1760,6 +866,52 @@ function renderCaseTable(cases) {
     }
     bindFixedDropdownMenus();
 }
+
+
+// === 新增：动态渲染表头函数 ===
+function renderCaseTableHeader() {
+    const thead = document.querySelector('.ant-table-thead');
+    if (!thead) return;
+    thead.innerHTML = `
+        <tr>
+            <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases"></th>
+            <th style="white-space:nowrap;">案件号</th>
+            <th style="white-space:nowrap;">案由</th>
+            <th style="white-space:nowrap;">标的额</th>
+            <th style="white-space:nowrap;" title="案件归属地">归属地</th>
+            <th style="white-space:nowrap;">原告</th>
+            <th style="white-space:nowrap;">被告</th>
+            <th style="white-space:nowrap;">法官</th>
+            <th style="white-space:nowrap;">案件助理</th>
+            <th style="white-space:nowrap;">
+                领取时间
+                <span class="sort-btn" onclick="toggleSort('receiveTime')">
+                    <i class="fa fa-sort${currentSortField==='receiveTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
+                </span>
+            </th>
+            ${
+                (currentFilterStatus === '待结案' || currentFilterStatus === '调解失败')
+                ? `<th style="white-space:nowrap;">
+                    退法院时间
+                    <span class="sort-btn" onclick="toggleSort('returnCourtTime')">
+                        <i class="fa fa-sort${currentSortField==='returnCourtTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
+                    </span>
+                </th>`
+                : ''
+            }
+            <th style="white-space:nowrap;">状态</th>
+            <th style="white-space:nowrap;">处理人</th>
+            <th style="white-space:nowrap;">操作</th>
+        </tr>
+    `;
+    // 重新绑定全选事件
+    const selectAllCheckbox = document.getElementById('selectAllCases');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.removeEventListener('change', handleSelectAllChange);
+        selectAllCheckbox.addEventListener('change', handleSelectAllChange);
+    }
+}
+
 
 
 /**
@@ -1834,28 +986,15 @@ function bindFixedDropdownMenus() {
     });
 }
 
-// 4. 添加完结案件的模态框函数
-// 创建完结案件模态框容器
-function createFinishCaseModalContainer() {
-    if (!document.getElementById('finishCaseModalContainer')) {
-        const container = document.createElement('div');
-        container.id = 'finishCaseModalContainer';
-        document.body.appendChild(container);
-    }
-}
-
 // 显示完结案件模态框
 function showFinishCaseModal(caseId) {
-    createFinishCaseModalContainer(); // 确保容器存在
-    const modalContainer = document.getElementById('finishCaseModalContainer');
-
-    // 模态框HTML（antd风格）
+    // 创建完结案件模态框（antd风格）
     const modalHtml = `
     <div class="modal fade" id="finishCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
                 <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                    <h5 class="modal-title"><i class="fa fa-flag-checkered text-primary me-2"></i>案件完结确认</h5>
+                    <h5 class="modal-title"><i class="fa fa-flag-checkered text-primary me-2"></i>调解失败确认</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background:#fafcff;">
@@ -1872,16 +1011,26 @@ function showFinishCaseModal(caseId) {
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmFinishCase()" style="border-radius:4px;">确认完结</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmFinishCase()" style="border-radius:4px;">确认调解失败</button>
                 </div>
             </div>
         </div>
     </div>
     `;
 
-    modalContainer.innerHTML = modalHtml;
+    // 添加到页面
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = modalHtml;
+    document.body.appendChild(tempContainer);
+
+    // 显示模态框
     const finishModal = new bootstrap.Modal(document.getElementById('finishCaseModal'));
     finishModal.show();
+
+    // 模态框关闭后移除
+    document.getElementById('finishCaseModal').addEventListener('hidden.bs.modal', function() {
+        tempContainer.remove();
+    });
 }
 
 // 5. 添加确认完结的函数
@@ -1897,7 +1046,7 @@ async function confirmFinishCase() {
     try {
         await request('/case/complete', 'POST', {
             caseId:caseId,
-            status: '完结',
+            status: '失败',
             completionRemark:completionRemark
         });
         // 关闭模态框
@@ -1905,7 +1054,7 @@ async function confirmFinishCase() {
         modal.hide();
         // 重新加载案件列表
         loadCases();
-        alert('案件已成功完结');
+        alert('案件已标记为调解失败');
     } catch (error) {
         console.error('完结案件失败:', error);
         alert('完结案件失败');
@@ -2033,103 +1182,6 @@ async function submitBatchTaskAssignment() {
 }
 
 
-// 添加关联案件包模态框
-function createAssignTaskModal() {
-    const modalContainer = document.getElementById('caseModalContainer');
-
-    if (!document.getElementById('assignTaskModal')) {
-        const modalHtml = `
-        <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">关联案件包</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="assignTaskForm">
-                            <input type="hidden" id="assignCaseId">
-                            <div class="form-group">
-                                <label for="taskSelect">选择案件包</label>
-                                <select id="taskSelect" class="form-control" required>
-                                    <option value="">-- 请选择案件包 --</option>
-                                    <option value="0">取消关联</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-primary" onclick="submitTaskAssignment()">提交</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
-
-        modalContainer.innerHTML += modalHtml;
-    }
-}
-
-// 显示关联案件包模态框
-async function showAssignTaskModal(caseId, currentTaskId) {
-    createAssignTaskModal();
-
-    // 保存当前案件ID
-    document.getElementById('assignCaseId').value = caseId;
-
-    try {
-        // 获取所有案件包
-        const tasks = await request('/task');
-        const taskSelect = document.getElementById('taskSelect');
-
-        // 清空现有选项（保留第一个）
-        while (taskSelect.options.length > 1) {
-            taskSelect.remove(1);
-        }
-
-        // 添加案件包选项
-        tasks.forEach(task => {
-            const option = document.createElement('option');
-            option.value = task.taskId;
-            option.textContent = task.taskName;
-            if (currentTaskId && task.taskId === currentTaskId) {
-                option.selected = true;
-            }
-            taskSelect.appendChild(option);
-        });
-
-        // 显示模态框
-        const modal = new bootstrap.Modal(document.getElementById('assignTaskModal'));
-        modal.show();
-    } catch (error) {
-        alert('加载案件包失败');
-    }
-}
-
-// 提交案件包关联
-async function submitTaskAssignment() {
-    const caseId = document.getElementById('assignCaseId').value;
-    const taskId = document.getElementById('taskSelect').value;
-
-    try {
-        await request('/case/update-task', 'POST', {
-            caseId: parseInt(caseId),
-            taskId: taskId === '0' ? null : parseInt(taskId)
-        });
-
-        // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
-        modal.hide();
-
-        // 重新加载案件列表
-        loadCases();
-
-        alert('关联成功');
-    } catch (error) {
-        alert('关联失败');
-    }
-}
 
 /**
  * 加载任务列表（用于案件关联）
@@ -2224,7 +1276,7 @@ function createCaseModal(taskOptions, assistantOptions) {
                                     <option value="反馈">反馈</option>
                                     <option value="退回">退回</option>
                                     <option value="延期">延期</option>
-                                    <option value="已完成">已完成</option>
+                                    <option value="待结案">待结案</option>
                                 </select>
                             </div>
                         </form>
@@ -2553,47 +1605,25 @@ async function confirmAssignCase() {
     }
 }
 
-/**
- * 发布案件（状态从待发布变为待领取）
- * @param {number} caseId 案件ID
- */
-async function publishCase(caseId) {
-    if (!confirm('确定要发布这个案件吗？发布后状态将变为"待领取"')) {
-        return;
-    }
-    
-    try {
-        await request('/case/update-status', 'POST', {
-            caseId: caseId,
-            status: '待领取'
-        });
-        
-        // 重新加载案件列表
-        loadCases();
-        alert('案件发布成功');
-    } catch (error) {
-        // 错误处理已在request函数中完成
-    }
-}
 
 /**
- * 完成案件（状态从已领取变为已完成）
+ * 完成案件（状态从已领取变为待结案）
  * @param {number} caseId 案件ID
  */
 async function completeCase(caseId) {
-    if (!confirm('确定要标记这个案件为已完成吗？')) {
+    if (!confirm('确定要标记这个案件为待结案吗？')) {
         return;
     }
     
     try {
         await request('/case/update-status', 'POST', {
             caseId: caseId,
-            status: '已完成'
+            status: '待结案'
         });
         
         // 重新加载案件列表
         loadCases();
-        alert('案件已标记为已完成');
+        alert('案件已标记为待结案');
     } catch (error) {
         // 错误处理已在request函数中完成
     }
@@ -2668,7 +1698,7 @@ async function showCaseHistoryModal(caseId) {
             historyHtml = `<div class="text-center text-muted">暂无流转记录</div>`;
         }
 
-        const modalHtml = `
+        modalContainer.innerHTML = `
         <div class="modal fade" id="caseHistoryModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
@@ -2686,7 +1716,6 @@ async function showCaseHistoryModal(caseId) {
             </div>
         </div>
         `;
-        modalContainer.innerHTML = modalHtml;
         const historyModal = new bootstrap.Modal(document.getElementById('caseHistoryModal'));
         historyModal.show();
     } catch (error) {
@@ -2738,4 +1767,3 @@ async function exportCases() {
         alert('导出失败，请重试');
     }
 }
-
