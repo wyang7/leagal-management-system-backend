@@ -108,4 +108,9 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * @return 成功更新的数量
      */
     int batchUpdateReturnCourtTime(List<Long> caseIds, String returnCourtTime);
+
+    /**
+     * 写入案件操作历史
+     */
+    void addCaseHistory(Long caseId, String action, String afterStatus, String remarks, Long operatorId);
 }

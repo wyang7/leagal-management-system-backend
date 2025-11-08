@@ -645,11 +645,17 @@ public class CaseInfoController {
      * 更新案件状态
      */
     @PostMapping("/update-status")
-    public Result<?> updateCaseStatus(@RequestBody Map<String, Object> params) {
+    public Result<?> updateCaseStatus(@RequestBody Map<String, Object> params, HttpSession session) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String status = params.get("status").toString();
-        
+        String remark = params.getOrDefault("remark", "").toString();
         boolean success = caseInfoService.updateCaseStatus(caseId, status);
+        // 写入案件操作历史
+        if (success && "结案".equals(status)) {
+            UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+            Long operatorId = currentUser != null ? currentUser.getUserId() : null;
+            caseInfoService.addCaseHistory(caseId, "结案", status, remark, operatorId);
+        }
         return success ? Result.success() : Result.fail("更新案件状态失败");
     }
 

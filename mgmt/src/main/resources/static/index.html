@@ -67,6 +67,14 @@
             font-weight: 500;
             display: inline-block;
         }
+        .status-closed {
+            background: #bae7ff;
+            color: #0050b3;
+            border-radius: 4px;
+            padding: 5px 12px;
+            font-weight: 500;
+            display: inline-block;
+        }
 
         .text-success {
             color: #10b981; /* 清新的绿色（比默认Bootstrap绿色稍浅，更柔和） */
@@ -261,7 +269,7 @@
 <script src="task-management.js"></script>
 <script src="task-receive.js"></script>
 <script src="my-cases.js"></script>
-<script src="assistant-cases.js"></script>
+<!--<script src="assistant-cases.js"></script>-->
 <script>
     // 页面加载时检查登录状态并获取用户信息
     window.onload = function() {
@@ -402,14 +410,6 @@
                 </li>
             `;
             }
-        }else if (isAssistant){
-             navHtml += `
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadAssistantCasesPage()">
-                    <i class="fa fa-inbox me-2"></i>助理案件跟踪
-                </a>
-            </li>
-            `;
         }else if (null!=isSystemAdmin && (!isSystemAdmin)){
              navHtml += `
             <li class="nav-item">

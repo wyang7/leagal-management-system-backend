@@ -124,6 +124,7 @@ function loadCaseManagementPage(station) {
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('待结案')">待结案</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('失败')">调解失败</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('结案')">结案</button>
                 </div>
                 <div class="table-responsive">
                     <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
@@ -767,6 +768,10 @@ function renderCaseTable(cases) {
                 statusClass = 'status-failed'; // 统一样式
                 statusText = '调解失败';
                 break;
+            case '结案':
+                statusClass = 'status-closed';
+                statusText = '结案';
+                break;
         }
 
         html += `
@@ -829,15 +834,10 @@ function renderCaseTable(cases) {
                           <i class="fa fa-handshake-o"></i> 分派案件
                         </a>
                       </li>
-                      ${caseInfo.status === '已领取' ? `
+                      ${caseInfo.status === '待结案' ? `
                       <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="completeCase(${caseInfo.caseId})">
-                          <i class="fa fa-check"></i> 提交结案审核
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="returnCase(${caseInfo.caseId})">
-                          <i class="fa fa-undo"></i> 退回
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="closeCase(${caseInfo.caseId})">
+                          <i class="fa fa-check"></i> 结案
                         </a>
                       </li>
                       ` : ''}
@@ -1767,3 +1767,69 @@ async function exportCases() {
         alert('导出失败，请重试');
     }
 }
+
+// 新增结案操作弹窗
+function showCloseCaseModal(caseId) {
+    const modalHtml = `
+    <div class="modal fade" id="closeCaseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-check text-primary me-2"></i>结案确认</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <input type="hidden" id="closeCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">结案备注</label>
+                        <textarea id="closeCaseRemark" class="form-control" rows="3" placeholder="请输入结案备注"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmCloseCase()" style="border-radius:4px;">确认结案</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = modalHtml;
+    document.body.appendChild(tempContainer);
+    const closeModal = new bootstrap.Modal(document.getElementById('closeCaseModal'));
+    closeModal.show();
+    document.getElementById('closeCaseModal').addEventListener('hidden.bs.modal', function() {
+        tempContainer.remove();
+    });
+}
+
+// 修改结案操作入口为弹窗
+function closeCase(caseId) {
+    showCloseCaseModal(caseId);
+}
+
+// 确认结案操作
+async function confirmCloseCase() {
+    const caseId = document.getElementById('closeCaseId').value;
+    const remark = document.getElementById('closeCaseRemark').value.trim();
+    if (!remark) {
+        alert('请填写结案备注');
+        return;
+    }
+    try {
+        await request('/case/update-status', 'POST', {
+            caseId: caseId,
+            status: '结案',
+            remark: remark
+        });
+        // 写入案件操作历史（可选：后端自动记录）
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('closeCaseModal'));
+        modal.hide();
+        loadCases();
+        alert('案件已结案');
+    } catch (error) {
+        alert('结案操作失败');
+    }
+}
+

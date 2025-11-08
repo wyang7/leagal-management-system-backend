@@ -7,6 +7,7 @@ import com.example.managementsystem.entity.User;
 import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.IUserService;
 import org.apache.ibatis.annotations.Param;
 import org.apache.poi.util.StringUtil;
@@ -32,6 +33,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
     @Autowired
     private IUserService userService;
+    @Autowired
+    private ICaseFlowHistoryService caseFlowHistoryService;
 
 
     @Override
@@ -90,7 +93,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     public boolean updateCaseStatus(Long caseId, String status) {
         // 验证状态是否合法
         if ( !"待领取".equals(status) &&
-            !"已领取".equals(status) && !"待结案".equals(status)) {
+            !"已领取".equals(status) && !"待结案".equals(status) && !"结案".equals(status)) {
             return false;
         }
         CaseInfo caseInfo = new CaseInfo();
@@ -289,6 +292,26 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         queryWrapper.in("case_id", caseIds)
             .in("status", Arrays.asList("待结案", "失败")); // 只允许待结案和失败状态批量写入
         return baseMapper.update(caseInfo, queryWrapper);
+    }
+
+    @Override
+    public void addCaseHistory(Long caseId, String action, String afterStatus, String remarks, Long operatorId) {
+        CaseInfo caseInfo = getById(caseId);
+        String beforeStatus = caseInfo != null ? caseInfo.getStatus() : null;
+        String operatorName = null;
+        if (operatorId != null) {
+            User user = userService.getById(operatorId);
+            operatorName = user != null ? user.getUsername() : null;
+        }
+        caseFlowHistoryService.saveHistory(
+            caseId,
+            operatorId,
+            operatorName,
+            action,
+            beforeStatus,
+            afterStatus,
+            remarks
+        );
     }
 
 }
