@@ -34,8 +34,8 @@ public class CaseAutoReturnTask {
                 String beforeStatus = caseInfo.getStatus();
                 caseInfo.setStatus("退回");
                 String reason = daysSinceReceived >= 15
-                        ? "系统自动退回：超过15天未操作（当前状态：反馈）"
-                        : "系统自动退回：超过3天未操作（当前状态：已领取）";
+                        ? "系统自动退回：领取案件超过15天未操作（当前状态：反馈）"
+                        : "系统自动退回：领取案件超过3天未操作（当前状态：已领取）";
                 caseInfo.setReturnReason(reason);
                 caseInfoService.updateById(caseInfo);
 

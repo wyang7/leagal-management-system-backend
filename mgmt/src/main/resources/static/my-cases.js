@@ -454,6 +454,7 @@ function renderMyCaseTable(cases) {
         return;
     }
     let html = '';
+    const now = new Date();
     cases.forEach((caseInfo, idx) => {
         // 状态样式类
         let statusClass = '';
@@ -481,6 +482,28 @@ function renderMyCaseTable(cases) {
                 break;
         }
 
+        // 自动退回提醒逻辑
+        let remindHtml = '';
+        if (caseInfo.receiveTime) {
+            const receiveDate = new Date(caseInfo.receiveTime);
+            const daysSinceReceived = Math.floor((now - receiveDate) / (1000 * 60 * 60 * 24));
+            // 自行领取
+            if (caseInfo.receiveType === 'self_receive') {
+                if (caseInfo.status === '已领取' && daysSinceReceived >= 0 && daysSinceReceived > 0 && daysSinceReceived <= 3) {
+                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
+                }
+                if (caseInfo.status === '反馈' && daysSinceReceived >= 12 && daysSinceReceived <= 15) {
+                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
+                }
+            }
+            // 被分派
+            if (caseInfo.receiveType === 'assign' && (caseInfo.status === '已领取' || caseInfo.status === '反馈')) {
+                if (daysSinceReceived >= 7 && daysSinceReceived <= 10) {
+                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
+                }
+            }
+        }
+
         html += `
         <tr>
             <td>${caseInfo.caseNumber}</td>
@@ -492,7 +515,10 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
-            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
+            <td>
+                <span class="status-badge ${statusClass}">${caseInfo.status}</span>
+                ${remindHtml}
+            </td>
             <td>
                 <div class="d-flex flex-column gap-2">
                   <div class="dropdown">
