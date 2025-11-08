@@ -97,6 +97,11 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     List<CaseInfo> getSelfReceivedCheckableCases();
 
     /**
+     * 获取被分派且状态为已领取或反馈的案件
+     */
+    List<CaseInfo> getAssignedCheckableCases();
+
+    /**
      * 批量更新退回法院时间
      * @param caseIds 案件ID列表
      * @param returnCourtTime 退回法院时间

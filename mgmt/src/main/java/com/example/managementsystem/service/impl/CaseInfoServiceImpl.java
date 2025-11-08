@@ -267,11 +267,17 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public List<CaseInfo> getSelfReceivedCheckableCases() {
         QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
-        // 只查询“自行领取”的案件
         queryWrapper.eq("receive_type", "self_receive")
-                // 状态为“已领取”或“反馈”（需要检查的状态）
                 .in("status", Arrays.asList("已领取", "反馈"))
-                // 必须有领取时间（排除异常数据）
+                .isNotNull("receive_time");
+        return baseMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public List<CaseInfo> getAssignedCheckableCases() {
+        QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("receive_type", "assign")
+                .in("status", Arrays.asList("已领取", "反馈"))
                 .isNotNull("receive_time");
         return baseMapper.selectList(queryWrapper);
     }

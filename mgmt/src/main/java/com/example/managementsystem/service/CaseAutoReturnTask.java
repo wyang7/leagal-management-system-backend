@@ -29,22 +29,16 @@ public class CaseAutoReturnTask {
         List<CaseInfo> selfReceivedCases = caseInfoService.getSelfReceivedCheckableCases();
 
         for (CaseInfo caseInfo : selfReceivedCases) {
-            // 计算领取至今的天数
             long daysSinceReceived = ChronoUnit.DAYS.between(caseInfo.getReceiveTime(), now);
-
-            // 检查是否符合自动退回条件
             if (shouldAutoReturn(caseInfo, daysSinceReceived)) {
-                // 执行自动退回
                 String beforeStatus = caseInfo.getStatus();
                 caseInfo.setStatus("退回");
-                // 设置退回原因（区分两种规则）
                 String reason = daysSinceReceived >= 15
                         ? "系统自动退回：超过15天未操作（当前状态：反馈）"
                         : "系统自动退回：超过3天未操作（当前状态：已领取）";
                 caseInfo.setReturnReason(reason);
                 caseInfoService.updateById(caseInfo);
 
-                // 记录流程历史
                 CaseFlowHistory history = new CaseFlowHistory();
                 history.setCaseId(caseInfo.getCaseId());
                 history.setAction("自动退回");
@@ -53,7 +47,31 @@ public class CaseAutoReturnTask {
                 history.setBeforeStatus(beforeStatus);
                 history.setAfterStatus(caseInfo.getStatus());
                 history.setOperatorName("System");
-                history.setOperatorId(0L); // 系统操作，ID设为0
+                history.setOperatorId(0L);
+                caseFlowHistoryService.save(history);
+            }
+        }
+
+        // 新增：检查所有【被分派】且状态为【已领取】或【反馈】的案件
+        List<CaseInfo> assignedCases = caseInfoService.getAssignedCheckableCases();
+        for (CaseInfo caseInfo : assignedCases) {
+            long daysSinceReceived = ChronoUnit.DAYS.between(caseInfo.getReceiveTime(), now);
+            if (daysSinceReceived > 10) {
+                String beforeStatus = caseInfo.getStatus();
+                caseInfo.setStatus("退回");
+                String reason = "系统自动退回：被分派案件超过10天未操作（当前状态：" + beforeStatus + "）";
+                caseInfo.setReturnReason(reason);
+                caseInfoService.updateById(caseInfo);
+
+                CaseFlowHistory history = new CaseFlowHistory();
+                history.setCaseId(caseInfo.getCaseId());
+                history.setAction("自动退回");
+                history.setRemarks(reason);
+                history.setCreateTime(new Date());
+                history.setBeforeStatus(beforeStatus);
+                history.setAfterStatus(caseInfo.getStatus());
+                history.setOperatorName("System");
+                history.setOperatorId(0L);
                 caseFlowHistoryService.save(history);
             }
         }
