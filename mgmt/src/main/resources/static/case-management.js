@@ -123,7 +123,7 @@ function loadCaseManagementPage(station) {
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('延期')">延期</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('待结案')">待结案</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('退回')">退回</button>
-                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('失败')">调解失败</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('调解失败')">调解失败</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('结案')">结案</button>
                 </div>
                 <div class="table-responsive">
@@ -167,7 +167,7 @@ function loadCaseManagementPage(station) {
 function updateBatchReturnCourtTimeBtnVisibility() {
     const btn = document.getElementById('batchReturnCourtTimeBtn');
     if (!btn) return;
-    if (currentFilterStatus === '待结案' || currentFilterStatus === '调解失败') {
+    if (currentFilterStatus === '结案' || currentFilterStatus === '调解失败') {
         btn.style.display = '';
     } else {
         btn.style.display = 'none';
@@ -785,9 +785,13 @@ function renderCaseTable(cases) {
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
-            <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
             ${
-                (currentFilterStatus === '待结案' || currentFilterStatus === '调解失败')
+            (currentFilterStatus !== '结案' && currentFilterStatus !== '调解失败')
+                ? `<td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>`
+                : ''
+            }
+            ${
+                (currentFilterStatus === '结案' || currentFilterStatus === '调解失败')
                 ? `<td>${caseInfo.returnCourtTime ? caseInfo.returnCourtTime.split(' ')[0] : '-'}</td>`
                 : ''
             }
@@ -883,14 +887,19 @@ function renderCaseTableHeader() {
             <th style="white-space:nowrap;">被告</th>
             <th style="white-space:nowrap;">法官</th>
             <th style="white-space:nowrap;">案件助理</th>
-            <th style="white-space:nowrap;">
+            ${
+            (currentFilterStatus !== '结案' && currentFilterStatus !== '调解失败')
+            ? `<th style="white-space:nowrap;">
                 领取时间
                 <span class="sort-btn" onclick="toggleSort('receiveTime')">
                     <i class="fa fa-sort${currentSortField==='receiveTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
                 </span>
-            </th>
+               </th>`
+            : ''
+            }
+            
             ${
-                (currentFilterStatus === '待结案' || currentFilterStatus === '调解失败')
+                (currentFilterStatus === '结案' || currentFilterStatus === '调解失败')
                 ? `<th style="white-space:nowrap;">
                     退法院时间
                     <span class="sort-btn" onclick="toggleSort('returnCourtTime')">
