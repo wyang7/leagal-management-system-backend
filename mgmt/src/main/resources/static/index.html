@@ -296,9 +296,7 @@
             // 调用后端获取当前用户信息
             const userInfo = await request('/auth/currentUser');
             if (userInfo && userInfo.username) {
-                // 显示用户名
                 document.getElementById('loginUsername').textContent = userInfo.username;
-                // 加载侧边栏导航（根据用户角色）
                 await loadSidebarNav(userInfo);
                 App.user = {
                     userId: userInfo.userId,
@@ -307,6 +305,8 @@
                     roleName: userInfo.roleName,
                     station: userInfo.station
                 };
+                // 默认优先打开我的工作区页面
+                loadWorkspacePage();
             } else {
                 // 未登录，跳转到登录页
                 window.location.href = 'login.html';
