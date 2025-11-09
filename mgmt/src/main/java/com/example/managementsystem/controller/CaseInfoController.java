@@ -847,6 +847,89 @@ public class CaseInfoController {
     }
 
     /**
+     * 导出当前用户所有案件
+     */
+    @PostMapping("/export-my-cases")
+    public void exportMyCases(@RequestBody Map<String, Object> params, HttpServletResponse response) {
+        Long userId = null;
+        if (params.containsKey("userId")) {
+            Object idObj = params.get("userId");
+            if (idObj instanceof Number) {
+                userId = ((Number) idObj).longValue();
+            } else if (idObj instanceof String) {
+                try {
+                    userId = Long.parseLong((String) idObj);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        if (userId == null) {
+            response.setStatus(400);
+            return;
+        }
+        List<CaseInfo> myCases = caseInfoService.getCasesByUserId(userId);
+        // 过滤掉调解失败和退回状态的案件
+        myCases = myCases.stream()
+                .filter(c -> !"调解失败".equals(c.getStatus()) && !"退回".equals(c.getStatus()))
+                .collect(Collectors.toList());
+        String[] headers = {
+            "案件号", "案由", "标的额", "案件归属地", "原告", "被告", "法官", "案件助理", "领取时间", "退回法院时间",
+            "状态", "处理人", "法院收案时间", "反馈情况", "退回情况", "案件完成情况"
+        };
+        try {
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("我的案件导出");
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+            int rowIdx = 1;
+            for (CaseInfo c : myCases) {
+                Row row = sheet.createRow(rowIdx++);
+                int col = 0;
+                row.createCell(col++).setCellValue(c.getCaseNumber() == null ? "" : c.getCaseNumber());
+                row.createCell(col++).setCellValue(c.getCaseName() == null ? "" : c.getCaseName());
+                row.createCell(col++).setCellValue(c.getAmount() == null ? 0 : c.getAmount().doubleValue());
+                row.createCell(col++).setCellValue(c.getCaseLocation() == null ? "" : c.getCaseLocation());
+                row.createCell(col++).setCellValue(c.getPlaintiffName() == null ? "" : c.getPlaintiffName());
+                row.createCell(col++).setCellValue(c.getDefendantName() == null ? "" : c.getDefendantName());
+                row.createCell(col++).setCellValue(c.getJudge() == null ? "" : c.getJudge());
+                // 案件助理中文名
+                String assistantName = "";
+                if (c.getAssistantId() != null) {
+                    User assistant = userService.getById(c.getAssistantId());
+                    if (assistant != null) assistantName = assistant.getUsername();
+                }
+                row.createCell(col++).setCellValue(assistantName);
+                row.createCell(col++).setCellValue(c.getReceiveTime() == null ? "" : c.getReceiveTime().toString());
+                row.createCell(col++).setCellValue(c.getReturnCourtTime() == null ? "" : c.getReturnCourtTime());
+                row.createCell(col++).setCellValue(c.getStatus() == null ? "" : c.getStatus());
+                // 处理人中文名
+                String username = "";
+                if (c.getUserId() != null) {
+                    User user = userService.getById(c.getUserId());
+                    if (user != null) username = user.getUsername();
+                }
+                row.createCell(col++).setCellValue(username);
+                row.createCell(col++).setCellValue(c.getCourtReceiveTime() == null ? "" : c.getCourtReceiveTime());
+                row.createCell(col++).setCellValue(c.getPreFeedback() == null ? "" : c.getPreFeedback());
+                row.createCell(col++).setCellValue(c.getReturnReason() == null ? "" : c.getReturnReason());
+                row.createCell(col++).setCellValue(c.getCompletionNotes() == null ? "" : c.getCompletionNotes());
+            }
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            String filename = "我的案件导出_" + java.time.LocalDate.now() + ".xlsx";
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(filename, "UTF-8"));
+            workbook.write(response.getOutputStream());
+            response.flushBuffer();
+            workbook.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * 批量调解失败接口
      * 接收案件ID列表和备注，批量更新状态为失败并写入操作历史。
      */
@@ -864,5 +947,30 @@ public class CaseInfoController {
         }
         int count = caseInfoService.batchUpdateStatus(caseIds, "调解失败", completionRemark,operatorId);
         return Result.success(count);
+    }
+
+    /**
+     * 批量结案接口
+     */
+    @PostMapping("/batch-close")
+    public Result<?> batchCloseCases(@RequestBody Map<String, Object> params, HttpSession session) {
+        List<Integer> intCaseIds = (List<Integer>) params.get("caseIds");
+        List<Long> caseIds = intCaseIds.stream().map(Integer::longValue).collect(Collectors.toList());
+        String remark = params.getOrDefault("completionRemark", "").toString();
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        Long operatorId = currentUser != null ? currentUser.getUserId() : null;
+        int successCount = 0;
+        for (Long caseId : caseIds) {
+            boolean success = caseInfoService.updateCaseStatus(caseId, "结案");
+            if (success) {
+                caseInfoService.addCaseHistory(caseId, "结案", "结案", remark, operatorId);
+                successCount++;
+            }
+        }
+        if (successCount == caseIds.size()) {
+            return Result.success();
+        } else {
+            return Result.fail("部分案件结案失败，成功结案数：" + successCount + "/" + caseIds.size());
+        }
     }
 }

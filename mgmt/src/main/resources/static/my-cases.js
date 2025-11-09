@@ -11,6 +11,7 @@ function loadMyCasesPage() {
     const mainContent = document.getElementById('mainContent');
 
     mainContent.innerHTML = `
+        <div id="myCasesHeader"></div>
         <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
             <div class="ant-card-body">
                 <div class="row g-3 align-items-center">
@@ -114,6 +115,26 @@ function loadMyCasesPage() {
     loadMyCases(currentMyCasePage,currentMyCasePageSize);
 
     document.querySelector('.btn-group .btn[onclick="filterMyCases(\'all\')"]').classList.add('active');
+
+    // 渲染表头
+    renderMyCasesHeader();
+}
+
+/**
+ * 渲染我的案件表头
+ */
+function renderMyCasesHeader() {
+    const header = document.getElementById('myCasesHeader');
+    if (header) {
+        header.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">我的案件</h4>
+                <button class="ant-btn ant-btn-primary" onclick="exportMyCases()">
+                    <i class="fa fa-download"></i> 导出我的案件
+                </button>
+            </div>
+        `;
+    }
 }
 
 /**
@@ -322,6 +343,32 @@ async function loadMyCases(pageNum = 1, pageSize = 10) {
         document.getElementById('myCaseTableBody').innerHTML = `
             <tr><td colspan="8" class="text-center text-danger">加载案件失败</td></tr>
         `;
+    }
+}
+
+/**
+ * 导出我的案件
+ */
+async function exportMyCases() {
+    try {
+        // 获取当前用户ID（假设App.user.userId已全局可用）
+        const userId = App.user.userId;
+        const url = '/api/case/export-my-cases';
+        const fetchOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        };
+        const response = await fetch(url, fetchOptions);
+        if (!response.ok) throw new Error('导出失败');
+        const blob = await response.blob();
+        const filename = '我的案件_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    } catch (e) {
+        alert('导出失败，请重试');
     }
 }
 

@@ -108,9 +108,9 @@ function loadCaseManagementPage(station) {
                     <button class="ant-btn ant-btn-primary" onclick="showBatchAssignModal()">
                         <i class="fa fa-users"></i> 批量分派
                     </button>
-                    <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showBatchAssignTaskModal()">
-                        <i class="fa fa-plus me-1"></i> 批量关联案件包
-                    </button>
+<!--                    <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showBatchAssignTaskModal()">-->
+<!--                        <i class="fa fa-plus me-1"></i> 批量关联案件包-->
+<!--                    </button>-->
                     <button class="ant-btn ant-btn-warning" id="batchReturnCourtTimeBtn" style="display:none;" onclick="showBatchReturnCourtTimeModal()">
                         <i class="fa fa-calendar"></i> 批量退回法院时间
                     </button>
@@ -129,6 +129,7 @@ function loadCaseManagementPage(station) {
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('调解失败')">调解失败</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterCases('结案')">结案</button>
                 </div>
+                <div id="batchCloseCaseBtnContainer"></div>
                 <div class="table-responsive">
                     <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">
                         <thead class="ant-table-thead table-light"></thead>
@@ -698,6 +699,7 @@ async function filterCases(status, pageNum = 1, pageSize = 10) {
         currentFilterStatus = status;
         updateBatchReturnCourtTimeBtnVisibility();
         updateBatchFailedBtnVisibility();
+        updateBatchCloseCaseBtnVisibility();
 
         renderCaseTableHeader(); // 新增：切换状态时重建表头
         loadCases(currentPage, pageSize, currentStation);
@@ -1081,10 +1083,10 @@ function createBatchAssignTaskModal() {
         <div class="modal fade" id="batchAssignTaskModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">批量关联案件包</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
+<!--                    <div class="modal-header">-->
+<!--                        <h5 class="modal-title">批量关联案件包</h5>-->
+<!--                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
+<!--                    </div>-->
                     <div class="modal-body">
                         <form id="batchAssignTaskForm">
                             <div class="form-group mb-3">
@@ -1933,8 +1935,91 @@ async function confirmBatchFailed() {
     }
 }
 
-// 在页面初始化和状态切换时调用
+// 批量结案相关逻辑
+function updateBatchCloseCaseBtnVisibility() {
+    const batchAssignBtn = document.querySelector('.ant-btn[onclick="showBatchAssignModal()"]');
+    let batchCloseBtn = document.getElementById('batchCloseCaseBtn');
+    if (currentFilterStatus === '待结案') {
+        if (!batchCloseBtn) {
+            batchCloseBtn = document.createElement('button');
+            batchCloseBtn.className = 'ant-btn ant-btn-primary';
+            batchCloseBtn.id = 'batchCloseCaseBtn';
+            batchCloseBtn.style.marginLeft = '8px';
+            batchCloseBtn.innerHTML = '<i class="fa fa-check"></i> 批量结案';
+            batchCloseBtn.onclick = showBatchCloseCaseModal;
+            if (batchAssignBtn && batchAssignBtn.parentNode) {
+                batchAssignBtn.parentNode.insertBefore(batchCloseBtn, batchAssignBtn.nextSibling);
+            }
+        } else {
+            batchCloseBtn.style.display = '';
+        }
+    } else {
+        if (batchCloseBtn) batchCloseBtn.style.display = 'none';
+    }
+}
+
+function showBatchCloseCaseModal() {
+    const selectedCaseIds = getSelectedCaseIds();
+    if (!selectedCaseIds.length) {
+        alert('请先选择要批量结案的案件');
+        return;
+    }
+    const modalHtml = `
+    <div class="modal fade" id="batchCloseCaseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-check text-primary me-2"></i>批量结案</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <div class="mb-3">
+                        <label class="form-label">结案备注</label>
+                        <textarea id="batchCloseCaseRemark" class="form-control" rows="3" placeholder="请输入结案备注"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmBatchCloseCase()" style="border-radius:4px;">确认批量结案</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = modalHtml;
+    document.body.appendChild(tempContainer);
+    const modal = new bootstrap.Modal(document.getElementById('batchCloseCaseModal'));
+    modal.show();
+    document.getElementById('batchCloseCaseModal').addEventListener('hidden.bs.modal', function() {
+        tempContainer.remove();
+    });
+}
+
+async function confirmBatchCloseCase() {
+    const selectedCaseIds = getSelectedCaseIds();
+    const remark = document.getElementById('batchCloseCaseRemark').value.trim();
+    if (!remark) {
+        alert('请填写结案备注');
+        return;
+    }
+    try {
+        await request('/case/batch-close', 'POST', {
+            caseIds: selectedCaseIds,
+            completionRemark: remark
+        });
+        const modal = bootstrap.Modal.getInstance(document.getElementById('batchCloseCaseModal'));
+        modal.hide();
+        loadCases();
+        alert('批量结案操作成功');
+    } catch (error) {
+        alert('批量结案操作失败');
+    }
+}
+
+// 在筛选状态切换时调用
 function afterPageInitOrFilter() {
     renderBatchFailedBtn();
     updateBatchFailedBtnVisibility();
+    updateBatchCloseCaseBtnVisibility();
 }
