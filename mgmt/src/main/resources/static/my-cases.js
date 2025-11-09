@@ -566,7 +566,6 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
-            <td>${caseInfo.username || '-'}</td>
             <td>
                 <div class="d-flex flex-column gap-2">
                   <div class="dropdown">

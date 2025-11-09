@@ -14,14 +14,9 @@ let currentFilterStatus = 'all';
 let currentSortField = '';
 let currentSortOrder = 'asc'; // 'asc' or 'desc'
 
-function loadCaseManagementPage(station) {
-
-    // 记录当前选中的驻点
-    currentStation = station;
-
-    // 修复BUG：切换驻点时重置状态筛选为全部
-    currentFilterStatus = 'all';
-
+function loadCaseManagementPage(station, status) {
+    currentStation = station || '';
+    currentFilterStatus = status || 'all';
     setActiveNav('案件管理');
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
@@ -155,13 +150,17 @@ function loadCaseManagementPage(station) {
     // 创建批量退回法院时间模态框
     createBatchReturnCourtTimeModal();
     // 加载案件列表（默认第一页，状态为全部）
-    loadCases(1, 10, station);
+    if (status && status !== 'all') {
+        filterCases(status, 1, 10);
+    } else {
+        loadCases(1, 10, station);
+    }
 
     // 修复BUG：切换驻点时按钮高亮重置为全部
     setTimeout(() => {
         document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
-        const allBtn = document.querySelector('.btn-group .btn[onclick="filterCases(\'all\')"]');
-        if (allBtn) allBtn.classList.add('active');
+        const btn = document.querySelector(`.btn-group .btn[onclick="filterCases('${currentFilterStatus}')"]`);
+        if (btn) btn.classList.add('active');
     }, 0);
 
     renderCaseTableHeader(); // 新增：初次渲染表头
@@ -905,7 +904,7 @@ function renderCaseTableHeader() {
             ${
                 (currentFilterStatus === '结案' || currentFilterStatus === '调解失败')
                 ? `<th style="white-space:nowrap;">
-                    退法院时间
+                    ��法院时间
                     <span class="sort-btn" onclick="toggleSort('returnCourtTime')">
                         <i class="fa fa-sort${currentSortField==='returnCourtTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
                     </span>

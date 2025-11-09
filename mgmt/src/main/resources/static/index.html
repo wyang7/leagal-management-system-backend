@@ -269,6 +269,7 @@
 <script src="task-management.js"></script>
 <script src="task-receive.js"></script>
 <script src="my-cases.js"></script>
+<script src="workspace.js"></script>
 <!--<script src="assistant-cases.js"></script>-->
 <script>
     // 页面加载时检查登录状态并获取用户信息
@@ -321,6 +322,14 @@
     async function loadSidebarNav(userInfo) {
         const sidebarNav = document.getElementById('sidebarNav');
         let navHtml = '';
+        // 我的工作区菜单放最上面
+        navHtml += `
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="loadWorkspacePage()">
+                    <i class="fa fa-th-large me-2"></i>我的工作区
+                </a>
+            </li>
+        `;
         // 所有用户都能看到的基础导航
         navHtml += `
             <li class="nav-item">
