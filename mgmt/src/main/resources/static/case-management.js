@@ -789,17 +789,14 @@ function renderCaseTable(cases) {
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
-            ${
-            (currentFilterStatus !== '结案' && currentFilterStatus !== '调解失败')
+            `+
+            ((currentFilterStatus !== '结案' && currentFilterStatus !== '调解失败')
                 ? `<td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>`
-                : ''
-            }
-            ${
-                (currentFilterStatus === '结案' || currentFilterStatus === '调解失败')
+                : '')+
+            ((currentFilterStatus === '结案' || currentFilterStatus === '调解失败')
                 ? `<td>${caseInfo.returnCourtTime ? caseInfo.returnCourtTime.split(' ')[0] : '-'}</td>`
-                : ''
-            }
-            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                : '')+
+            `<td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>
                 <div class="d-flex flex-column gap-2">
@@ -830,13 +827,15 @@ function renderCaseTable(cases) {
                           <i class="fa fa-edit"></i> 编辑
                         </a>
                       </li>
-                      ${(App.user.roleType === '管理员' && App.user.station === '总部') ? `
+                      ${caseInfo.status !== '结案' ?
+                        ((App.user.roleType === '管理员' && App.user.station === '总部') ? `
                       <li>
                         <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})">
                           <i class="fa fa-trash"></i> 删除
                         </a>
                       </li>
-                      ` : ''}
+                      ` : '') : ''}
+                      ${caseInfo.status !== '结案' ? `
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})">
                           <i class="fa fa-handshake-o"></i> 分派案件
@@ -855,6 +854,7 @@ function renderCaseTable(cases) {
                           <i class="fa fa-flag-checkered"></i> 调解失败
                         </a>
                       </li>
+                      ` : ''}
                       ` : ''}
                     </ul>
                   </div>

@@ -565,10 +565,8 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
-            <td>
-                <span class="status-badge ${statusClass}">${caseInfo.status}</span>
-                ${remindHtml}
-            </td>
+            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
+            <td>${caseInfo.username || '-'}</td>
             <td>
                 <div class="d-flex flex-column gap-2">
                   <div class="dropdown">
@@ -577,7 +575,7 @@ function renderMyCaseTable(cases) {
                     </button>
                     <ul class="dropdown-menu" style="display:none;">
                       <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showmyCaseDetailModal(${caseInfo.caseId})">
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseDetailModal(${caseInfo.caseId})">
                           <i class="fa fa-eye"></i> 详情
                         </a>
                       </li>
@@ -588,6 +586,7 @@ function renderMyCaseTable(cases) {
                       </li>
                     </ul>
                   </div>
+                  ${caseInfo.status !== '结案' ? `
                   <div class="dropdown">
                     <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">
                       案件操作
@@ -595,36 +594,27 @@ function renderMyCaseTable(cases) {
                     <ul class="dropdown-menu" style="display:none;">
                       ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
                       <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
-                          <i class="fa fa-comment"></i> 反馈
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
-                          <i class="fa fa-clock-o"></i> 延期
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showFinishCaseModal(${caseInfo.caseId})">
+                          <i class="fa fa-flag-checkered"></i> 调解失败
                         </a>
                       </li>
                       ` : caseInfo.status === '反馈' ? `
                       <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayCaseModal(${caseInfo.caseId})">
                           <i class="fa fa-clock-o"></i> 延期
                         </a>
                       </li>
-                      `:``}
+                      ` : ''}
                       ${(caseInfo.status !== '待结案') ? `
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-check"></i> 提交结案审核
-                        </a>
-                      </li>
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})">
                           <i class="fa fa-undo"></i> 退回
                         </a>
                       </li>
-                      `:``}
+                      ` : ''}
                     </ul>
                   </div>
+                  ` : ''}
                 </div>
             </td>
         </tr>
