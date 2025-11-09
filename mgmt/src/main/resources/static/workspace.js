@@ -22,7 +22,6 @@ async function renderWorkspaceContent() {
     const userInfo = await request('/auth/currentUser');
     const roleType = userInfo.roleType;
     const username = userInfo.username;
-    const stationList = userInfo.stationList || ['九堡','彭埠','本部','笕桥'];
     // 顶部角色信息
     document.getElementById('workspaceRoleInfo').innerHTML = `
         <div class="d-flex align-items-center gap-3">
@@ -32,17 +31,68 @@ async function renderWorkspaceContent() {
     `;
     // 管理员
     if (isSystemAdmin(userInfo)) {
-        await renderAdminWorkspace(stationList);
+        const stations = await getAdminStations(userInfo); // 根据驻点权限过滤
+        await renderAdminWorkspace(stations);
     } else if (isMediator(userInfo)) {
         await renderMediatorWorkspace(username);
     }
 }
 
+// 根据管理员角色驻点权限获取可展示的驻点列表
+async function getAdminStations(userInfo) {
+    // 参考 index.html 中的 loadUserStationAndControlMenu 逻辑
+    try {
+        if (!userInfo.roleId) {
+            return []; // 无角色ID无法判定
+        }
+        const role = await request(`/role/${userInfo.roleId}`);
+        const station = role.station; // 可能为 "总部"、"九堡彭埠"、"本部"、"笕桥" 或其他
+        const allStations = ['九堡','彭埠','本部','笕桥'];
+        if (!station || station === '总部') {
+            // 总部管理员显示全部驻点
+            return allStations;
+        }
+        if (station === '九堡彭埠') {
+            // 合并驻点需要拆分成两个展示块
+            return ['九堡','彭埠'];
+        }
+        // 如果是单一驻点且在允许列表中
+        if (allStations.includes(station)) {
+            return [station];
+        }
+        // 兜底：未知驻点不展示
+        return [];
+    } catch (e) {
+        console.error('获取管理员驻点权限失败:', e);
+        return [];
+    }
+}
+
 // 管理员工作区卡片（合并一行展示，统一样式）
-async function renderAdminWorkspace(stationList) {
-    // 统计数据
+async function renderAdminWorkspace(stations) {
+    if (!stations || stations.length === 0) {
+        document.getElementById('workspaceCards').innerHTML = `
+            <div class="alert alert-warning mb-0">未匹配到可展示的驻点，或当前角色无驻点权限。</div>
+        `;
+        return;
+    }
+    // 统计数据，支持九堡+彭埠合并为一行显示
     const stats = [];
-    for (const station of stationList) {
+    const hasJiubao = stations.includes('九堡');
+    const hasPengbu = stations.includes('彭埠');
+    if (hasJiubao && hasPengbu) {
+        // 汇总九堡与彭埠
+        const jbReturn = await getCaseCountByStatus('九堡', '退回');
+        const pbReturn = await getCaseCountByStatus('彭埠', '退回');
+        const jbClose = await getCaseCountByStatus('九堡', '待结案');
+        const pbClose = await getCaseCountByStatus('彭埠', '待结案');
+        stats.push({station: '九堡彭埠', returnCount: jbReturn + pbReturn, closeCount: jbClose + pbClose});
+    }
+    // 其它驻点（排除已合并的）
+    for (const station of stations) {
+        if ((station === '九堡' || station === '彭埠') && hasJiubao && hasPengbu) {
+            continue; // 已合并跳过单项
+        }
         const returnCount = await getCaseCountByStatus(station, '退回');
         const closeCount = await getCaseCountByStatus(station, '待结案');
         stats.push({station, returnCount, closeCount});
@@ -90,7 +140,7 @@ async function renderAdminWorkspace(stationList) {
 // 调解员工作区卡片（统一样式）
 async function renderMediatorWorkspace(username) {
     // 待处理案件数（已领取/反馈/延期）
-    const todoCount = await getMyCaseCount(username, );
+    const todoCount = await getMyCaseCount(username);
     // 即将超时案件数
     const timeoutCount = await getMyTimeoutCaseCount(username);
     document.getElementById('workspaceCards').innerHTML = `
@@ -145,7 +195,6 @@ async function getMyCaseCount(username) {
 }
 // 获取调解员即将超时案件数（参考现有超时逻辑）
 async function getMyTimeoutCaseCount(username) {
-    // 这里假设后端有超时标记字段，或前端可根据receiveTime判断
     const params = new URLSearchParams();
     params.append('userName', username);
     params.append('timeout', 'true');
@@ -157,8 +206,8 @@ async function getMyTimeoutCaseCount(username) {
 
 // 角色判断（参考index.html逻辑）
 function isSystemAdmin(userInfo) {
-    return userInfo.roleType === '管理员';
+    return userInfo.roleType === '管理员' || (userInfo.roleType && userInfo.roleType.includes('管理员'));
 }
 function isMediator(userInfo) {
-    return userInfo.roleType === '调解员';
+    return userInfo.roleType === '调解员' || (userInfo.roleType && userInfo.roleType.includes('调解员'));
 }
