@@ -68,10 +68,14 @@ async function renderAdminWorkspace(stationList) {
                             <tr>
                                 <td class="align-middle">${r.station}</td>
                                 <td class="align-middle">
-                                    <span class="badge bg-danger clickable-badge" style="font-size:1.1rem;cursor:pointer;padding:8px 18px;border-radius:20px;box-shadow:0 2px 8px #ffe7e7;font-weight:500;" onclick="jumpToCasePage('${r.station}','退回')" title="点击查看退回案件">${r.returnCount}件 <i class='fa fa-arrow-right ms-1'></i></span>
+                                    <button class="ant-btn ant-btn-link fw-bold text-danger px-2 py-1" style="font-size:0.95rem;border-radius:16px;" onclick="jumpToCasePage('${r.station}','退回')" title="点击查看退回案件">
+                                        ${r.returnCount}件 <i class='fa fa-arrow-right ms-1'></i>
+                                    </button>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="badge bg-warning text-dark clickable-badge" style="font-size:1.1rem;cursor:pointer;padding:8px 18px;border-radius:20px;box-shadow:0 2px 8px #fffbe6;font-weight:500;" onclick="jumpToCasePage('${r.station}','待结案')" title="点击查看待结案">${r.closeCount}件 <i class='fa fa-arrow-right ms-1'></i></span>
+                                    <button class="ant-btn ant-btn-link fw-bold text-warning px-2 py-1" style="font-size:0.95rem;border-radius:16px;" onclick="jumpToCasePage('${r.station}','待结案')" title="点击查看待结案">
+                                        ${r.closeCount}件 <i class='fa fa-arrow-right ms-1'></i>
+                                    </button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -95,7 +99,7 @@ async function renderMediatorWorkspace(username) {
                 <div class="ant-card ant-card-hoverable" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;cursor:pointer;">
                     <div class="ant-card-body text-center">
                         <div class="fw-bold mb-1"><i class="fa fa-tasks text-primary me-1"></i>待处理案件</div>
-                        <span class="badge bg-primary clickable-badge" style="font-size:1.3rem;cursor:pointer;padding:10px 24px;border-radius:20px;box-shadow:0 2px 8px #bae7ff;font-weight:500;" onclick="jumpToMyCasesPage()" title="点击查看待处理案件">${todoCount}件 <i class='fa fa-arrow-right ms-1'></i></span>
+                        <button class="ant-btn ant-btn-link fw-bold text-primary px-2 py-1" style="font-size:0.95rem;border-radius:16px;" onclick="jumpToMyCasesPage()" title="点击查看待处理案件">${todoCount}件 <i class='fa fa-arrow-right ms-1'></i></button>
                     </div>
                 </div>
             </div>
@@ -103,7 +107,7 @@ async function renderMediatorWorkspace(username) {
                 <div class="ant-card ant-card-hoverable" style="border-radius:10px;box-shadow:0 4px 16px #fffbe6;cursor:pointer;">
                     <div class="ant-card-body text-center">
                         <div class="fw-bold mb-1"><i class="fa fa-clock-o text-warning me-1"></i>即将超时案件</div>
-                        <span class="badge bg-warning text-dark clickable-badge" style="font-size:1.3rem;cursor:pointer;padding:10px 24px;border-radius:20px;box-shadow:0 2px 8px #fffbe6;font-weight:500;" onclick="jumpToMyCasesPage(true)" title="点击查看即将超时案件">${timeoutCount}件 <i class='fa fa-arrow-right ms-1'></i></span>
+                        <button class="ant-btn ant-btn-link fw-bold text-warning px-2 py-1" style="font-size:0.95rem;border-radius:16px;" onclick="jumpToMyCasesPage(true)" title="点击查看即将超时案件">${timeoutCount}件 <i class='fa fa-arrow-right ms-1'></i></button>
                     </div>
                 </div>
             </div>
