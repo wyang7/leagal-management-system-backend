@@ -114,7 +114,8 @@ public class CaseInfoController {
             @RequestParam(required = false) String courtReceiveTime,
             @RequestParam(required = false) String station,
             @RequestParam(required = false) String sortField,
-            @RequestParam(required = false) String sortOrder
+            @RequestParam(required = false) String sortOrder,
+            @RequestParam(required = false) Boolean timeout // 新增timeout参数
     ) {
 
         // 校验分页参数合法性
@@ -128,7 +129,7 @@ public class CaseInfoController {
         // 调用服务层获取分页数据
         Map<String, Object> pageResult = caseInfoService.getCasePage(
             caseName, status, userName, assistant, courtReceiveTime, caseNumber, plaintiff, defendant,
-            station, pageNum, pageSize, sortField, sortOrder
+            station, pageNum, pageSize, sortField, sortOrder, timeout // 传递timeout参数
         );
 
         // 返回统一格式的响应
@@ -787,7 +788,7 @@ public class CaseInfoController {
                 String station = (String) params.get("station");
                 Map<String, Object> pageResult = caseInfoService.getCasePage(
                         caseName, status, userName, assistant, courtReceiveTime, caseNumber, plaintiff, defendant
-                        , station, 1, 10000,null,null
+                        , station, 1, 10000,null,null,null
                 );
                 exportList = (List<CaseInfo>) pageResult.get("records");
             }

@@ -68,7 +68,8 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     Map<String, Object> getCasePage(String caseName,String status,String userName,String assistant,String receiveTime,
                                     String caseNumber, String plaintiff, String defendant,String station
                                     ,Integer pageNum, Integer pageSize,
-                                    String sortField, String sortOrder);
+                                    String sortField, String sortOrder,
+                                    Boolean timeout); // 新增timeout参数
 
 
     /**

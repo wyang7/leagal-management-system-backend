@@ -86,7 +86,7 @@ async function renderAdminWorkspace(stationList) {
 // 调解员工作区卡片（统一样式）
 async function renderMediatorWorkspace(username) {
     // 待处理案件数（已领取/反馈/延期）
-    const todoCount = await getMyCaseCount(username, ['已领取','反馈','延期']);
+    const todoCount = await getMyCaseCount(username, );
     // 即将超时案件数
     const timeoutCount = await getMyTimeoutCaseCount(username);
     document.getElementById('workspaceCards').innerHTML = `
@@ -131,12 +131,11 @@ async function getCaseCountByStatus(station, status) {
     return resp.total || 0;
 }
 // 获取调解员待处理案件数（修正统计，避免分页限制）
-async function getMyCaseCount(username, statusList) {
+async function getMyCaseCount(username) {
     const params = new URLSearchParams();
     params.append('userName', username);
     params.append('pageNum', 1);
-    params.append('pageSize', 1); // 取足够大，确保统计所有案件
-    params.append('status', statusList.join(','));
+    params.append('pageSize', 1);
     const resp = await request(`/case/page?${params.toString()}`);
     return resp.total || 0;
 }

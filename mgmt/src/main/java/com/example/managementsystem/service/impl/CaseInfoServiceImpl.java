@@ -19,6 +19,7 @@ import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -165,11 +166,11 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     public Map<String, Object> getCasePage(String caseName,String status ,String userName,String assistant,String receiveTime,
                                            String caseNumber, String plaintiff, String defendant,String station
                                             ,Integer pageNum, Integer pageSize,
-                                            String sortField, String sortOrder) {
-        // 计算分页起始位置(MyBatis中通常从0开始)
+                                            String sortField, String sortOrder,
+                                            Boolean timeout) {
         int offset = (pageNum - 1) * pageSize;
         Long userId=null;
-        if (StringUtil.isNotBlank(userName)){
+        if (org.apache.poi.util.StringUtil.isNotBlank(userName)){
             User user = userService.searchUserByUsername(userName);
             if (user == null) {
                 return null;
@@ -177,23 +178,56 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             userId = user.getUserId();
         }
         Long assistantId=null;
-        if (StringUtil.isNotBlank(assistant)){
+        if (org.apache.poi.util.StringUtil.isNotBlank(assistant)){
             User user = userService.searchUserByUsername(assistant);
             if (user == null) {
                 return null;
             }
             assistantId = user.getUserId();
         }
-
-
-        // 查询总条数
-        int total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station);
-
-        // 查询当前页数据
+        List<CaseInfo> allRecords;
+        int total;
+        if (timeout != null && timeout) {
+            // 筛选即将超时案件
+            allRecords = new ArrayList<>();
+            List<CaseInfo> candidateCases = baseMapper.selectCasePage(0, 10000, caseName, status, caseNumber, plaintiff, defendant, receiveTime, assistantId, userId, station, sortField, sortOrder);
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            for (CaseInfo caseInfo : candidateCases) {
+                if (caseInfo.getReceiveTime() == null) continue;
+                java.time.LocalDateTime receiveDate = caseInfo.getReceiveTime();
+                long daysSinceReceived = java.time.Duration.between(receiveDate, now).toDays();
+                String receiveType = caseInfo.getReceiveType();
+                String caseStatus = caseInfo.getStatus();
+                if ("self_receive".equals(receiveType)) {
+                    if ("已领取".equals(caseStatus) && daysSinceReceived > 0 && daysSinceReceived <= 3) {
+                        allRecords.add(caseInfo);
+                        continue;
+                    }
+                    if ("反馈".equals(caseStatus) && daysSinceReceived >= 12 && daysSinceReceived <= 15) {
+                        allRecords.add(caseInfo);
+                        continue;
+                    }
+                }
+                if ("assign".equals(receiveType) && ("已领取".equals(caseStatus) || "反馈".equals(caseStatus))) {
+                    if (daysSinceReceived >= 7 && daysSinceReceived <= 10) {
+                        allRecords.add(caseInfo);
+                    }
+                }
+            }
+            total = allRecords.size();
+            // 分页
+            int toIndex = Math.min(offset + pageSize, total);
+            List<CaseInfo> pageRecords = offset < toIndex ? allRecords.subList(offset, toIndex) : new ArrayList<>();
+            Map<String, Object> result = new HashMap<>();
+            result.put("total", total);
+            result.put("records", pageRecords);
+            result.put("pageNum", pageNum);
+            result.put("pageSize", pageSize);
+            return result;
+        }
+        total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station);
         List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize,caseName,status
                 , caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station, sortField, sortOrder);
-
-        // 封装分页结果
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);
         result.put("records", records);
