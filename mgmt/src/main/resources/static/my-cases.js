@@ -6,7 +6,7 @@ let currentMyFilterStatus = 'all';
 /**
  * 加载我的案件页面
  */
-function loadMyCasesPage() {
+function loadMyCasesPage(timeout = false) {
     setActiveNav('我的案件');
     const mainContent = document.getElementById('mainContent');
 
@@ -112,7 +112,7 @@ function loadMyCasesPage() {
     // 创建案件历史记录模态框容器
     createCaseHistoryModalContainer();
     // 加载我的案件列表
-    loadMyCases(currentMyCasePage,currentMyCasePageSize);
+    loadMyCases(currentMyCasePage, currentMyCasePageSize, timeout);
 
     document.querySelector('.btn-group .btn[onclick="filterMyCases(\'all\')"]').classList.add('active');
 
@@ -295,7 +295,7 @@ async function getCurrentUserName() {
 /**
  * 加载我的案件列表
  */
-async function loadMyCases(pageNum = 1, pageSize = 10) {
+async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
     try {
         currentMyCasePage = pageNum;
         const username = await getCurrentUserName();
@@ -330,6 +330,7 @@ async function loadMyCases(pageNum = 1, pageSize = 10) {
         if (plaintiff) params.append('plaintiff', plaintiff);
         if (defendant) params.append('defendant', defendant);
         if (assistant) params.append('assistant', assistant);
+        if (timeout) params.append('timeout', 'true');
 
         const response = await request(`/case/page?${params.toString()}`);
         renderMyCaseTable(response.records);
@@ -566,7 +567,10 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
-            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
+            <td>
+                <span class="status-badge ${statusClass}">${caseInfo.status}</span>
+                ${remindHtml}
+            </td>
             <td>
                 <div class="d-flex flex-column gap-2">
                   <div class="dropdown">

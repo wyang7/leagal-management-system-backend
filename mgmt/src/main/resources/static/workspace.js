@@ -103,7 +103,7 @@ async function renderMediatorWorkspace(username) {
                 <div class="ant-card ant-card-hoverable" style="border-radius:10px;box-shadow:0 4px 16px #fffbe6;cursor:pointer;">
                     <div class="ant-card-body text-center">
                         <div class="fw-bold mb-1"><i class="fa fa-clock-o text-warning me-1"></i>即将超时案件</div>
-                        <span class="badge bg-warning text-dark clickable-badge" style="font-size:1.3rem;cursor:pointer;padding:10px 24px;border-radius:20px;box-shadow:0 2px 8px #fffbe6;font-weight:500;" onclick="jumpToMyCasesPage()" title="点击查看即将超时案件">${timeoutCount}件 <i class='fa fa-arrow-right ms-1'></i></span>
+                        <span class="badge bg-warning text-dark clickable-badge" style="font-size:1.3rem;cursor:pointer;padding:10px 24px;border-radius:20px;box-shadow:0 2px 8px #fffbe6;font-weight:500;" onclick="jumpToMyCasesPage(true)" title="点击查看即将超时案件">${timeoutCount}件 <i class='fa fa-arrow-right ms-1'></i></span>
                     </div>
                 </div>
             </div>
@@ -116,8 +116,8 @@ function jumpToCasePage(station, status) {
     loadCaseManagementPage(station, status);
 }
 // 跳转我的案件页面
-function jumpToMyCasesPage() {
-    loadMyCasesPage();
+function jumpToMyCasesPage(timeout) {
+    loadMyCasesPage(timeout === true);
 }
 
 // 获取指定驻点、状态的案件数
