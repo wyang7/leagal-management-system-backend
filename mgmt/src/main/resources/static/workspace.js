@@ -284,6 +284,7 @@ async function loadAdminChartsData(stations) {
 
 // 调解员大盘
 function renderMediatorDashboard(username) {
+    return;
     const container = document.getElementById('workspaceDashboard');
     if (!container) return;
     container.innerHTML = `
