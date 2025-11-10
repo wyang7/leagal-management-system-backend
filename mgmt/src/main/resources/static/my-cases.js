@@ -602,9 +602,8 @@ function renderMyCaseTable(cases) {
                           <i class="fa fa-comment"></i> 反馈
                         </a>
                       </li>
-                      ` : caseInfo.status === '反馈' ? `
                       <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayCaseModal(${caseInfo.caseId})">
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
                           <i class="fa fa-clock-o"></i> 延期
                         </a>
                       </li>
