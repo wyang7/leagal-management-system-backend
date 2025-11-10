@@ -598,8 +598,8 @@ function renderMyCaseTable(cases) {
                     <ul class="dropdown-menu" style="display:none;">
                       ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
                       <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showFinishCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-flag-checkered"></i> 调解失败
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
+                          <i class="fa fa-comment"></i> 反馈
                         </a>
                       </li>
                       ` : caseInfo.status === '反馈' ? `
@@ -610,6 +610,11 @@ function renderMyCaseTable(cases) {
                       </li>
                       ` : ''}
                       ${(caseInfo.status !== '待结案') ? `
+                      <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
+                          <i class="fa fa-check"></i> 提交结案审核
+                        </a>
+                      </li>
                       <li>
                         <a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})">
                           <i class="fa fa-undo"></i> 退回
