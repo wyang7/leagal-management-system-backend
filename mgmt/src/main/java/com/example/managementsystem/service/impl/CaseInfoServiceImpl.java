@@ -321,7 +321,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         caseInfo.setReturnCourtTime(returnCourtTime);
         QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("case_id", caseIds)
-            .in("status", Arrays.asList("待结案", "失败")); // 只允许待结案和失败状态批量写入
+            .in("status", Arrays.asList("待结案", "调解失败", "结案")); // 只允许待结案和失败状态批量写入
         return baseMapper.update(caseInfo, queryWrapper);
     }
 

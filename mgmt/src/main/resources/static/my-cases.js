@@ -76,6 +76,7 @@ function loadMyCasesPage(timeout = false) {
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('反馈')">反馈</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('延期')">延期</button>
                     <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('待结案')">待结案</button>
+                    <button class="ant-btn ant-btn-default btn btn-outline-primary" onclick="filterMyCases('结案')">结案</button>
                 </div>
                 <div class="table-responsive">
                     <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">

@@ -245,32 +245,40 @@ function renderAdminDashboard(stations) {
 }
 
 async function loadAdminChartsData(stations) {
-    // 1. 驻点案件总量对比
-    const totalCounts = await Promise.all(stations.map(st => fetchCaseTotal(st)));
-    ChartUtils.createBarChart('adminTotalCompare',{ horizontal:true, xData:stations, yData: totalCounts, onClick: p => loadCaseManagementPage(p.name) });
-    // 2. 退回案件趋势 近7天
-    const last7 = getRecentDays(7);
-    const seriesReturn = await Promise.all(stations.map(async st => ({ name: st, data: await Promise.all(last7.map(day => fetchDailyStatusCount(st,'退回', day))) })));
-    ChartUtils.createMultiLineChart('adminReturnTrend',{ legend: stations, xData: last7, seriesData: seriesReturn });
-    // 3. 待结案时效对比（平均处理时长= 当前时间-领取时间 针对 status=待结案 ）
-    const avgDurationsRaw = await Promise.all(stations.map(st => computeAvgPendingDuration(st)));
-    const threshold = Math.round(avgDurationsRaw.filter(v=>v>0).reduce((a,b)=>a+b,0)/Math.max(1,avgDurationsRaw.filter(v=>v>0).length));
-    document.getElementById('closeDurationThresholdTip').innerText = '阈值:'+threshold+'天';
-    const barDuration = ChartUtils.createBarChart('adminCloseEfficiency',{ xData:stations, yData:avgDurationsRaw, colors:['#69b1ff'], onClick:p=> loadCaseManagementPage(p.name,'待结案') });
-    // 将超过阈值的柱子标红
-    if (barDuration) {
-        const seriesData = avgDurationsRaw.map(v => ({ value:v, itemStyle: v>threshold? { color:'#ff4d4f'}: {} }));
-        barDuration.chart.setOption({ series:[{ type:'bar', data:seriesData, barMaxWidth:42 }] });
-    }
-    // 4. 各驻点状态分布 (环形饼图：退回/待结案/结案/已领取/延期/反馈)
-    const statusList = ['退回','待结案','结案','已领取','延期','反馈'];
-    const pieRow = document.getElementById('adminStationPieRow');
-    stations.forEach(st => { pieRow.insertAdjacentHTML('beforeend', `<div class="dashboard-item" style="flex:0 0 320px; min-width:300px;">
-        <div class="dashboard-item-header" style="margin-bottom:0;">${st}</div><div id="pie_${st}" class="chart-container small"></div></div>`); });
-    for (const st of stations) {
-        const counts = await Promise.all(statusList.map(s => fetchStatusCount(st,s)));
-        const data = statusList.map((s,i)=> ({ name:s, value:counts[i] }));
-        ChartUtils.createPieChart('pie_'+st,{ data, ring:true, legendBottom:true, onClick: p => { loadCaseManagementPage(st, p.name); }, onLegendClick: status => loadCaseManagementPage(st, status) });
+    // 使用聚合接口减少多次请求
+    try {
+        const resp = await request(`/dashboard/admin?stations=${encodeURIComponent(stations.join(','))}&days=7`);
+        const totalCompareMap = resp.totalCompare || {}; // {station: count}
+        const stationsOrdered = Object.keys(totalCompareMap);
+        const totalCounts = stationsOrdered.map(s=> totalCompareMap[s]);
+        ChartUtils.createBarChart('adminTotalCompare',{ horizontal:true, xData:stationsOrdered, yData: totalCounts, onClick: p => loadCaseManagementPage(p.name) });
+        // 退回趋势
+        const returnTrend = resp.returnTrend || {}; // {dates:[], series:{station:[..]}}
+        const dates = (returnTrend.dates||[]).map(d=> d.slice(5));
+        const seriesData = Object.keys(returnTrend.series||{}).map(st => ({ name: st, data: returnTrend.series[st] }));
+        ChartUtils.createMultiLineChart('adminReturnTrend',{ legend: stationsOrdered, xData: dates, seriesData });
+        // 待结案时效
+        const pendingDurMap = resp.pendingDuration || {}; const threshold = resp.pendingDurationThreshold||0;
+        const pendingValues = stationsOrdered.map(s=> pendingDurMap[s]||0);
+        const barDuration = ChartUtils.createBarChart('adminCloseEfficiency',{ xData:stationsOrdered, yData: pendingValues, colors:['#69b1ff'], onClick:p=> loadCaseManagementPage(p.name,'待结案') });
+        if (barDuration) {
+            const seriesData2 = pendingValues.map(v => ({ value:v, itemStyle: v>threshold? { color:'#ff4d4f'}: {} }));
+            barDuration.chart.setOption({ series:[{ type:'bar', data:seriesData2, barMaxWidth:42 }] });
+            document.getElementById('closeDurationThresholdTip').innerText = '阈值:'+threshold+'天';
+        }
+        // 状态分布
+        const statusDistribution = resp.statusDistribution || {}; // {station:{status:count}}
+        const statusList = ['退回','待结案','结案','已领取','延期','反馈'];
+        const pieRow = document.getElementById('adminStationPieRow');
+        stationsOrdered.forEach(st => {
+            pieRow.insertAdjacentHTML('beforeend', `<div class="dashboard-item" style="flex:0 0 320px; min-width:300px;">
+                <div class="dashboard-item-header" style="margin-bottom:0;">${st}</div><div id="pie_${st}" class="chart-container small"></div></div>`);
+            const dist = statusDistribution[st]||{};
+            const pieData = statusList.map(s=> ({ name:s, value: dist[s]||0 }));
+            ChartUtils.createPieChart('pie_'+st,{ data: pieData, ring:true, legendBottom:true, onClick: p => { loadCaseManagementPage(st, p.name); }, onLegendClick: status => loadCaseManagementPage(st, status) });
+        });
+    } catch (e) {
+        console.error('加载管理员聚合大盘失败', e);
     }
 }
 
@@ -298,34 +306,27 @@ function renderMediatorDashboard(username) {
 }
 
 async function loadMediatorChartsData(username) {
-    // 1. 个人案件状态分布 已领取/反馈/延期/待结案
-    const statuses = ['已领取','反馈','延期','待结案'];
-    const counts = await Promise.all(statuses.map(s=> fetchStatusCountForUser(username,s)));
-    ChartUtils.createPieChart('mediatorStatusPie',{ data: statuses.map((s,i)=> ({ name:s, value:counts[i] })), ring:true, legendBottom:true, onClick:p=> { loadMyCasesPage(); setTimeout(()=> filterMyCases(p.name), 50); } });
-    // 2. 即将超时案件预警 近7天 (含案件ID列表 tooltip 展示)
-    const days = getRecentDays(7);
-    const timeoutDayData = await Promise.all(days.map(day => fetchTimeoutCasesForDay(username, day)));
-    const timeoutSeriesCounts = timeoutDayData.map(d=> d.count);
-    const line = ChartUtils.createMultiLineChart('mediatorTimeoutTrend',{ legend:['即将超时'], xData:days, seriesData:[{ name:'即将超时', data: timeoutSeriesCounts }] });
-    const colored = timeoutSeriesCounts.map((v,idx)=> v>3? { value:v, itemStyle:{ color:'#ff4d4f' }, caseIds: timeoutDayData[idx].ids }: { value:v, caseIds: timeoutDayData[idx].ids });
-    line.chart.setOption({
-        series:[{ name:'即将超时', type:'line', smooth:true, data: colored, showSymbol:true }],
-        tooltip:{
-            trigger:'axis',
-            formatter: params => {
-                return params.map(p=> {
-                    const ids = (p.data.caseIds||[]).slice(0,10).join(',');
-                    const more = (p.data.caseIds||[]).length>10? ' 等'+p.data.caseIds.length+'件':'';
-                    return `${p.marker}${p.axisValue}<br/>${p.seriesName}: ${p.data.value}件` + (ids? `<br/>案件ID: ${ids}${more}`:'');
-                }).join('<br/>');
-            }
-        }
-    });
-    // 3. 处理效率趋势 近30天每日结案数
-    const days30 = getRecentDays(30);
-    const closedCounts = await Promise.all(days30.map(day=> fetchClosedCountForDay(username, day)));
-    const avg = closedCounts.reduce((a,b)=>a+b,0)/Math.max(1, closedCounts.length);
-    ChartUtils.createBarWithAvg('mediatorEfficiencyTrend',{ xData:days30, yData:closedCounts, avg });
+    try {
+        const resp = await request(`/dashboard/mediator?userName=${encodeURIComponent(username)}&timeoutDays=7&efficiencyDays=30`);
+        // 状态分布
+        const statusDist = resp.statusDistribution || {}; const statuses = ['已领取','反馈','延期','待结案'];
+        const pieData = statuses.map(s=> ({ name:s, value: statusDist[s]||0 }));
+        ChartUtils.createPieChart('mediatorStatusPie',{ data: pieData, ring:true, legendBottom:true, onClick:p=> { loadMyCasesPage(); setTimeout(()=> filterMyCases(p.name), 50); } });
+        // 即将超时趋势
+        const timeoutTrend = resp.timeoutTrend || {}; const dates = (timeoutTrend.dates||[]).map(d=> d.slice(5));
+        const counts = timeoutTrend.counts || []; const caseIdsMap = timeoutTrend.caseIdsMap||{};
+        const line = ChartUtils.createMultiLineChart('mediatorTimeoutTrend',{ legend:['即将超时'], xData:dates, seriesData:[{ name:'即将超时', data: counts }] });
+        const colored = counts.map((v,idx)=> v>3? { value:v, itemStyle:{ color:'#ff4d4f' }, caseIds: caseIdsMap[timeoutTrend.dates[idx]]||[] }: { value:v, caseIds: caseIdsMap[timeoutTrend.dates[idx]]||[] });
+        line.chart.setOption({
+            series:[{ name:'即将超时', type:'line', smooth:true, data: colored, showSymbol:true }],
+            tooltip:{ trigger:'axis', formatter: params => params.map(p=> { const ids=(p.data.caseIds||[]).slice(0,10).join(','); const more=(p.data.caseIds||[]).length>10? ' 等'+(p.data.caseIds||[]).length+'件':''; return `${p.marker}${p.axisValue}<br/>${p.seriesName}: ${p.data.value}件`+(ids? `<br/>案件ID: ${ids}${more}`:''); }).join('<br/>') }
+        });
+        // 处理效率趋势
+        const eff = resp.efficiencyTrend || {}; const d2 = (eff.dates||[]).map(d=> d.slice(5)); const y2 = eff.counts||[]; const avg = eff.avg||0;
+        ChartUtils.createBarWithAvg('mediatorEfficiencyTrend',{ xData:d2, yData:y2, avg });
+    } catch (e) {
+        console.error('加载调解员聚合大盘失败', e);
+    }
 }
 
 // ===== 数据辅助函数 =====
