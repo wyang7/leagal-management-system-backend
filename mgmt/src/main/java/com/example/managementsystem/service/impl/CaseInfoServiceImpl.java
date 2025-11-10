@@ -1,7 +1,6 @@
 package com.example.managementsystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.User;
 import com.example.managementsystem.mapper.CaseInfoMapper;
@@ -9,17 +8,13 @@ import com.example.managementsystem.service.ICaseInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.IUserService;
-import org.apache.ibatis.annotations.Param;
-import org.apache.poi.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -138,11 +133,9 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public String genCaseNumber(String courtReceiveTime) {
         // 生成规则：yyyy.MM.dd-序号（两位，不足补0）
-        if (StringUtils.isEmpty(courtReceiveTime)) {
+        if (courtReceiveTime == null || courtReceiveTime.trim().isEmpty()) {
             throw new RuntimeException("收案时间不能为空");
         }
-//        java.time.LocalDate today = java.time.LocalDate.now();
-//        String datePrefix = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd"));
         // 查询当天最大编号
         QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
         queryWrapper.likeRight("case_number", courtReceiveTime)
@@ -193,7 +186,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             List<CaseInfo> candidateCases = baseMapper.selectCasePage(0, 10000, caseName, status, caseNumber, plaintiff, defendant, receiveTime, assistantId, userId, station, sortField, sortOrder);
             java.time.LocalDateTime now = java.time.LocalDateTime.now();
             for (CaseInfo caseInfo : candidateCases) {
-                if (caseInfo.getReceiveTime() == null) continue;
+                if (caseInfo.getReceiveTime() == null) { continue; }
                 java.time.LocalDateTime receiveDate = caseInfo.getReceiveTime();
                 long daysSinceReceived = java.time.Duration.between(receiveDate, now).toDays();
                 String receiveType = caseInfo.getReceiveType();
@@ -275,7 +268,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public boolean completeCase(Long caseId, String completionRemark, String returnCourtTime) {
+    public boolean completeCase(Long caseId, String completionRemark, String returnCourtTime, Long operatorId) {
         // 1. 校验案件是否存在
         CaseInfo caseInfo = getById(caseId);
         if (caseInfo == null) {
@@ -290,10 +283,14 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         // 3. 更新案件状态和字段
         int rows = baseMapper.updateCompleteStatus(
                 caseId,
-                "失败",  // 目标状态
+                "调解失败",
                 completionRemark,
                 returnCourtTime
         );
+        // 4. 补充案件历史操作记录
+        if (rows > 0) {
+            addCaseHistory(caseId, "调解失败", "调解失败", completionRemark, operatorId);
+        }
         return rows > 0;
     }
 

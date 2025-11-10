@@ -725,7 +725,7 @@ public class CaseInfoController {
         Long operatorId = currentUser.getUserId();
 
         String finalCompletionRemark = buildAccumulatedRemark(existingCase.getCompletionRemark(), caseInfo.getCompletionRemark(), operatorId);
-        boolean success = caseInfoService.completeCase(caseInfo.getCaseId(), finalCompletionRemark, caseInfo.getReturnCourtTime());
+        boolean success = caseInfoService.completeCase(caseInfo.getCaseId(), finalCompletionRemark, caseInfo.getReturnCourtTime(), operatorId);
         return success ? Result.success() : Result.fail("提交调解失败案件失败");
     }
 
