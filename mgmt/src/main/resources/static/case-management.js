@@ -904,7 +904,7 @@ function renderCaseTableHeader() {
             ${
                 (currentFilterStatus === '结案' || currentFilterStatus === '调解失败')
                 ? `<th style="white-space:nowrap;">
-                    ��法院时间
+                    退回法院时间
                     <span class="sort-btn" onclick="toggleSort('returnCourtTime')">
                         <i class="fa fa-sort${currentSortField==='returnCourtTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
                     </span>
