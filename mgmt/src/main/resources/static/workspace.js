@@ -192,7 +192,7 @@ async function getMyCaseCount(username) {
     params.append('userName', username);
     params.append('pageNum', 1);
     params.append('pageSize', 1);
-    params.append('status', "我的案件");
+    params.append('status', "我的待办");
     const resp = await request(`/case/page?${params.toString()}`);
     return resp.total || 0;
 }
