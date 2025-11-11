@@ -358,8 +358,19 @@ function createCaseDetailModalContainer() {
  */
 async function showCaseDetailModal(caseId) {
     try {
+        // 确保容器已创建
+        createCaseDetailModalContainer();
+        let modalContainer = document.getElementById('caseDetailModalContainer');
+        if (!modalContainer) {
+            console.error('案件详情容器未创建');
+            return;
+        }
         const caseInfo = await request(`/case/detail/${caseId}`);
-        const modalContainer = document.getElementById('caseDetailModalContainer');
+        if (!caseInfo) {
+            modalContainer.innerHTML = `<div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">案件详情</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">未获取到案件详情</div></div></div></div>`;
+            new bootstrap.Modal(document.getElementById('caseDetailModal')).show();
+            return;
+        }
         const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleString() : '-';
 
         modalContainer.innerHTML = `

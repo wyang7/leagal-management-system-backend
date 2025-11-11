@@ -300,22 +300,23 @@ async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
     try {
         currentMyCasePage = pageNum;
         const username = await getCurrentUserName();
+        const tableBodyEl = document.getElementById('myCaseTableBody');
+        if (!tableBodyEl) {
+            // 页面容器尚未渲染，直接退出，稍后用户重新触发或页面重新加载
+            return;
+        }
         if (!username) {
-            // 如果userId为空，直接终止（已在getCurrentUserId中处理跳转）
-            document.getElementById('myCaseTableBody').innerHTML = `
-                <tr><td colspan="7" class="text-center text-danger">未获取到用户信息</td></tr>
-            `;
+            tableBodyEl.innerHTML = `<tr><td colspan="11" class="text-center text-danger">未获取到用户信息</td></tr>`;
             return;
         }
 
         // 确保username有效后再发起请求
         // 查询条件
-        const caseName = document.getElementById('myCaseSearchInput').value.trim();
-        const station = (document.getElementById('myCaseStationSelect') && document.getElementById('myCaseStationSelect').value)
-                        ? document.getElementById('myCaseStationSelect').value.trim() : '';
-        const plaintiff = document.getElementById('myCasePlaintiffInput') ? document.getElementById('myCasePlaintiffInput').value.trim() : '';
-        const defendant = document.getElementById('myCaseDefendantInput') ? document.getElementById('myCaseDefendantInput').value.trim() : '';
-        const assistant = document.getElementById('myCaseAssistantInput') ? document.getElementById('myCaseAssistantInput').value.trim() : '';
+        const caseName = document.getElementById('myCaseSearchInput')?.value.trim() || '';
+        const station = document.getElementById('myCaseStationSelect')?.value.trim() || '';
+        const plaintiff = document.getElementById('myCasePlaintiffInput')?.value.trim() || '';
+        const defendant = document.getElementById('myCaseDefendantInput')?.value.trim() || '';
+        const assistant = document.getElementById('myCaseAssistantInput')?.value.trim() || '';
 
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
@@ -334,17 +335,20 @@ async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
         if (timeout) params.append('timeout', 'true');
 
         const response = await request(`/case/page?${params.toString()}`);
-        renderMyCaseTable(response.records);
+        if (tableBodyEl) {
+            renderMyCaseTable(response.records);
+        }
         // 渲染分页组件（假设后端返回的分页信息包含total、pageNum、pageSize、pages等字段）
         renderMyPagination({
-            total: response.total,      // 总记录数
-            pageNum: response.pageNum,  // 当前页码
-            pageSize: response.pageSize// 每页条数
+            total: response.total,
+            pageNum: response.pageNum,
+            pageSize: response.pageSize
         });
     } catch (error) {
-        document.getElementById('myCaseTableBody').innerHTML = `
-            <tr><td colspan="8" class="text-center text-danger">加载案件失败</td></tr>
-        `;
+        const body = document.getElementById('myCaseTableBody');
+        if (body) {
+            body.innerHTML = `<tr><td colspan="11" class="text-center text-danger">加载案件失败</td></tr>`;
+        }
     }
 }
 
