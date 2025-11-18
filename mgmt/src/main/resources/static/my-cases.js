@@ -15,6 +15,16 @@ function loadMyCasesPage(timeout = false) {
         <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
             <div class="ant-card-body">
                 <div class="row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-search text-secondary"></i>
+                            </span>
+                            <input type="text" id="keywordSearchInput" class="form-control ant-input" 
+                                   placeholder="请输入案由/原告/被告助理/案号/处理人" 
+                                   style="border-radius:0 4px 4px 0;">
+                        </div>
+                    </div>
                     <div class="col-md-3">
                         <div class="input-group">
                             <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
@@ -317,6 +327,7 @@ async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
         const plaintiff = document.getElementById('myCasePlaintiffInput')?.value.trim() || '';
         const defendant = document.getElementById('myCaseDefendantInput')?.value.trim() || '';
         const assistant = document.getElementById('myCaseAssistantInput')?.value.trim() || '';
+        const keyword = document.getElementById('keywordSearchInput')?.value.trim() || '';
 
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
@@ -333,6 +344,7 @@ async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
         if (defendant) params.append('defendant', defendant);
         if (assistant) params.append('assistant', assistant);
         if (timeout) params.append('timeout', 'true');
+        if (keyword) params.append('keyword', keyword);
 
         const response = await request(`/case/page?${params.toString()}`);
         if (tableBodyEl) {
