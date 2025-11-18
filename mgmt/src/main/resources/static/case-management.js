@@ -23,6 +23,18 @@ function loadCaseManagementPage(station, status) {
         <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
             <div class="ant-card-body">
                 <div class="row g-3 align-items-center">
+                    <!-- 万能搜索框 -->
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-search text-secondary"></i>
+                            </span>
+                            <input type="text" id="keywordSearchInput" class="form-control ant-input" 
+                                   placeholder="请输入案由/原告/被告助理/案号/处理人" 
+                                   style="border-radius:0 4px 4px 0;">
+                        </div>
+                    </div>
+                    <!-- 驻点下拉 -->
                     <div class="col-md-3">
                         <div class="input-group">
                             <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
@@ -103,9 +115,6 @@ function loadCaseManagementPage(station, status) {
                     <button class="ant-btn ant-btn-primary" onclick="showBatchAssignModal()">
                         <i class="fa fa-users"></i> 批量分派
                     </button>
-<!--                    <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showBatchAssignTaskModal()">-->
-<!--                        <i class="fa fa-plus me-1"></i> 批量关联案件包-->
-<!--                    </button>-->
                     <button class="ant-btn ant-btn-warning" id="batchReturnCourtTimeBtn" style="display:none;" onclick="showBatchReturnCourtTimeModal()">
                         <i class="fa fa-calendar"></i> 批量退回法院时间
                     </button>
@@ -501,6 +510,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         const userName = document.getElementById('userNameSearchInput').value.trim();
         const assistant = document.getElementById('assistantSearchInput').value.trim();
         const courtReceiveTime = document.getElementById('receiveTimeSearchInput').value.trim();
+        const keyword = document.getElementById('keywordSearchInput').value.trim();
 
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
@@ -512,6 +522,7 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         if (userName) params.append('userName', userName); // 处理人参数
         if (assistant) params.append('assistant', assistant); // 案件助理参数
         if (courtReceiveTime) params.append('courtReceiveTime', courtReceiveTime);
+        if (keyword) params.append('keyword', keyword);
         if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
         if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
         if (currentSortField) {
@@ -1988,7 +1999,7 @@ function showBatchCloseCaseModal() {
                         <textarea id="batchCloseCaseRemark" class="form-control" rows="3" placeholder="请输入结案备注"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                <div class="modal-footer" style="border-top:1px solid #f0f0;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary" onclick="confirmBatchCloseCase()" style="border-radius:4px;">确认批量结案</button>
                 </div>

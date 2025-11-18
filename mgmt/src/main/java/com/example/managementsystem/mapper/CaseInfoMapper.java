@@ -62,7 +62,8 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                       @Param("receiveTime") String receiveTime,
                       @Param("assistantId") Long assistantId,
                       @Param("userId") Long userId,
-                      @Param("station") String station);
+                      @Param("station") String station,
+                      @Param("keyword") String keyword);
 
     /*
      * 根据taskid查询案件数量
@@ -99,7 +100,8 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                                   @Param("userId") Long userId,
                                   @Param("station") String station,
                                   @Param("sortField") String sortField,
-                                  @Param("sortOrder") String sortOrder);
+                                  @Param("sortOrder") String sortOrder,
+                                  @Param("keyword") String keyword);
 
 
     List<CaseInfo> selectByStatusList(@Param("statusList") List<String> statusList,

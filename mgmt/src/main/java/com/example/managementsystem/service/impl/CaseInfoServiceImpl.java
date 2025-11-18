@@ -160,7 +160,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
                                            String caseNumber, String plaintiff, String defendant,String station
                                             ,Integer pageNum, Integer pageSize,
                                             String sortField, String sortOrder,
-                                            Boolean timeout) {
+                                            Boolean timeout,
+                                            String keyword) {
         int offset = (pageNum - 1) * pageSize;
         Long userId=null;
         if (org.apache.poi.util.StringUtil.isNotBlank(userName)){
@@ -183,7 +184,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         if (timeout != null && timeout) {
             // 筛选即将超时案件
             allRecords = new ArrayList<>();
-            List<CaseInfo> candidateCases = baseMapper.selectCasePage(0, 10000, caseName, status, caseNumber, plaintiff, defendant, receiveTime, assistantId, userId, station, sortField, sortOrder);
+            List<CaseInfo> candidateCases = baseMapper.selectCasePage(0, 10000, caseName, status, caseNumber, plaintiff, defendant, receiveTime, assistantId, userId, station, sortField, sortOrder, keyword);
             java.time.LocalDateTime now = java.time.LocalDateTime.now();
             for (CaseInfo caseInfo : candidateCases) {
                 if (caseInfo.getReceiveTime() == null) { continue; }
@@ -218,9 +219,9 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             result.put("pageSize", pageSize);
             return result;
         }
-        total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station);
+        total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station, keyword);
         List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize,caseName,status
-                , caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station, sortField, sortOrder);
+                , caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station, sortField, sortOrder, keyword);
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);
         result.put("records", records);

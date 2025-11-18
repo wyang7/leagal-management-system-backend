@@ -69,7 +69,8 @@ public interface ICaseInfoService extends IService<CaseInfo> {
                                     String caseNumber, String plaintiff, String defendant,String station
                                     ,Integer pageNum, Integer pageSize,
                                     String sortField, String sortOrder,
-                                    Boolean timeout); // 新增timeout参数
+                                    Boolean timeout,
+                                    String keyword); // 新增keyword参数
 
 
     /**

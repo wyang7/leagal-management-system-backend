@@ -56,6 +56,25 @@
                 </otherwise>
             </choose>
         </if>
+        <!-- 万能搜索：案由、原告、被告、案号、助理用户名、处理人用户名 -->
+        <if test="keyword != null and keyword != ''">
+            AND (
+                case_name LIKE CONCAT('%', #{keyword}, '%')
+                OR plaintiff_name LIKE CONCAT('%', #{keyword}, '%')
+                OR defendant_name LIKE CONCAT('%', #{keyword}, '%')
+                OR case_number LIKE CONCAT('%', #{keyword}, '%')
+                OR EXISTS (
+                    SELECT 1 FROM user ua
+                    WHERE ua.user_id = assistant_id
+                      AND ua.username LIKE CONCAT('%', #{keyword}, '%')
+                )
+                OR EXISTS (
+                    SELECT 1 FROM user uu
+                    WHERE uu.user_id = user_id
+                      AND uu.username LIKE CONCAT('%', #{keyword}, '%')
+                )
+            )
+        </if>
     </select>
 
     <!-- 查询所有案件总数 -->
@@ -146,6 +165,17 @@
                     AND c.case_location = #{station}
                 </otherwise>
             </choose>
+        </if>
+        <!-- 万能搜索：案由、原告、被告、案号、助理用户名、处理人用户名 -->
+        <if test="keyword != null and keyword != ''">
+            AND (
+                c.case_name LIKE CONCAT('%', #{keyword}, '%')
+                OR c.plaintiff_name LIKE CONCAT('%', #{keyword}, '%')
+                OR c.defendant_name LIKE CONCAT('%', #{keyword}, '%')
+                OR c.case_number LIKE CONCAT('%', #{keyword}, '%')
+                OR a.username LIKE CONCAT('%', #{keyword}, '%')
+                OR u.username LIKE CONCAT('%', #{keyword}, '%')
+            )
         </if>
         <if test="sortField != null and sortField != ''">
             ORDER BY
