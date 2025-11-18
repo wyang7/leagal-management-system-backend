@@ -30,10 +30,22 @@ function loadCaseManagementPage(station, status) {
                                 <i class="fa fa-search text-secondary"></i>
                             </span>
                             <input type="text" id="keywordSearchInput" class="form-control ant-input" 
-                                   placeholder="请输入案由/原告/被告助理/案号/处理人" 
+                                   placeholder="万能搜索框" 
                                    style="border-radius:0 4px 4px 0;">
                         </div>
                     </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="loadCases()">
+                            <i class="fa fa-search me-1"></i> 查询
+                        </button>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                         <a href="javascript:void(0);" onclick="toggleAdvancedSearch(this)" class="ms-3">
+                            更多查询条件 <i class="fa fa-angle-down"></i>
+                        </a>
+                    </div>
+                </div>
+                <div id="advancedSearchContainer" class="row g-3 align-items-center mt-2" style="display: none;">
                     <!-- 驻点下拉 -->
                     <div class="col-md-3">
                         <div class="input-group">
@@ -90,11 +102,6 @@ function loadCaseManagementPage(station, status) {
                             </span>
                             <input type="date" id="receiveTimeSearchInput" class="form-control ant-input" style="border-radius:0 4px 4px 0;">
                         </div>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="loadCases()">
-                            <i class="fa fa-search me-1"></i> 查询
-                        </button>
                     </div>
                 </div>
             </div>
@@ -173,6 +180,17 @@ function loadCaseManagementPage(station, status) {
     }, 0);
 
     renderCaseTableHeader(); // 新增：初次渲染表头
+}
+
+function toggleAdvancedSearch(element) {
+    const container = document.getElementById('advancedSearchContainer');
+    if (container.style.display === 'none') {
+        container.style.display = 'flex';
+        element.innerHTML = '收起查询条件 <i class="fa fa-angle-up"></i>';
+    } else {
+        container.style.display = 'none';
+        element.innerHTML = '更多查询条件 <i class="fa fa-angle-down"></i>';
+    }
 }
 
 // 控制批量退回法院时间按钮显示
