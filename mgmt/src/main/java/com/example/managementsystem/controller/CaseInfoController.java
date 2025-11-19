@@ -111,7 +111,8 @@ public class CaseInfoController {
             @RequestParam(required = false) String defendant,
             @RequestParam(required = false) String userName,
             @RequestParam(required = false) String assistant,
-            @RequestParam(required = false) String courtReceiveTime,
+            @RequestParam(required = false) String receiveTimeStart,
+            @RequestParam(required = false) String receiveTimeEnd,
             @RequestParam(required = false) String station,
             @RequestParam(required = false) String sortField,
             @RequestParam(required = false) String sortOrder,
@@ -129,7 +130,7 @@ public class CaseInfoController {
 
         // 调用服务层获取分页数据
         Map<String, Object> pageResult = caseInfoService.getCasePage(
-            caseName, status, userName, assistant, courtReceiveTime, caseNumber, plaintiff, defendant,
+            caseName, status, userName, assistant, receiveTimeStart, receiveTimeEnd, caseNumber, plaintiff, defendant,
             station, pageNum, pageSize, sortField, sortOrder, timeout, keyword
         );
 
@@ -784,12 +785,13 @@ public class CaseInfoController {
                 String defendant = (String) params.get("defendant");
                 String userName = (String) params.get("userName");
                 String assistant = (String) params.get("assistant");
-                String courtReceiveTime = (String) params.get("courtReceiveTime");
+                String receiveTimeStart = (String) params.get("receiveTimeStart");
+                String receiveTimeEnd = (String) params.get("receiveTimeEnd");
                 String status = (String) params.get("status");
                 String station = (String) params.get("station");
                 String keyword = (String) params.getOrDefault("keyword",null);
                 Map<String, Object> pageResult = caseInfoService.getCasePage(
-                        caseName, status, userName, assistant, courtReceiveTime, caseNumber, plaintiff, defendant
+                        caseName, status, userName, assistant, receiveTimeStart, receiveTimeEnd, caseNumber, plaintiff, defendant
                         , station, 1, 10000,null,null,null,keyword
                 );
                 exportList = (List<CaseInfo>) pageResult.get("records");

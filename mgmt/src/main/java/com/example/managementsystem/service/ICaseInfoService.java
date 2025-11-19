@@ -65,12 +65,10 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * @param pageSize 每页条数
      * @return 包含总条数和当前页数据的Map
      */
-    Map<String, Object> getCasePage(String caseName,String status,String userName,String assistant,String receiveTime,
-                                    String caseNumber, String plaintiff, String defendant,String station
-                                    ,Integer pageNum, Integer pageSize,
-                                    String sortField, String sortOrder,
-                                    Boolean timeout,
-                                    String keyword); // 新增keyword参数
+    Map<String, Object> getCasePage(String caseName,String status,String userName,String assistant,String receiveTimeStart
+            ,String receiveTimeEnd,String caseNumber, String plaintiff, String defendant,String station
+             ,Integer pageNum, Integer pageSize,String sortField, String sortOrder,
+                                    Boolean timeout,String keyword);
 
 
     /**

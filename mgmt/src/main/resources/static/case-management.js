@@ -100,7 +100,9 @@ function loadCaseManagementPage(station, status) {
                             <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
                                 <i class="fa fa-calendar text-secondary"></i>
                             </span>
-                            <input type="date" id="receiveTimeSearchInput" class="form-control ant-input" style="border-radius:0 4px 4px 0;">
+                            <input type="date" id="receiveTimeStartInput" class="form-control ant-input" style="border-radius:0;">
+                            <span style="margin:0 8px;">至</span>
+                            <input type="date" id="receiveTimeEndInput" class="form-control ant-input" style="border-radius:0 4px 4px 0;">
                         </div>
                     </div>
                 </div>
@@ -527,7 +529,8 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         const defendant = document.getElementById('defendantSearchInput').value.trim();
         const userName = document.getElementById('userNameSearchInput').value.trim();
         const assistant = document.getElementById('assistantSearchInput').value.trim();
-        const courtReceiveTime = document.getElementById('receiveTimeSearchInput').value.trim();
+        const receiveTimeStart = document.getElementById('receiveTimeStartInput').value.trim();
+        const receiveTimeEnd = document.getElementById('receiveTimeEndInput').value.trim();
         const keyword = document.getElementById('keywordSearchInput').value.trim();
 
         const params = new URLSearchParams();
@@ -539,7 +542,8 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         if (defendant) params.append('defendant', defendant); // 被告参数
         if (userName) params.append('userName', userName); // 处理人参数
         if (assistant) params.append('assistant', assistant); // 案件助理参数
-        if (courtReceiveTime) params.append('courtReceiveTime', courtReceiveTime);
+        if (receiveTimeStart) params.append('receiveTimeStart', receiveTimeStart);
+        if (receiveTimeEnd) params.append('receiveTimeEnd', receiveTimeEnd);
         if (keyword) params.append('keyword', keyword);
         if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
         if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
@@ -1685,8 +1689,7 @@ async function completeCase(caseId) {
 
 /**
  * 完成案件（状态从已领取变为退回）
- * @param {number} caseId 案件ID
- */
+ * @param {number} caseId 案件ID */
 async function returnCase(caseId) {
     if (!confirm('确定要标记这个案件为退回吗？')) {
         return;
@@ -1792,7 +1795,8 @@ async function exportCases() {
             defendant: document.getElementById('defendantSearchInput').value.trim(),
             userName: document.getElementById('userNameSearchInput').value.trim(),
             assistant: document.getElementById('assistantSearchInput').value.trim(),
-            courtReceiveTime: document.getElementById('receiveTimeSearchInput').value.trim(),
+            receiveTimeStart: document.getElementById('receiveTimeStartInput').value.trim(),
+            receiveTimeEnd: document.getElementById('receiveTimeEndInput').value.trim(),
             status: currentFilterStatus !== 'all' ? currentFilterStatus : undefined,
             station: currentStation || undefined
         };

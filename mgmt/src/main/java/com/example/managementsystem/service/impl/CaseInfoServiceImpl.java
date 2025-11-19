@@ -156,23 +156,24 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public Map<String, Object> getCasePage(String caseName,String status ,String userName,String assistant,String receiveTime,
-                                           String caseNumber, String plaintiff, String defendant,String station
-                                            ,Integer pageNum, Integer pageSize,
-                                            String sortField, String sortOrder,
-                                            Boolean timeout,
-                                            String keyword) {
+    public Map<String, Object> getCasePage(String caseName, String status, String userName, String assistant,
+                                           String receiveTimeStart, String receiveTimeEnd,
+                                           String caseNumber, String plaintiff, String defendant, String station,
+                                           Integer pageNum, Integer pageSize,
+                                           String sortField, String sortOrder,
+                                           Boolean timeout,
+                                           String keyword) {
         int offset = (pageNum - 1) * pageSize;
-        Long userId=null;
-        if (org.apache.poi.util.StringUtil.isNotBlank(userName)){
+        Long userId = null;
+        if (org.apache.poi.util.StringUtil.isNotBlank(userName)) {
             User user = userService.searchUserByUsername(userName);
             if (user == null) {
                 return null;
             }
             userId = user.getUserId();
         }
-        Long assistantId=null;
-        if (org.apache.poi.util.StringUtil.isNotBlank(assistant)){
+        Long assistantId = null;
+        if (org.apache.poi.util.StringUtil.isNotBlank(assistant)) {
             User user = userService.searchUserByUsername(assistant);
             if (user == null) {
                 return null;
@@ -184,7 +185,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         if (timeout != null && timeout) {
             // 筛选即将超时案件
             allRecords = new ArrayList<>();
-            List<CaseInfo> candidateCases = baseMapper.selectCasePage(0, 10000, caseName, status, caseNumber, plaintiff, defendant, receiveTime, assistantId, userId, station, sortField, sortOrder, keyword);
+            List<CaseInfo> candidateCases = baseMapper.selectCasePage(0, 10000, caseName, status, caseNumber, plaintiff, defendant,
+                receiveTimeStart, receiveTimeEnd, assistantId, userId, station, sortField, sortOrder, keyword);
             java.time.LocalDateTime now = java.time.LocalDateTime.now();
             for (CaseInfo caseInfo : candidateCases) {
                 if (caseInfo.getReceiveTime() == null) { continue; }
@@ -219,9 +221,9 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             result.put("pageSize", pageSize);
             return result;
         }
-        total = baseMapper.countAllCases(caseName,status, caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station, keyword);
-        List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize,caseName,status
-                , caseNumber, plaintiff, defendant,receiveTime,assistantId,userId,station, sortField, sortOrder, keyword);
+        total = baseMapper.countAllCases(caseName, status, caseNumber, plaintiff, defendant, receiveTimeStart, receiveTimeEnd,assistantId, userId, station, keyword);
+        List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize, caseName, status,
+            caseNumber, plaintiff, defendant, receiveTimeStart, receiveTimeEnd, assistantId, userId, station, sortField, sortOrder, keyword);
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);
         result.put("records", records);

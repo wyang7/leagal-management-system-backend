@@ -231,7 +231,7 @@ public class DashboardController {
     private List<CaseInfo> loadAllCasesByStation(String station) {
         List<CaseInfo> all = new ArrayList<>();
         int pageNum = 1; int pageSize = 100; while (true) {
-            Map<String,Object> page = caseInfoService.getCasePage(null,null,null,null,null,null,null,null,station,pageNum,pageSize,null,null,null,null);
+            Map<String,Object> page = caseInfoService.getCasePage(null,null,null,null,null,null,null,null,null,station,pageNum,pageSize,null,null,null,null);
             if (page == null) { break; }
             @SuppressWarnings("unchecked") List<CaseInfo> records = (List<CaseInfo>) page.get("records");
             if (records == null || records.isEmpty()) { break; }
@@ -249,7 +249,7 @@ public class DashboardController {
     private List<CaseInfo> loadAllCasesByUser(Long userId) {
         List<CaseInfo> all = new ArrayList<>();
         int pageNum = 1; int pageSize = 100; while (true) {
-            Map<String,Object> page = caseInfoService.getCasePage(null,null,null,null,null,null,null,null,null,pageNum,pageSize,null,null,null,null);
+            Map<String,Object> page = caseInfoService.getCasePage(null,null,null,null,null,null,null,null,null,null,pageNum,pageSize,null,null,null,null);
             if (page == null) { break; }
             @SuppressWarnings("unchecked") List<CaseInfo> records = (List<CaseInfo>) page.get("records");
             if (records == null || records.isEmpty()) { break; }
