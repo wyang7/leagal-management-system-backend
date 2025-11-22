@@ -217,6 +217,10 @@ async function showmyCaseDetailModal(caseId) {
                                 <span class="text-muted">案件号：</span><span class="fw-bold">${caseInfo.caseNumber || '-'}</span>
                             </div>
                         </div>
+                        <div class='row mb-2'>
+                            <div class='col-md-6 mb-2'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
+                            <div class='col-md-6 mb-2'><span class='text-muted'>澎和案件号：</span>${caseInfo.pengheCaseNumber!=null?caseInfo.pengheCaseNumber:'-'}</div>
+                        </div>
                         <hr>
                         <div class="row mb-2">
                             <div class="col-md-6 mb-2">
@@ -906,11 +910,11 @@ function createCompleteCaseModalContainer() {
  */
 async function showCompleteCaseModal(caseId) {
     const modalContainer = document.getElementById('completeCaseModalContainer');
-    // 先显示加载中骨架
     modalContainer.innerHTML = `<div class="modal fade" id="completeCaseModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><div class="modal-body p-4 text-center">加载中...</div></div></div></div>`;
     let caseInfo = null;
     try { caseInfo = await request(`/case/detail/${caseId}`); } catch (e) {}
     const defaultAmount = caseInfo && caseInfo.amount != null ? (Number(caseInfo.amount).toFixed(2)) : '';
+    const today = new Date().toISOString().slice(0,10);
     const modalHtml = `
     <div class="modal fade" id="completeCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -920,7 +924,7 @@ async function showCompleteCaseModal(caseId) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background:#fafcff;">
-                    <form id="completeCaseForm">
+                    <form id="completeCaseForm" novalidate>
                         <input type="hidden" id="completeCaseId" value="${caseId}">
                         <div class="form-group mb-3">
                             <label class="form-label">结案方式 <span class="text-danger">*</span></label>
@@ -933,21 +937,21 @@ async function showCompleteCaseModal(caseId) {
                         </div>
                         <hr/>
                         <div class="form-group mb-3">
-                            <label class="form-label">签字时间</label>
-                            <input type="date" id="signDate" class="form-control" max="${new Date().toISOString().slice(0,10)}">
+                            <label class="form-label">签字时间 (≥ 今日)</label>
+                            <input type="date" id="signDate" class="form-control" min="${today}">
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">调成标的额 (元)</label>
-                            <input type="number" step="0.01" id="adjustedAmount" class="form-control" placeholder="请输入调成标的额" value="${defaultAmount}">
+                            <label class="form-label">调成标的额 (元) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" id="adjustedAmount" required class="form-control" placeholder="请输入调成标的额" value="${defaultAmount}">
                             <div class="form-text">默认值来自案件原标的额，可自行修改。</div>
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">调解费 (元)</label>
-                            <input type="number" step="0.01" id="mediationFee" class="form-control" placeholder="请输入调解费">
+                            <label class="form-label">调解费 (元) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" id="mediationFee" required class="form-control" placeholder="请输入调解费">
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">支付方</label>
-                            <select id="payer" class="form-select">
+                            <label class="form-label">支付方 <span class="text-danger">*</span></label>
+                            <select id="payer" class="form-select" required>
                                 <option value="">请选择</option>
                                 <option value="原告">原告</option>
                                 <option value="被告">被告</option>
@@ -955,14 +959,15 @@ async function showCompleteCaseModal(caseId) {
                             </select>
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">是否开票</label>
-                            <select id="invoiced" class="form-select" onchange="toggleInvoiceInfo()">
+                            <label class="form-label">是否开票 <span class="text-danger">*</span></label>
+                            <select id="invoiced" class="form-select" required onchange="toggleInvoiceInfo()">
+                                <option value="">请选择</option>
                                 <option value="false">否</option>
                                 <option value="true">是</option>
                             </select>
                         </div>
                         <div class="form-group mb-3" id="invoiceInfoGroup" style="display:none;">
-                            <label class="form-label">开票信息</label>
+                            <label class="form-label">开票信息 <span class="text-danger">*</span></label>
                             <textarea id="invoiceInfo" rows="3" class="form-control" placeholder="请输入开票抬头 / 税号 / 地址等信息"></textarea>
                         </div>
                     </form>
@@ -975,38 +980,51 @@ async function showCompleteCaseModal(caseId) {
         </div>
     </div>`;
     modalContainer.innerHTML = modalHtml;
-    const completeModal = new bootstrap.Modal(document.getElementById('completeCaseModal'));
-    completeModal.show();
+    new bootstrap.Modal(document.getElementById('completeCaseModal')).show();
 }
 function toggleInvoiceInfo(){
     const sel=document.getElementById('invoiced');
     const grp=document.getElementById('invoiceInfoGroup');
     if(!sel||!grp) return;
     grp.style.display = sel.value==='true'?'' : 'none';
+    if(sel.value==='true'){
+        document.getElementById('invoiceInfo').setAttribute('required','required');
+    }else{
+        document.getElementById('invoiceInfo').removeAttribute('required');
+    }
 }
 async function submitCaseCompletion() {
-    const caseId = document.getElementById('completeCaseId').value;
     const notes = document.getElementById('completionNotes').value.trim();
     if (!notes) { alert('请选择结案方式'); return; }
+    const adjustedAmountRaw = document.getElementById('adjustedAmount').value.trim();
+    const mediationFeeRaw = document.getElementById('mediationFee').value.trim();
+    const payer = document.getElementById('payer').value.trim();
+    const invoicedStr = document.getElementById('invoiced').value.trim();
     const signDate = document.getElementById('signDate').value || undefined;
-    const adjustedAmountRaw = document.getElementById('adjustedAmount').value;
-    const mediationFeeRaw = document.getElementById('mediationFee').value;
-    const payer = document.getElementById('payer').value || undefined;
-    const invoicedStr = document.getElementById('invoiced').value;
-    const invoiced = invoicedStr === 'true';
-    const invoiceInfo = invoiced ? (document.getElementById('invoiceInfo').value.trim() || undefined) : undefined;
-    // 简单校验金额格式
-    if (adjustedAmountRaw && Number(adjustedAmountRaw) < 0) { alert('调成标的额不能为负数'); return; }
-    if (mediationFeeRaw && Number(mediationFeeRaw) < 0) { alert('调解费不能为负数'); return; }
+    // 必填校验
+    if(adjustedAmountRaw===''){ alert('请填写调成标的额'); return; }
+    if(mediationFeeRaw===''){ alert('请填写调解费'); return; }
+    if(payer===''){ alert('请选择支付方'); return; }
+    if(invoicedStr===''){ alert('请选择是否开票'); return; }
+    // 数值校验
+    if(isNaN(adjustedAmountRaw) || Number(adjustedAmountRaw)<0){ alert('调成标的额格式不正确或为负'); return; }
+    if(isNaN(mediationFeeRaw) || Number(mediationFeeRaw)<0){ alert('调解费格式不正确或为负'); return; }
+    const invoiced = invoicedStr==='true';
+    let invoiceInfo;
+    if(invoiced){
+        invoiceInfo = document.getElementById('invoiceInfo').value.trim();
+        if(!invoiceInfo){ alert('请选择开票为“是”时需填写开票信息'); return; }
+    }
+    const caseId = document.getElementById('completeCaseId').value;
     const payload = {
         caseId,
         notes,
         signDate,
-        adjustedAmount: adjustedAmountRaw? adjustedAmountRaw: undefined,
-        mediationFee: mediationFeeRaw? mediationFeeRaw: undefined,
+        adjustedAmount: adjustedAmountRaw,
+        mediationFee: mediationFeeRaw,
         payer,
         invoiced,
-        invoiceInfo
+        invoiceInfo: invoiceInfo || undefined
     };
     try {
         await request('/case/complete-with-notes','POST', payload);

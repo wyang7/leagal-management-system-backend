@@ -181,4 +181,16 @@ public class CaseInfo implements Serializable {
      */
     @TableField("case_close_ext")
     private String caseCloseExt;
+
+    /**
+     * 收款单号
+     */
+    @TableField("receipt_number")
+    private Integer receiptNumber;
+
+    /**
+     * 澎和案件号（司法确认时生成）
+     */
+    @TableField("penghe_case_number")
+    private Integer pengheCaseNumber;
 }

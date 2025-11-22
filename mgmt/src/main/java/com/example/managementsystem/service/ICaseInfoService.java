@@ -120,4 +120,8 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * @return 更新数量
      */
     int batchUpdateStatus(List<Integer> caseIds, String status, String completionRemark,Long operatorId);
+
+    Integer getMaxReceiptNumber();
+
+    Integer getMaxPengheCaseNumber();
 }

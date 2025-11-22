@@ -401,7 +401,7 @@ async function showCaseDetailModal(caseId) {
         if(caseInfo.caseCloseExt){
             try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml = `<div class='border rounded p-2 bg-light'>
                 <div><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
-                <div><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?Number(ext.adjustedAmount).toFixed(2):'-'}</div>
+                <div><span class='text-muted'>调整标的额：</span>${ext.adjustedAmount!=null?Number(ext.adjustedAmount).toFixed(2):'-'}</div>
                 <div><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?Number(ext.mediationFee).toFixed(2):'-'}</div>
                 <div><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
                 <div><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
@@ -424,6 +424,10 @@ async function showCaseDetailModal(caseId) {
                             <div class="col-md-6 mb-2">
                                 <span class="text-muted">案件号：</span><span class="fw-bold">${caseInfo.caseNumber || '-'}</span>
                             </div>
+                        </div>
+                        <div class='row mb-2'>
+                            <div class='col-md-6 mb-2'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
+                            <div class='col-md-6 mb-2'><span class='text-muted'>澎和案件号：</span>${caseInfo.pengheCaseNumber!=null?caseInfo.pengheCaseNumber:'-'}</div>
                         </div>
                         <hr>
                         <div class="row mb-2">

@@ -365,4 +365,13 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         return count;
     }
 
+    @Override
+    public Integer getMaxReceiptNumber() {
+        return baseMapper.selectMaxReceiptNumber();
+    }
+
+    @Override
+    public Integer getMaxPengheCaseNumber() {
+        return baseMapper.selectMaxPengheCaseNumber();
+    }
 }

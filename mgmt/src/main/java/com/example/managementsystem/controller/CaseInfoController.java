@@ -671,6 +671,18 @@ public class CaseInfoController {
         if (!("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before))) {
             return Result.fail("当前状态不允许提交结案审核");
         }
+        // 自动生成收款单号（若为空）
+        if (caseInfo.getReceiptNumber() == null) {
+            Integer maxReceipt = caseInfoService.getMaxReceiptNumber();
+            int nextReceipt = (maxReceipt == null || maxReceipt < 818) ? 818 : maxReceipt + 1;
+            caseInfo.setReceiptNumber(nextReceipt);
+        }
+        // 自动生成澎和案件号（仅司法确认且为空）
+        if ("司法确认".equals(notes) && caseInfo.getPengheCaseNumber() == null) {
+            Integer maxPenghe = caseInfoService.getMaxPengheCaseNumber();
+            int nextPenghe = (maxPenghe == null || maxPenghe < 689) ? 689 : maxPenghe + 1;
+            caseInfo.setPengheCaseNumber(nextPenghe);
+        }
         // 构造扩展 DTO（默认调成标的额用原值）
         CaseCloseExtDTO ext = new CaseCloseExtDTO();
         ext.setSignDate(signDate);

@@ -120,4 +120,14 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
             @Param("completionRemark") String completionRemark,
             @Param("returnCourtTime") String returnCourtTime
     );
+
+    /**
+     * 查询最大回执编号
+     */
+    Integer selectMaxReceiptNumber();
+
+    /**
+     * 查询最大鹏合案件编号
+     */
+    Integer selectMaxPengheCaseNumber();
 }

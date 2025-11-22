@@ -66,6 +66,8 @@
                 OR plaintiff_name LIKE CONCAT('%', #{keyword}, '%')
                 OR defendant_name LIKE CONCAT('%', #{keyword}, '%')
                 OR case_number LIKE CONCAT('%', #{keyword}, '%')
+                OR CAST(receipt_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+                OR CAST(penghe_case_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
                 OR EXISTS (
                     SELECT 1 FROM user ua
                     WHERE ua.user_id = assistant_id
@@ -123,9 +125,9 @@
     <!-- 分页查询案件 -->
     <select id="selectCasePage" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT *,a.username as assistantName, t.task_name as taskName  FROM case_info c
-                          LEFT JOIN user u ON c.user_id = u.user_id
-                          LEFT JOIN user a ON c.assistant_id = a.user_id
-                          LEFT JOIN task t ON c.task_id = t.task_id
+        LEFT JOIN user u ON c.user_id = u.user_id
+        LEFT JOIN user a ON c.assistant_id = a.user_id
+        LEFT JOIN task t ON c.task_id = t.task_id
         WHERE 1=1
         <if test="caseName != null and caseName != ''">
             AND case_name LIKE CONCAT(#{caseName}, '%')
@@ -179,6 +181,8 @@
                 OR c.plaintiff_name LIKE CONCAT('%', #{keyword}, '%')
                 OR c.defendant_name LIKE CONCAT('%', #{keyword}, '%')
                 OR c.case_number LIKE CONCAT('%', #{keyword}, '%')
+                OR CAST(c.receipt_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+                OR CAST(c.penghe_case_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
                 OR a.username LIKE CONCAT('%', #{keyword}, '%')
                 OR u.username LIKE CONCAT('%', #{keyword}, '%')
             )
@@ -332,7 +336,14 @@
         WHERE case_id = #{caseId}
     </update>
 
-
+    <!-- 查询最大收款单号 -->
+    <select id="selectMaxReceiptNumber" resultType="java.lang.Integer">
+        SELECT MAX(receipt_number) FROM case_info
+    </select>
+    <!-- 查询最大澎和案件号 -->
+    <select id="selectMaxPengheCaseNumber" resultType="java.lang.Integer">
+        SELECT MAX(penghe_case_number) FROM case_info
+    </select>
 
 
 </mapper>
