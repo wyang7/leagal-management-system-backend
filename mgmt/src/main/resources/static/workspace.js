@@ -178,32 +178,17 @@ function jumpToMyCasesPage(timeout) {
 
 // 获取指定驻点、状态的案件数
 async function getCaseCountByStatus(station, status) {
-    const params = new URLSearchParams();
-    params.append('station', station);
-    params.append('status', status);
-    params.append('pageNum', 1);
-    params.append('pageSize', 1);
-    const resp = await request(`/case/page?${params.toString()}`);
+    const resp = await request('/case/page', 'POST', { station, status, pageNum: 1, pageSize: 1 });
     return resp.total || 0;
 }
 // 获取调解员待处理案件数（修正统计，避免分页限制）
 async function getMyCaseCount(username) {
-    const params = new URLSearchParams();
-    params.append('userName', username);
-    params.append('pageNum', 1);
-    params.append('pageSize', 1);
-    params.append('status', "我的待办");
-    const resp = await request(`/case/page?${params.toString()}`);
+    const resp = await request('/case/page', 'POST', { userName: username, status: '我的待办', pageNum: 1, pageSize: 1 });
     return resp.total || 0;
 }
 // 获取调解员即将超时案件数（参考现有超时逻辑）
 async function getMyTimeoutCaseCount(username) {
-    const params = new URLSearchParams();
-    params.append('userName', username);
-    params.append('timeout', 'true');
-    params.append('pageNum', 1);
-    params.append('pageSize', 1);
-    const resp = await request(`/case/page?${params.toString()}`);
+    const resp = await request('/case/page', 'POST', { userName: username, timeout: true, pageNum: 1, pageSize: 1 });
     return resp.total || 0;
 }
 
@@ -336,29 +321,19 @@ function getRecentDays(n) { const arr=[]; for (let i=n-1;i>=0;i--) { const d=new
 async function fetchCaseTotal(station) { return getCaseCountByStationAndNoStatus(station); }
 async function fetchStatusCount(station, status) { return getCaseCountByStatus(station, status); }
 async function fetchDailyStatusCount(station, status, dayMMDD) {
-    // assume court_receive_time format includes yyyy-MM-dd ; filter by receive date substring
     const year = new Date().getFullYear();
     const day = year+'-'+dayMMDD.replace('/','-');
-    const params = new URLSearchParams();
-    params.append('station', station);
-    params.append('status', status);
-    params.append('receiveTime', day); // 后端 LIKE %receiveTime%
-    params.append('pageNum',1); params.append('pageSize',1);
-    const resp = await request(`/case/page?${params.toString()}`);
+    const resp = await request('/case/page','POST',{ station, status, receiveTimeStart: day, receiveTimeEnd: day, pageNum:1, pageSize:1 });
     return resp?.total || 0;
 }
 async function computeAvgPendingDuration(station) {
-    const params = new URLSearchParams();
-    params.append('station', station);
-    params.append('status','待结案');
-    params.append('pageNum',1); params.append('pageSize',1000);
-    const resp = await request(`/case/page?${params.toString()}`);
+    const resp = await request('/case/page','POST',{ station, status:'待结案', pageNum:1, pageSize:1000 });
     const records = resp?.records || [];
     if (!records.length) return 0;
     const now = Date.now();
     let sum = 0, count=0;
     records.forEach(r=> {
-        let baseTime = r.receiveTime || r.courtReceiveTime; // 优先领取时间，缺失则使用收案时间
+        let baseTime = r.receiveTime || r.courtReceiveTime;
         if (baseTime) {
             const ts = new Date(baseTime).getTime();
             if (!isNaN(ts)) { sum += Math.max(0, Math.floor((now - ts)/86400000)); count++; }
@@ -367,47 +342,28 @@ async function computeAvgPendingDuration(station) {
     return count? Math.round(sum/count): 0;
 }
 async function getCaseCountByStationAndNoStatus(station) {
-    const params = new URLSearchParams();
-    params.append('station', station);
-    params.append('pageNum',1); params.append('pageSize',1);
-    const resp = await request(`/case/page?${params.toString()}`); return resp?.total || 0; }
-
+    const resp = await request('/case/page','POST',{ station, pageNum:1, pageSize:1 });
+    return resp?.total || 0;
+}
 async function fetchStatusCountForUser(username, status) {
-    const params = new URLSearchParams();
-    params.append('userName', username);
-    params.append('status', status);
-    params.append('pageNum',1); params.append('pageSize',1);
-    const resp = await request(`/case/page?${params.toString()}`); return resp?.total || 0;
+    const resp = await request('/case/page','POST',{ userName: username, status, pageNum:1, pageSize:1 });
+    return resp?.total || 0;
 }
 async function fetchTimeoutCountForDay(username, dayMMDD) {
-    // 后端 timeout=true 仅支持当前时间窗口; 无日期过滤, 近似用整体; 这里按领取时间过滤估算
     const year = new Date().getFullYear();
     const day = year+'-'+dayMMDD.replace('/','-');
-    const params = new URLSearchParams();
-    params.append('userName', username);
-    params.append('timeout','true');
-    params.append('receiveTime', day);
-    params.append('pageNum',1); params.append('pageSize',1);
-    const resp = await request(`/case/page?${params.toString()}`); return resp?.total || 0;
+    const resp = await request('/case/page','POST',{ userName: username, timeout:true, receiveTimeStart: day, receiveTimeEnd: day, pageNum:1, pageSize:1 });
+    return resp?.total || 0;
 }
 async function fetchClosedCountForDay(username, dayMMDD) {
     const year = new Date().getFullYear();
     const day = year+'-'+dayMMDD.replace('/','-');
-    const params = new URLSearchParams();
-    params.append('userName', username);
-    params.append('status','结案');
-    params.append('receiveTime', day); // 使用 court_receive_time LIKE 过滤
-    params.append('pageNum',1); params.append('pageSize',1);
-    const resp = await request(`/case/page?${params.toString()}`); return resp?.total || 0;
+    const resp = await request('/case/page','POST',{ userName: username, status:'结案', receiveTimeStart: day, receiveTimeEnd: day, pageNum:1, pageSize:1 });
+    return resp?.total || 0;
 }
 async function fetchTimeoutCasesForDay(username, dayMMDD) {
     const year = new Date().getFullYear();
     const day = year+'-'+dayMMDD.replace('/','-');
-    const params = new URLSearchParams();
-    params.append('userName', username);
-    params.append('timeout','true');
-    params.append('receiveTime', day);
-    params.append('pageNum',1); params.append('pageSize',500); // 扩大以获取列表
-    const resp = await request(`/case/page?${params.toString()}`);
+    const resp = await request('/case/page','POST',{ userName: username, timeout:true, receiveTimeStart: day, receiveTimeEnd: day, pageNum:1, pageSize:500 });
     return { count: resp?.total || 0, ids: (resp?.records||[]).map(r=> r.caseId) };
 }

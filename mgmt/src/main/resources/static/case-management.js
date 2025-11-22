@@ -515,14 +515,10 @@ function createCaseModalContainer() {
 /**
  * 加载案件列表（支持分页）
  */
-async function loadCases(pageNum = 1, pageSize = 10, station) {
+async function loadCases(pageNum = 1, pageSize = 10, station = '') {
     try {
-
-        // 使用当前选中的驻点或传入的驻点参数
         const currentStationTemp = station || currentStation;
         currentPage = pageNum;
-
-        // 发起分页查询请求
         const caseName = document.getElementById('caseSearchInput').value.trim();
         const caseNumber = document.getElementById('caseNumberSearchInput').value.trim();
         const plaintiff = document.getElementById('plaintiffSearchInput').value.trim();
@@ -532,42 +528,29 @@ async function loadCases(pageNum = 1, pageSize = 10, station) {
         const receiveTimeStart = document.getElementById('receiveTimeStartInput').value.trim();
         const receiveTimeEnd = document.getElementById('receiveTimeEndInput').value.trim();
         const keyword = document.getElementById('keywordSearchInput').value.trim();
-
-        const params = new URLSearchParams();
-        params.append('pageNum', pageNum);
-        params.append('pageSize', pageSize);
-        if (caseName) params.append('caseName', caseName);
-        if (caseNumber) params.append('caseNumber', caseNumber);
-        if (plaintiff) params.append('plaintiff', plaintiff);   // 原告参数
-        if (defendant) params.append('defendant', defendant); // 被告参数
-        if (userName) params.append('userName', userName); // 处理人参数
-        if (assistant) params.append('assistant', assistant); // 案件助理参数
-        if (receiveTimeStart) params.append('receiveTimeStart', receiveTimeStart);
-        if (receiveTimeEnd) params.append('receiveTimeEnd', receiveTimeEnd);
-        if (keyword) params.append('keyword', keyword);
-        if (currentFilterStatus !== 'all') params.append('status', currentFilterStatus);
-        if (currentStationTemp) params.append('station', currentStationTemp); // 驻点信息
-        if (currentSortField) {
-            params.append('sortField', currentSortField);
-            params.append('sortOrder', currentSortOrder);
-        }
-
-        const response = await request(`/case/page?${params.toString()}`);
-        // 渲染表格和分页组件
-        renderCaseTableHeader(); // 新增：每次加载数据时重建表头
+        const payload = {
+            pageNum,
+            pageSize,
+            caseName: caseName || undefined,
+            caseNumber: caseNumber || undefined,
+            plaintiff: plaintiff || undefined,
+            defendant: defendant || undefined,
+            userName: userName || undefined,
+            assistant: assistant || undefined,
+            receiveTimeStart: receiveTimeStart || undefined,
+            receiveTimeEnd: receiveTimeEnd || undefined,
+            keyword: keyword || undefined,
+            status: currentFilterStatus !== 'all' ? currentFilterStatus : undefined,
+            station: currentStationTemp || undefined,
+            sortField: currentSortField || undefined,
+            sortOrder: currentSortField ? currentSortOrder : undefined
+        };
+        const response = await request('/case/page', 'POST', payload);
+        renderCaseTableHeader();
         renderCaseTable(response.records);
-        // 渲染分页组件（假设后端返回的分页信息包含total、pageNum、pageSize、pages等字段）
-        renderPagination({
-            total: response.total,      // 总记录数
-            pageNum: response.pageNum,  // 当前页码
-            pageSize: response.pageSize// 每页条数
-        });
+        renderPagination({ total: response.total, pageNum: response.pageNum, pageSize: response.pageSize });
     } catch (error) {
-        console.log("error2", error);
-        document.getElementById('caseTableBody').innerHTML = `
-            <tr><td colspan="14" class="text-center text-danger">加载案件失败</td></tr>
-        `;
-        // 清除分页组件
+        document.getElementById('caseTableBody').innerHTML = `<tr><td colspan="14" class="text-center text-danger">加载案件失败</td></tr>`;
         document.getElementById('paginationContainer')?.remove();
     }
 }

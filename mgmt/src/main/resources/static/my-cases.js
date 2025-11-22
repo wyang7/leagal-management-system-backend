@@ -326,59 +326,34 @@ async function getCurrentUserName() {
  */
 async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
     try {
-        currentMyCasePage = pageNum;
-        const username = await getCurrentUserName();
-        const tableBodyEl = document.getElementById('myCaseTableBody');
-        if (!tableBodyEl) {
-            // 页面容器尚未渲染，直接退出，稍后用户重新触发或页面重新加载
-            return;
-        }
-        if (!username) {
-            tableBodyEl.innerHTML = `<tr><td colspan="11" class="text-center text-danger">未获取到用户信息</td></tr>`;
-            return;
-        }
-
-        // 确保username有效后再发起请求
-        // 查询条件
+        const username = App?.user?.username || '';
         const caseName = document.getElementById('myCaseSearchInput')?.value.trim() || '';
         const station = document.getElementById('myCaseStationSelect')?.value.trim() || '';
         const plaintiff = document.getElementById('myCasePlaintiffInput')?.value.trim() || '';
         const defendant = document.getElementById('myCaseDefendantInput')?.value.trim() || '';
         const assistant = document.getElementById('myCaseAssistantInput')?.value.trim() || '';
         const keyword = document.getElementById('keywordSearchInput')?.value.trim() || '';
-
-        const params = new URLSearchParams();
-        params.append('pageNum', pageNum);
-        params.append('pageSize', pageSize);
-        if (caseName) params.append('caseName', caseName);
-        if (username) params.append('userName', username);
-        if (currentMyFilterStatus !== 'all') {
-            params.append('status', currentMyFilterStatus);
-        } else {
-            params.append('status', '我的案件');
-        }
-        if (station) params.append('station', station);
-        if (plaintiff) params.append('plaintiff', plaintiff);
-        if (defendant) params.append('defendant', defendant);
-        if (assistant) params.append('assistant', assistant);
-        if (timeout) params.append('timeout', 'true');
-        if (keyword) params.append('keyword', keyword);
-
-        const response = await request(`/case/page?${params.toString()}`);
-        if (tableBodyEl) {
-            renderMyCaseTable(response.records);
-        }
-        // 渲染分页组件（假设后端返回的分页信息包含total、pageNum、pageSize、pages等字段）
-        renderMyPagination({
-            total: response.total,
-            pageNum: response.pageNum,
-            pageSize: response.pageSize
-        });
+        const statusValue = currentMyFilterStatus !== 'all' ? currentMyFilterStatus : '我的案件';
+        const payload = {
+            pageNum,
+            pageSize,
+            caseName: caseName || undefined,
+            userName: username || undefined,
+            status: statusValue,
+            station: station || undefined,
+            plaintiff: plaintiff || undefined,
+            defendant: defendant || undefined,
+            assistant: assistant || undefined,
+            timeout: timeout || undefined,
+            keyword: keyword || undefined
+        };
+        const response = await request('/case/page', 'POST', payload);
+        const tableBodyEl = document.getElementById('myCaseTableBody');
+        if (tableBodyEl) { renderMyCaseTable(response.records); }
+        renderMyPagination({ total: response.total, pageNum: response.pageNum, pageSize: response.pageSize });
     } catch (error) {
         const body = document.getElementById('myCaseTableBody');
-        if (body) {
-            body.innerHTML = `<tr><td colspan="11" class="text-center text-danger">加载案件失败</td></tr>`;
-        }
+        if (body) { body.innerHTML = `<tr><td colspan="11" class="text-center text-danger">加载案件失败</td></tr>`; }
     }
 }
 
@@ -454,7 +429,7 @@ function renderMyPagination(pageInfo) {
     <nav aria-label="案件列表分页">
         <ul class="pagination">
             <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
+                <a class="page-link" href="#" onclick="loadMyCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>

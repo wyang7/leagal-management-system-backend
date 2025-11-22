@@ -13,7 +13,6 @@ import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.annotations.Case;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -25,13 +24,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.example.managementsystem.dto.CasePageRequest;
 
 /**
  * <p>
@@ -97,44 +94,14 @@ public class CaseInfoController {
         return caseInfo != null ? Result.success(caseInfo) : Result.fail("案件不存在");
     }
     /**
-     * 分页查询案件列表
-     * 支持前端请求格式: /case/page?pageNum=1&pageSize=10&t=1755945819649
+     * 分页查询案件列表 (改造为 POST + RequestBody)
      */
-    @GetMapping("/page")
-    public Result<Map<String, Object>> getCasePage(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String caseName,
-            @RequestParam(required = false) String status,          // 原有：状态
-            @RequestParam(required = false) String caseNumber,      // 新增：案号
-            @RequestParam(required = false) String plaintiff,       // 新增：原告
-            @RequestParam(required = false) String defendant,
-            @RequestParam(required = false) String userName,
-            @RequestParam(required = false) String assistant,
-            @RequestParam(required = false) String receiveTimeStart,
-            @RequestParam(required = false) String receiveTimeEnd,
-            @RequestParam(required = false) String station,
-            @RequestParam(required = false) String sortField,
-            @RequestParam(required = false) String sortOrder,
-            @RequestParam(required = false) Boolean timeout, // 新增timeout参数
-            @RequestParam(required = false) String keyword   // 新增：万能搜索
-    ) {
-
-        // 校验分页参数合法性
-        if (pageNum < 1) {
-            pageNum = 1;
-        }
-        if (pageSize < 1 || pageSize > 100) {
-            pageSize = 10; // 限制最大每页100条
-        }
-
-        // 调用服务层获取分页数据
-        Map<String, Object> pageResult = caseInfoService.getCasePage(
-            caseName, status, userName, assistant, receiveTimeStart, receiveTimeEnd, caseNumber, plaintiff, defendant,
-            station, pageNum, pageSize, sortField, sortOrder, timeout, keyword
-        );
-
-        // 返回统一格式的响应
+    @PostMapping("/page")
+    public Result<Map<String, Object>> getCasePage(@RequestBody CasePageRequest request) {
+        // 基础分页校验
+        if (request.getPageNum() != null && request.getPageNum() < 1) { request.setPageNum(1); }
+        if (request.getPageSize() != null && (request.getPageSize() < 1 || request.getPageSize() > 100)) { request.setPageSize(10); }
+        Map<String, Object> pageResult = caseInfoService.getCasePage(request);
         return Result.success(pageResult);
     }
 
@@ -772,28 +739,25 @@ public class CaseInfoController {
     public void exportCases(@RequestBody Map<String, Object> params, HttpServletResponse response) {
         try {
             List<CaseInfo> exportList;
-            // 1. 判断是否有勾选
             if (params.containsKey("caseIds")) {
                 List<Integer> intIds = (List<Integer>) params.get("caseIds");
                 List<Long> caseIds = intIds.stream().map(Integer::longValue).collect(Collectors.toList());
                 exportList = caseInfoService.listByIds(caseIds);
             } else {
-                // 2. 按当前查询条件导出全部
-                String caseName = (String) params.get("caseName");
-                String caseNumber = (String) params.get("caseNumber");
-                String plaintiff = (String) params.get("plaintiff");
-                String defendant = (String) params.get("defendant");
-                String userName = (String) params.get("userName");
-                String assistant = (String) params.get("assistant");
-                String receiveTimeStart = (String) params.get("receiveTimeStart");
-                String receiveTimeEnd = (String) params.get("receiveTimeEnd");
-                String status = (String) params.get("status");
-                String station = (String) params.get("station");
-                String keyword = (String) params.getOrDefault("keyword",null);
-                Map<String, Object> pageResult = caseInfoService.getCasePage(
-                        caseName, status, userName, assistant, receiveTimeStart, receiveTimeEnd, caseNumber, plaintiff, defendant
-                        , station, 1, 10000,null,null,null,keyword
-                );
+                CasePageRequest request = new CasePageRequest();
+                request.setCaseName((String) params.get("caseName"));
+                request.setCaseNumber((String) params.get("caseNumber"));
+                request.setPlaintiff((String) params.get("plaintiff"));
+                request.setDefendant((String) params.get("defendant"));
+                request.setUserName((String) params.get("userName"));
+                request.setAssistant((String) params.get("assistant"));
+                request.setReceiveTimeStart((String) params.get("receiveTimeStart"));
+                request.setReceiveTimeEnd((String) params.get("receiveTimeEnd"));
+                request.setStatus((String) params.get("status"));
+                request.setStation((String) params.get("station"));
+                request.setKeyword((String) params.getOrDefault("keyword", null));
+                request.setPageNum(1); request.setPageSize(10000);
+                Map<String, Object> pageResult = caseInfoService.getCasePage(request);
                 exportList = (List<CaseInfo>) pageResult.get("records");
             }
 

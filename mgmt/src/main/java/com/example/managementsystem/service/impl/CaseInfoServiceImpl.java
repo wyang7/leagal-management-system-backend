@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import com.example.managementsystem.dto.CasePageRequest; // new import
 
 /**
  * <p>
@@ -156,37 +157,43 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
-    public Map<String, Object> getCasePage(String caseName, String status, String userName, String assistant,
-                                           String receiveTimeStart, String receiveTimeEnd,
-                                           String caseNumber, String plaintiff, String defendant, String station,
-                                           Integer pageNum, Integer pageSize,
-                                           String sortField, String sortOrder,
-                                           Boolean timeout,
-                                           String keyword) {
+    public Map<String, Object> getCasePage(CasePageRequest request) {
+        if (request == null) { return Collections.emptyMap(); }
+        Integer pageNum = request.getPageNum() == null || request.getPageNum() < 1 ? 1 : request.getPageNum();
+        Integer pageSize = request.getPageSize() == null || request.getPageSize() < 1 ? 10 : Math.min(request.getPageSize(), 100);
         int offset = (pageNum - 1) * pageSize;
+        String caseName = request.getCaseName();
+        String status = request.getStatus();
+        String userName = request.getUserName();
+        String assistant = request.getAssistant();
+        String receiveTimeStart = request.getReceiveTimeStart();
+        String receiveTimeEnd = request.getReceiveTimeEnd();
+        String caseNumber = request.getCaseNumber();
+        String plaintiff = request.getPlaintiff();
+        String defendant = request.getDefendant();
+        String station = request.getStation();
+        String sortField = request.getSortField();
+        String sortOrder = request.getSortOrder();
+        Boolean timeout = request.getTimeout();
+        String keyword = request.getKeyword();
+        // 用户ID解析
         Long userId = null;
         if (org.apache.poi.util.StringUtil.isNotBlank(userName)) {
             User user = userService.searchUserByUsername(userName);
-            if (user == null) {
-                return null;
-            }
+            if (user == null) { return Collections.emptyMap(); }
             userId = user.getUserId();
         }
         Long assistantId = null;
         if (org.apache.poi.util.StringUtil.isNotBlank(assistant)) {
             User user = userService.searchUserByUsername(assistant);
-            if (user == null) {
-                return null;
-            }
+            if (user == null) { return Collections.emptyMap(); }
             assistantId = user.getUserId();
         }
-        List<CaseInfo> allRecords;
-        int total;
+        // 超时逻辑复用
         if (timeout != null && timeout) {
-            // 筛选即将超时案件
-            allRecords = new ArrayList<>();
             List<CaseInfo> candidateCases = baseMapper.selectCasePage(0, 10000, caseName, status, caseNumber, plaintiff, defendant,
                 receiveTimeStart, receiveTimeEnd, assistantId, userId, station, sortField, sortOrder, keyword);
+            List<CaseInfo> allRecords = new ArrayList<>();
             java.time.LocalDateTime now = java.time.LocalDateTime.now();
             for (CaseInfo caseInfo : candidateCases) {
                 if (caseInfo.getReceiveTime() == null) { continue; }
@@ -195,23 +202,14 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
                 String receiveType = caseInfo.getReceiveType();
                 String caseStatus = caseInfo.getStatus();
                 if ("self_receive".equals(receiveType)) {
-                    if ("已领取".equals(caseStatus) && daysSinceReceived > 0 && daysSinceReceived <= 3) {
-                        allRecords.add(caseInfo);
-                        continue;
-                    }
-                    if ("反馈".equals(caseStatus) && daysSinceReceived >= 12 && daysSinceReceived <= 15) {
-                        allRecords.add(caseInfo);
-                        continue;
-                    }
+                    if ("已领取".equals(caseStatus) && daysSinceReceived > 0 && daysSinceReceived <= 3) { allRecords.add(caseInfo); continue; }
+                    if ("反馈".equals(caseStatus) && daysSinceReceived >= 12 && daysSinceReceived <= 15) { allRecords.add(caseInfo); continue; }
                 }
                 if ("assign".equals(receiveType) && ("已领取".equals(caseStatus) || "反馈".equals(caseStatus))) {
-                    if (daysSinceReceived >= 7 && daysSinceReceived <= 10) {
-                        allRecords.add(caseInfo);
-                    }
+                    if (daysSinceReceived >= 7 && daysSinceReceived <= 10) { allRecords.add(caseInfo); }
                 }
             }
-            total = allRecords.size();
-            // 分页
+            int total = allRecords.size();
             int toIndex = Math.min(offset + pageSize, total);
             List<CaseInfo> pageRecords = offset < toIndex ? allRecords.subList(offset, toIndex) : new ArrayList<>();
             Map<String, Object> result = new HashMap<>();
@@ -221,9 +219,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             result.put("pageSize", pageSize);
             return result;
         }
-        total = baseMapper.countAllCases(caseName, status, caseNumber, plaintiff, defendant, receiveTimeStart, receiveTimeEnd,assistantId, userId, station, keyword);
-        List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize, caseName, status,
-            caseNumber, plaintiff, defendant, receiveTimeStart, receiveTimeEnd, assistantId, userId, station, sortField, sortOrder, keyword);
+        int total = baseMapper.countAllCases(caseName, status, caseNumber, plaintiff, defendant, receiveTimeStart, receiveTimeEnd, assistantId, userId, station, keyword);
+        List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize, caseName, status, caseNumber, plaintiff, defendant, receiveTimeStart, receiveTimeEnd, assistantId, userId, station, sortField, sortOrder, keyword);
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);
         result.put("records", records);

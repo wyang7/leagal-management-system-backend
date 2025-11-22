@@ -7,10 +7,7 @@ import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.IUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -18,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.example.managementsystem.dto.CasePageRequest;
 
 /**
  * 聚合大盘接口，减少前端大量细粒度请求，提升性能
@@ -231,7 +229,9 @@ public class DashboardController {
     private List<CaseInfo> loadAllCasesByStation(String station) {
         List<CaseInfo> all = new ArrayList<>();
         int pageNum = 1; int pageSize = 100; while (true) {
-            Map<String,Object> page = caseInfoService.getCasePage(null,null,null,null,null,null,null,null,null,station,pageNum,pageSize,null,null,null,null);
+            CasePageRequest req = new CasePageRequest();
+            req.setStation(station); req.setPageNum(pageNum); req.setPageSize(pageSize);
+            Map<String,Object> page = caseInfoService.getCasePage(req);
             if (page == null) { break; }
             @SuppressWarnings("unchecked") List<CaseInfo> records = (List<CaseInfo>) page.get("records");
             if (records == null || records.isEmpty()) { break; }
@@ -243,20 +243,17 @@ public class DashboardController {
         return all;
     }
 
-    /**
-     * 抓取该用户所有案件（分页迭代）
-     */
     private List<CaseInfo> loadAllCasesByUser(Long userId) {
         List<CaseInfo> all = new ArrayList<>();
         int pageNum = 1; int pageSize = 100; while (true) {
-            Map<String,Object> page = caseInfoService.getCasePage(null,null,null,null,null,null,null,null,null,null,pageNum,pageSize,null,null,null,null);
+            CasePageRequest req = new CasePageRequest();
+            req.setPageNum(pageNum); req.setPageSize(pageSize);
+            Map<String,Object> page = caseInfoService.getCasePage(req);
             if (page == null) { break; }
             @SuppressWarnings("unchecked") List<CaseInfo> records = (List<CaseInfo>) page.get("records");
             if (records == null || records.isEmpty()) { break; }
             for (CaseInfo c: records) {
-                if (c.getUserId()!=null && c.getUserId().equals(userId)) {
-                    all.add(c);
-                }
+                if (c.getUserId()!=null && c.getUserId().equals(userId)) { all.add(c); }
             }
             int total = (int) page.get("total");
             if (pageNum * pageSize >= total) { break; }
@@ -265,3 +262,4 @@ public class DashboardController {
         return all;
     }
 }
+

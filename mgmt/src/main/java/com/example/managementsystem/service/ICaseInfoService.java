@@ -4,6 +4,7 @@ import com.example.managementsystem.entity.CaseInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 import java.util.Map;
+import com.example.managementsystem.dto.CasePageRequest;
 
 /**
  * <p>
@@ -60,15 +61,11 @@ public interface ICaseInfoService extends IService<CaseInfo> {
 
 
     /**
-     * 分页查询案件列表
-     * @param pageNum 页码(从1开始)
-     * @param pageSize 每页条数
+     * 分页查询案件列表(新) 使用请求体封装参数
+     * @param request 封装了查询参数的请求体
      * @return 包含总条数和当前页数据的Map
      */
-    Map<String, Object> getCasePage(String caseName,String status,String userName,String assistant,String receiveTimeStart
-            ,String receiveTimeEnd,String caseNumber, String plaintiff, String defendant,String station
-             ,Integer pageNum, Integer pageSize,String sortField, String sortOrder,
-                                    Boolean timeout,String keyword);
+    Map<String, Object> getCasePage(CasePageRequest request);
 
 
     /**
