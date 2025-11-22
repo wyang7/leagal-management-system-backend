@@ -173,7 +173,21 @@ function jumpToCasePage(station, status) {
 }
 // 跳转我的案件页面
 function jumpToMyCasesPage(timeout) {
+    // 先渲染我的案件页（带是否超时标志）
     loadMyCasesPage(timeout === true);
+    // 设置筛选状态为“我的待办”以匹配后端 mapper 中的特殊逻辑
+    if (typeof currentMyFilterStatus !== 'undefined') {
+        currentMyFilterStatus = '我的待办';
+    } else {
+        // 防御：如果脚本加载顺序导致未定义，将其挂到全局
+        window.currentMyFilterStatus = '我的待办';
+    }
+    // 延迟一个微任务，确保页面结构与列表容器已创建，再发起查询
+    setTimeout(() => {
+        if (typeof loadMyCases === 'function') {
+            loadMyCases(1, typeof currentMyCasePageSize !== 'undefined' ? currentMyCasePageSize : 10, timeout === true);
+        }
+    }, 0);
 }
 
 // 获取指定驻点、状态的案件数
