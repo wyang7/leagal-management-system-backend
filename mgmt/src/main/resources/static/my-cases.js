@@ -185,6 +185,18 @@ function createMyCaseDetailModalContainer() {
 async function showmyCaseDetailModal(caseId) {
     try {
         const caseInfo = await request(`/case/detail/${caseId}`);
+        let extHtml='';
+        if(caseInfo.caseCloseExt){
+            try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml = `<div class='border rounded p-2 bg-light'>
+                <div><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
+                <div><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?Number(ext.adjustedAmount).toFixed(2):'-'}</div>
+                <div><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?Number(ext.mediationFee).toFixed(2):'-'}</div>
+                <div><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
+                <div><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
+                ${ext.invoiced? `<div><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
+            </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
+        } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
+
         const modalContainer = document.getElementById('myCaseDetailModalContainer');
         const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleString() : '-';
 
@@ -264,17 +276,20 @@ async function showmyCaseDetailModal(caseId) {
                             <span class="text-muted">完成情况：</span>
                             <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionNotes ? caseInfo.completionNotes.replace(/\n/g, '<br>') : '无'}</div>
                         </div>
+                        <!-- 新增的结案扩展信息展示 -->
+                        <div class="mb-3">
+                          <span class="fw-bold">结案扩展信息</span>
+                          ${extHtml}
+                        </div>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                         <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
                     </div>
                 </div>
             </div>
-        </div>
-        `;
+        </div>`;
         modalContainer.innerHTML = modalHtml;
-        const detailModal = new bootstrap.Modal(document.getElementById('myCaseDetailModal'));
-        detailModal.show();
+        new bootstrap.Modal(document.getElementById('myCaseDetailModal')).show();
     } catch (error) {
         console.error('获取案件详情失败:', error);
         alert('获取案件详情失败');
@@ -889,23 +904,26 @@ function createCompleteCaseModalContainer() {
  * 显示完成案件模态框（带完成情况输入）
  * @param {number} caseId 案件ID
  */
-function showCompleteCaseModal(caseId) {
+async function showCompleteCaseModal(caseId) {
     const modalContainer = document.getElementById('completeCaseModalContainer');
-
-    // 创建模态框（antd风格）
+    // 先显示加载中骨架
+    modalContainer.innerHTML = `<div class="modal fade" id="completeCaseModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><div class="modal-body p-4 text-center">加载中...</div></div></div></div>`;
+    let caseInfo = null;
+    try { caseInfo = await request(`/case/detail/${caseId}`); } catch (e) {}
+    const defaultAmount = caseInfo && caseInfo.amount != null ? (Number(caseInfo.amount).toFixed(2)) : '';
     const modalHtml = `
     <div class="modal fade" id="completeCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
                 <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                    <h5 class="modal-title"><i class="fa fa-check text-primary me-2"></i>案件完成情况</h5>
+                    <h5 class="modal-title"><i class="fa fa-check text-primary me-2"></i>提交结案审核</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background:#fafcff;">
                     <form id="completeCaseForm">
                         <input type="hidden" id="completeCaseId" value="${caseId}">
-                        <div class="form-group">
-                            <label for="completionNotes">请选择结案方式</label>
+                        <div class="form-group mb-3">
+                            <label class="form-label">结案方式 <span class="text-danger">*</span></label>
                             <select id="completionNotes" class="form-select" required>
                                 <option value="">请选择</option>
                                 <option value="司法确认">司法确认</option>
@@ -913,51 +931,90 @@ function showCompleteCaseModal(caseId) {
                                 <option value="民初">民初</option>
                             </select>
                         </div>
+                        <hr/>
+                        <div class="form-group mb-3">
+                            <label class="form-label">签字时间</label>
+                            <input type="date" id="signDate" class="form-control" max="${new Date().toISOString().slice(0,10)}">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">调成标的额 (元)</label>
+                            <input type="number" step="0.01" id="adjustedAmount" class="form-control" placeholder="请输入调成标的额" value="${defaultAmount}">
+                            <div class="form-text">默认值来自案件原标的额，可自行修改。</div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">调解费 (元)</label>
+                            <input type="number" step="0.01" id="mediationFee" class="form-control" placeholder="请输入调解费">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">支付方</label>
+                            <select id="payer" class="form-select">
+                                <option value="">请选择</option>
+                                <option value="原告">原告</option>
+                                <option value="被告">被告</option>
+                                <option value="原被告">原被告</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">是否开票</label>
+                            <select id="invoiced" class="form-select" onchange="toggleInvoiceInfo()">
+                                <option value="false">否</option>
+                                <option value="true">是</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-3" id="invoiceInfoGroup" style="display:none;">
+                            <label class="form-label">开票信息</label>
+                            <textarea id="invoiceInfo" rows="3" class="form-control" placeholder="请输入开票抬头 / 税号 / 地址等信息"></textarea>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                     <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
-                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitCaseCompletion()" style="border-radius:4px;">提交</button>
+                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitCaseCompletion()" style="border-radius:4px;">提交审核</button>
                 </div>
             </div>
         </div>
-    </div>
-    `;
-
+    </div>`;
     modalContainer.innerHTML = modalHtml;
-
-    // 显示模态框
     const completeModal = new bootstrap.Modal(document.getElementById('completeCaseModal'));
     completeModal.show();
 }
-
-/**
- * 提交案件完成情况
- */
+function toggleInvoiceInfo(){
+    const sel=document.getElementById('invoiced');
+    const grp=document.getElementById('invoiceInfoGroup');
+    if(!sel||!grp) return;
+    grp.style.display = sel.value==='true'?'' : 'none';
+}
 async function submitCaseCompletion() {
     const caseId = document.getElementById('completeCaseId').value;
     const notes = document.getElementById('completionNotes').value.trim();
-
-    if (!notes) {
-        alert('请选择结案方式');
-        return;
-    }
-
+    if (!notes) { alert('请选择结案方式'); return; }
+    const signDate = document.getElementById('signDate').value || undefined;
+    const adjustedAmountRaw = document.getElementById('adjustedAmount').value;
+    const mediationFeeRaw = document.getElementById('mediationFee').value;
+    const payer = document.getElementById('payer').value || undefined;
+    const invoicedStr = document.getElementById('invoiced').value;
+    const invoiced = invoicedStr === 'true';
+    const invoiceInfo = invoiced ? (document.getElementById('invoiceInfo').value.trim() || undefined) : undefined;
+    // 简单校验金额格式
+    if (adjustedAmountRaw && Number(adjustedAmountRaw) < 0) { alert('调成标的额不能为负数'); return; }
+    if (mediationFeeRaw && Number(mediationFeeRaw) < 0) { alert('调解费不能为负数'); return; }
+    const payload = {
+        caseId,
+        notes,
+        signDate,
+        adjustedAmount: adjustedAmountRaw? adjustedAmountRaw: undefined,
+        mediationFee: mediationFeeRaw? mediationFeeRaw: undefined,
+        payer,
+        invoiced,
+        invoiceInfo
+    };
     try {
-        await request('/case/complete-with-notes', 'POST', {
-            caseId: caseId,
-            notes: notes
-        });
-
-        // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(document.getElementById('completeCaseModal'));
-        modal.hide();
-
-        // 重新加载我的案件列表
+        await request('/case/complete-with-notes','POST', payload);
+        bootstrap.Modal.getInstance(document.getElementById('completeCaseModal')).hide();
         loadMyCases(currentMyCasePage,currentMyCasePageSize);
-        alert('案件已成功标记为待结案');
-    } catch (error) {
-        console.error('提交失败:', error);
+        alert('已提交结案审核');
+    } catch (e) {
+        alert('提交失败，请稍后重试');
     }
 }
 

@@ -175,4 +175,10 @@ public class CaseInfo implements Serializable {
      */
     @TableField("updated_time")
     private String updatedTime;
+
+    /**
+     * 结案扩展信息JSON
+     */
+    @TableField("case_close_ext")
+    private String caseCloseExt;
 }

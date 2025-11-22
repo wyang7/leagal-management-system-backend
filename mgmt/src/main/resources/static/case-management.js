@@ -387,21 +387,27 @@ function createCaseDetailModalContainer() {
  */
 async function showCaseDetailModal(caseId) {
     try {
-        // 确保容器已创建
         createCaseDetailModalContainer();
         let modalContainer = document.getElementById('caseDetailModalContainer');
-        if (!modalContainer) {
-            console.error('案件详情容器未创建');
-            return;
-        }
+        if (!modalContainer) { return; }
         const caseInfo = await request(`/case/detail/${caseId}`);
         if (!caseInfo) {
-            modalContainer.innerHTML = `<div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">案件详情</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">未获取到案件详情</div></div></div></div>`;
+            modalContainer.innerHTML = `<div class="modal fade" id="caseDetailModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">案件详情</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">未获取到案件详情</div></div></div></div>`;
             new bootstrap.Modal(document.getElementById('caseDetailModal')).show();
             return;
         }
         const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleString() : '-';
-
+        let extHtml='';
+        if(caseInfo.caseCloseExt){
+            try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml = `<div class='border rounded p-2 bg-light'>
+                <div><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
+                <div><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?Number(ext.adjustedAmount).toFixed(2):'-'}</div>
+                <div><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?Number(ext.mediationFee).toFixed(2):'-'}</div>
+                <div><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
+                <div><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
+                ${ext.invoiced? `<div><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
+            </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
+        } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
         modalContainer.innerHTML = `
         <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
@@ -485,14 +491,17 @@ async function showCaseDetailModal(caseId) {
                             <span class="text-muted">调解失败备注：</span>
                             <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionRemark ? caseInfo.completionRemark.replace(/\n/g, '<br>') : '无'}</div>
                         </div>
+                        <div class="mb-3">
+                            <span class="fw-bold">结案扩展信息</span>
+                            ${extHtml}
+                        </div>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                         <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
                     </div>
                 </div>
             </div>
-        </div>
-        `;
+        </div>`;
         const detailModal = new bootstrap.Modal(document.getElementById('caseDetailModal'));
         detailModal.show();
     } catch (error) {
@@ -2004,7 +2013,7 @@ function showBatchCloseCaseModal() {
                         <textarea id="batchCloseCaseRemark" class="form-control" rows="3" placeholder="请输入结案备注"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top:1px solid #f0f0;">
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary" onclick="confirmBatchCloseCase()" style="border-radius:4px;">确认批量结案</button>
                 </div>

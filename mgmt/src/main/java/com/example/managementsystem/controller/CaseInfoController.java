@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.example.managementsystem.dto.CasePageRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.managementsystem.dto.CaseCloseExtDTO;
 
 /**
  * <p>
@@ -55,6 +57,8 @@ public class CaseInfoController {
 
     @Autowired
     private IRoleService roleService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 根据状态筛选案件（支持多个状态）
@@ -645,7 +649,13 @@ public class CaseInfoController {
     public Result<?> completeCaseWithNotes(@RequestBody Map<String, Object> params, HttpSession session) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String notes = params.get("notes").toString();
-
+        // 扩展字段提取
+        String signDate = (String) params.getOrDefault("signDate", null);
+        Object adjustedAmountObj = params.get("adjustedAmount");
+        Object mediationFeeObj = params.get("mediationFee");
+        String payer = (String) params.getOrDefault("payer", null);
+        Boolean invoiced = params.get("invoiced") == null ? null : Boolean.valueOf(params.get("invoiced").toString());
+        String invoiceInfo = (String) params.getOrDefault("invoiceInfo", null);
         CaseInfo caseInfo = caseInfoService.getById(caseId);
         if (caseInfo == null) {
             return Result.fail("案件不存在");
@@ -656,27 +666,47 @@ public class CaseInfoController {
         }
         Long operatorId = currentUser.getUserId();
         String operatorName = currentUser.getUsername();
-
-
-        // 更新状态和完成情况
+        // 状态校验：仅已领取/反馈/延期可以提交结案审核
+        String before = caseInfo.getStatus();
+        if (!("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before))) {
+            return Result.fail("当前状态不允许提交结案审核");
+        }
+        // 构造扩展 DTO（默认调成标的额用原值）
+        CaseCloseExtDTO ext = new CaseCloseExtDTO();
+        ext.setSignDate(signDate);
+        try {
+            if (adjustedAmountObj != null) {
+                ext.setAdjustedAmount(new java.math.BigDecimal(adjustedAmountObj.toString()));
+            } else if (caseInfo.getAmount() != null) {
+                ext.setAdjustedAmount(caseInfo.getAmount());
+            }
+            if (mediationFeeObj != null) {
+                ext.setMediationFee(new java.math.BigDecimal(mediationFeeObj.toString()));
+            }
+        } catch (NumberFormatException e) {
+            return Result.fail("金额格式错误");
+        }
+        ext.setPayer(payer);
+        ext.setInvoiced(invoiced);
+        if (Boolean.TRUE.equals(invoiced)) {
+            ext.setInvoiceInfo(invoiceInfo);
+        }
+        try {
+            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
+        } catch (Exception e) {
+            return Result.fail("结案扩展信息序列化失败");
+        }
+        // 更新状态与完成情况
         caseInfo.setStatus("待结案");
         String finalNotes = buildAccumulatedRemark(caseInfo.getCompletionNotes(), notes, operatorId);
         caseInfo.setCompletionNotes(finalNotes);
+        caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         boolean success = caseInfoService.updateById(caseInfo);
         if (success) {
-            // 保存历史记录
-            caseFlowHistoryService.saveHistory(
-                    caseId,
-                    operatorId,
-                    operatorName,
-                    "提交结案审核",
-                    caseInfo.getStatus(),
-                    "待结案",
-                    notes
-            );
+            caseFlowHistoryService.saveHistory(caseId, operatorId, operatorName, "提交结案审核", before, "待结案", notes);
             return Result.success();
         } else {
-            return Result.fail("完成案件失败");
+            return Result.fail("提交结案审核失败");
         }
     }
 
