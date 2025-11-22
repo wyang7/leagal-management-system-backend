@@ -743,33 +743,15 @@ function renderCaseTable(cases) {
         let statusClass = '';
         let statusText = caseInfo.status;
         switch (caseInfo.status) {
-            case '待领取':
-                statusClass = 'status-pending-receive';
-                break;
-            case '已领取':
-                statusClass = 'status-received';
-                break;
-            case '反馈':
-                statusClass = 'status-pre-feedback';
-                break;
-            case '延期':
-                statusClass = 'status-delayed';
-                break;
-            case '待结案':
-                statusClass = 'status-completed';
-                statusText = '待结案';
-                break;
-            case '退回':
-                statusClass = 'status-returned';
-                break;
-            case '调解失败':
-                statusClass = 'status-failed';
-                break;
-            case '结案':
-                statusClass = 'status-closed';
-                break;
+            case '待领取': statusClass = 'status-pending-receive'; break;
+            case '已领取': statusClass = 'status-received'; break;
+            case '反馈': statusClass = 'status-pre-feedback'; break;
+            case '延期': statusClass = 'status-delayed'; break;
+            case '待结案': statusClass = 'status-completed'; statusText = '待结案'; break;
+            case '退回': statusClass = 'status-returned'; break;
+            case '调解失败': statusClass = 'status-failed'; break;
+            case '结案': statusClass = 'status-closed'; break;
         }
-
         html += `
         <tr>
             <td><input type="checkbox" class="case-checkbox" value="${caseInfo.caseId}"></td>
@@ -781,87 +763,33 @@ function renderCaseTable(cases) {
             <td>${caseInfo.defendantName || '-'}</td>
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
-            `+
-            ((currentFilterStatus !== '结案' && currentFilterStatus !== '调解失败')
-                ? `<td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>`
-                : '')+
-            ((currentFilterStatus === '结案' || currentFilterStatus === '调解失败')
-                ? `<td>${caseInfo.returnCourtTime ? caseInfo.returnCourtTime.split(' ')[0] : '-'}</td>`
-                : '')+
-            `<td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            ${(currentFilterStatus !== '结案' && currentFilterStatus !== '调解失败') ? `<td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>` : ''}
+            ${(currentFilterStatus === '结案' || currentFilterStatus === '调解失败') ? `<td>${caseInfo.returnCourtTime ? caseInfo.returnCourtTime.split(' ')[0] : '-'}</td>` : ''}
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>${caseInfo.username || '-'}</td>
             <td>
                 <div class="d-flex flex-column gap-2">
+                  <button class="btn btn-sm btn-info" type="button" onclick="showCaseDetailModal(${caseInfo.caseId})">案件详情</button>
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-info dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="detail" data-case-id="${caseInfo.caseId}">
-                      案件详情
-                    </button>
+                    <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">案件操作</button>
                     <ul class="dropdown-menu" style="display:none;">
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseDetailModal(${caseInfo.caseId})">
-                          <i class="fa fa-eye"></i> 详情
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
-                          <i class="fa fa-history"></i> 历史流转记录
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">
-                      案件操作
-                    </button>
-                    <ul class="dropdown-menu" style="display:none;">
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-edit"></i> 编辑
-                        </a>
-                      </li>
-                      ${caseInfo.status !== '结案' ?
-                        ((App.user.roleType === '管理员' && App.user.station === '总部') ? `
-                      <li>
-                        <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})">
-                          <i class="fa fa-trash"></i> 删除
-                        </a>
-                      </li>
-                      ` : '') : ''}
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})"><i class="fa fa-edit"></i> 编辑</a></li>
+                      ${caseInfo.status !== '结案' ? ((App.user.roleType === '管理员' && App.user.station === '总部') ? `<li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})"><i class="fa fa-trash"></i> 删除</a></li>` : '') : ''}
                       ${caseInfo.status !== '结案' ? `
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-handshake-o"></i> 分派案件
-                        </a>
-                      </li>
-                      ${caseInfo.status === '待结案' ? `
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="closeCase(${caseInfo.caseId})">
-                          <i class="fa fa-check"></i> 结案
-                        </a>
-                      </li>
-                      ` : ''}
-                      ${(caseInfo.status !== '失败' && caseInfo.status !== '待领取') ? `
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showFinishCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-flag-checkered"></i> 调解失败
-                        </a>
-                      </li>
-                      ` : ''}
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})"><i class="fa fa-handshake-o"></i> 分派案件</a></li>
+                      ${caseInfo.status === '待结案' ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="closeCase(${caseInfo.caseId})"><i class="fa fa-check"></i> 结案</a></li>` : ''}
+                      ${(caseInfo.status !== '失败' && caseInfo.status !== '待领取') ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="showFinishCaseModal(${caseInfo.caseId})"><i class="fa fa-flag-checkered"></i> 调解失败</a></li>` : ''}
                       ` : ''}
                     </ul>
                   </div>
                 </div>
             </td>
-        </tr>
-        `;
+        </tr>`;
     });
     tableBody.innerHTML = html;
-    // 重新绑定全选事件（因为表格内容已刷新）
     const selectAllCheckbox = document.getElementById('selectAllCases');
     if (selectAllCheckbox) {
-        // 先移除可能存在的旧事件监听
         selectAllCheckbox.removeEventListener('change', handleSelectAllChange);
-        // 添加新的事件监听
         selectAllCheckbox.addEventListener('change', handleSelectAllChange);
     }
     bindFixedDropdownMenus();

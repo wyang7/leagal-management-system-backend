@@ -288,32 +288,16 @@ function renderAssistantCaseTable(cases) {
     }
     let html = '';
     cases.forEach(caseInfo => {
-        // 状态样式类
         let statusClass = '';
         switch (caseInfo.status) {
-            case '待领取':
-                statusClass = 'status-pending-receive';
-                break;
-            case '已领取':
-                statusClass = 'status-received';
-                break;
-            case '反馈':
-                statusClass = 'status-pre-feedback';
-                break;
-            case '延期':
-                statusClass = 'status-delayed';
-                break;
-            case '待结案':
-                statusClass = 'status-completed';
-                break;
-            case '退回':
-                statusClass = 'status-returned';
-                break;
-            case '调解失败':
-                statusClass = 'status-failed'; // 绿色表示调解失败
-                break;
+            case '待领取': statusClass = 'status-pending-receive'; break;
+            case '已领取': statusClass = 'status-received'; break;
+            case '反馈': statusClass = 'status-pre-feedback'; break;
+            case '延期': statusClass = 'status-delayed'; break;
+            case '待结案': statusClass = 'status-completed'; break;
+            case '退回': statusClass = 'status-returned'; break;
+            case '调解失败': statusClass = 'status-failed'; break;
         }
-
         html += `
         <tr>
             <td>${caseInfo.caseNumber}</td>
@@ -328,54 +312,19 @@ function renderAssistantCaseTable(cases) {
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span></td>
             <td>
                 <div class="d-flex flex-column gap-2">
+                  <button class="btn btn-sm btn-info" type="button" onclick="showAssistantCaseDetailModal(${caseInfo.caseId})">案件详情</button>
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                      案件详情
-                    </button>
+                    <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">案件操作</button>
                     <ul class="dropdown-menu">
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showAssistantCaseDetailModal(${caseInfo.caseId})">
-                          <i class="fa fa-eye"></i> 详情
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
-                          <i class="fa fa-history"></i> 历史流转记录
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                      案件操作
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
-                          <i class="fa fa-comment"></i> 反馈
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
-                          <i class="fa fa-clock-o"></i> 延期
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-check"></i> 完成
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-undo"></i> 退回
-                        </a>
-                      </li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})"><i class="fa fa-comment"></i> 反馈</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})"><i class="fa fa-clock-o"></i> 延期</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 完成</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
                     </ul>
                   </div>
                 </div>
             </td>
-        </tr>
-        `;
+        </tr>`;
     });
     tableBody.innerHTML = html;
 }

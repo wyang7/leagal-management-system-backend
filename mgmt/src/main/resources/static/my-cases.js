@@ -494,43 +494,22 @@ function renderMyCaseTable(cases) {
     }
     let html = '';
     const now = new Date();
-    cases.forEach((caseInfo, idx) => {
-        // 状态样式类
+    cases.forEach((caseInfo) => {
         let statusClass = '';
         switch (caseInfo.status) {
-            case '待领取':
-                statusClass = 'status-pending-receive';
-                break;
-            case '已领取':
-                statusClass = 'status-received';
-                break;
-            case '反馈':
-                statusClass = 'status-pre-feedback';
-                break;
-            case '延期':
-                statusClass = 'status-delayed';
-                break;
-            case '待结案':
-                statusClass = 'status-completed';
-                break;
-            case '退回':
-                statusClass = 'status-returned';
-                break;
-            case '调解失败':
-                statusClass = 'status-failed'; // 红色表示失败
-                break;
-            case '结案':
-                statusClass = 'status-closed';
-                break;
+            case '待领取': statusClass = 'status-pending-receive'; break;
+            case '已领取': statusClass = 'status-received'; break;
+            case '反馈': statusClass = 'status-pre-feedback'; break;
+            case '延期': statusClass = 'status-delayed'; break;
+            case '待结案': statusClass = 'status-completed'; break;
+            case '退回': statusClass = 'status-returned'; break;
+            case '调解失败': statusClass = 'status-failed'; break;
+            case '结案': statusClass = 'status-closed'; break;
         }
-
-        // 自动退回提醒逻辑
         let remindHtml = '';
         if (caseInfo.receiveTime) {
-            // 兼容不同时间格式
             const receiveDate = new Date(Date.parse(caseInfo.receiveTime));
             const daysSinceReceived = Math.floor((now - receiveDate) / (1000 * 60 * 60 * 24));
-            // 自行领取
             if (caseInfo.receiveType === 'self_receive') {
                 if (caseInfo.status === '已领取' && daysSinceReceived > 0 && daysSinceReceived <= 3) {
                     remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
@@ -539,14 +518,12 @@ function renderMyCaseTable(cases) {
                     remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
                 }
             }
-            // 被分派
             if (caseInfo.receiveType === 'assign' && (caseInfo.status === '已领取' || caseInfo.status === '反馈')) {
                 if (daysSinceReceived >= 7 && daysSinceReceived <= 10) {
                     remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
                 }
             }
         }
-
         html += `
         <tr>
             <td>${caseInfo.caseNumber}</td>
@@ -558,29 +535,10 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.judge || '-'}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
-            <td>
-                <span class="status-badge ${statusClass}">${caseInfo.status}</span>
-                ${remindHtml}
-            </td>
+            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span>${remindHtml}</td>
             <td>
                 <div class="d-flex flex-column gap-2">
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-info dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="detail" data-case-id="${caseInfo.caseId}">
-                      案件详情
-                    </button>
-                    <ul class="dropdown-menu" style="display:none;">
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseDetailModal(${caseInfo.caseId})">
-                          <i class="fa fa-eye"></i> 详情
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCaseHistoryModal(${caseInfo.caseId})">
-                          <i class="fa fa-history"></i> 历史流转记录
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
+                  <button class="btn btn-sm btn-info" type="button" onclick="showmyCaseDetailModal(${caseInfo.caseId})">案件详情</button>
                   ${caseInfo.status !== '结案' ? `
                   <div class="dropdown">
                     <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">
@@ -588,41 +546,20 @@ function renderMyCaseTable(cases) {
                     </button>
                     <ul class="dropdown-menu" style="display:none;">
                       ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})">
-                          <i class="fa fa-comment"></i> 反馈
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})">
-                          <i class="fa fa-clock-o"></i> 延期
-                        </a>
-                      </li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})"><i class="fa fa-comment"></i> 反馈</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})"><i class="fa fa-clock-o"></i> 延期</a></li>
                       ` : ''}
                       ${(caseInfo.status !== '待结案') ? `
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-check"></i> 提交结案审核
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})">
-                          <i class="fa fa-undo"></i> 退回
-                        </a>
-                      </li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 提交结案审核</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
                       ` : ''}
                     </ul>
-                  </div>
-                  ` : ''}
+                  </div>` : ''}
                 </div>
             </td>
-        </tr>
-        `;
+        </tr>`;
     });
-
     tableBody.innerHTML = html;
-
-    // 绑定自定义下拉菜单浮层逻辑
     bindFixedDropdownMenus();
 }
 
