@@ -184,114 +184,76 @@ function createMyCaseDetailModalContainer() {
  */
 async function showmyCaseDetailModal(caseId) {
     try {
-        const caseInfo = await request(`/case/detail/${caseId}`);
+        const [caseInfo, historyList] = await Promise.all([
+            request(`/case/detail/${caseId}`),
+            request(`/case/history/${caseId}`).catch(()=>[])
+        ]);
+        // 新增金额格式化函数
+        const formatAmount = (v)=> (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
+        // 新增动作图标映射
+        const actionIconMap = {
+          '领取案件': {icon:'fa-handshake-o',color:'#1890ff'},
+          '案件反馈': {icon:'fa-comments',color:'#722ed1'},
+          '案件延期申请': {icon:'fa-clock-o',color:'#fa8c16'},
+          '退回案件': {icon:'fa-undo',color:'#ff4d4f'},
+          '提交结案审核': {icon:'fa-upload',color:'#13c2c2'},
+          '调解失败': {icon:'fa-flag',color:'#ff4d4f'},
+          '批量调解失败': {icon:'fa-flag-checkered',color:'#ff4d4f'},
+          '结案': {icon:'fa-check-circle',color:'#52c41a'}
+        };
         let extHtml='';
         if(caseInfo.caseCloseExt){
-            try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml = `<div class='border rounded p-2 bg-light'>
-                <div><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
-                <div><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?Number(ext.adjustedAmount).toFixed(2):'-'}</div>
-                <div><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?Number(ext.mediationFee).toFixed(2):'-'}</div>
-                <div><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
-                <div><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
-                ${ext.invoiced? `<div><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
+            try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml = `<div class='row g-2'>
+                <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?formatAmount(ext.adjustedAmount):'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?formatAmount(ext.mediationFee):'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
+                ${ext.invoiced? `<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
             </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
         } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
-
         const modalContainer = document.getElementById('myCaseDetailModalContainer');
-        const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleString() : '-';
-
-        const modalHtml = `
-        <div class="modal fade" id="myCaseDetailModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
-                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                        <h5 class="modal-title"><i class="fa fa-info-circle text-primary me-2"></i>案件详情</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" style="background:#fafcff;">
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案件ID：</span><span class="fw-bold">${caseInfo.caseId}</span>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案件号：</span><span class="fw-bold">${caseInfo.caseNumber || '-'}</span>
-                            </div>
-                        </div>
-                        <div class='row mb-2'>
-                            <div class='col-md-6 mb-2'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
-                            <div class='col-md-6 mb-2'><span class='text-muted'>澎和案件号：</span>${caseInfo.pengheCaseNumber!=null?caseInfo.pengheCaseNumber:'-'}</div>
-                        </div>
-                        <hr>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案由：</span>${caseInfo.caseName || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">标的额：</span>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案件归属地：</span>${caseInfo.caseLocation || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">法官：</span>${caseInfo.judge || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">收案时间：</span>${formatDate(caseInfo.courtReceiveTime)}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">原告：</span>${caseInfo.plaintiffName || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">被告：</span>${caseInfo.defendantName || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">案件助理：</span>${caseInfo.assistantName || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">关联案件包：</span>${caseInfo.taskName || '-'}
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">状态：</span>${caseInfo.status || '-'}
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <span class="text-muted">处理人：</span>${caseInfo.username || '-'}
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-2">
-                            <span class="text-muted">反馈情况：</span>
-                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.preFeedback ? caseInfo.preFeedback.replace(/\n/g, '<br>') : '无'}</div>
-                        </div>
-                        <div class="mb-2">
-                            <span class="text-muted">退回情况：</span>
-                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.returnReason ? caseInfo.returnReason.replace(/\n/g, '<br>') : '无'}</div>
-                        </div>
-                        <div class="mb-2">
-                            <span class="text-muted">完成情况：</span>
-                            <div class="mt-1 p-2 bg-light rounded border">${caseInfo.completionNotes ? caseInfo.completionNotes.replace(/\n/g, '<br>') : '无'}</div>
-                        </div>
-                        <!-- 新增的结案扩展信息展示 -->
-                        <div class="mb-3">
-                          <span class="fw-bold">结案扩展信息</span>
-                          ${extHtml}
-                        </div>
-                    </div>
-                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
-                    </div>
+        const formatDate = (dateStr) => !dateStr?'-':(/\d{4}-\d{2}-\d{2}/.test(dateStr)? dateStr : new Date(dateStr).toLocaleString());
+        // 历史渲染带图标
+        let historyHtml = '';
+        if(historyList && historyList.length){
+            historyHtml = historyList.map(h=>{ const meta = actionIconMap[h.action]||{icon:'fa-info-circle',color:'#8c8c8c'}; return `<div class='timeline-item mb-2 p-2 rounded border position-relative'>
+                <div class='d-flex justify-content-between'>
+                  <span class='fw-bold' style='color:${meta.color}'><i class='fa ${meta.icon} me-1'></i>${h.action||'-'}</span>
+                  <span class='text-muted small'>${h.createTime? new Date(h.createTime).toLocaleString(): '-'}</span>
                 </div>
-            </div>
+                <div class='small mt-1'><span class='text-muted'>操作人：</span>${h.operatorName||'-'}</div>
+                <div class='small'><span class='text-muted'>状态：</span>${h.beforeStatus||'-'} <i class='fa fa-arrow-right mx-1'></i> ${h.afterStatus||'-'}</div>
+                <div class='small'><span class='text-muted'>备注：</span>${h.remarks? h.remarks.replace(/\n/g,'<br>'): '-'}</div>
+            </div>`}).join('');
+        } else {
+            historyHtml = `<div class='text-muted'>暂无历史记录</div>`;
+        }
+        const delayBlock = `<div class='mb-2'><span class='text-muted'>延期原因：</span><div class='p-2 bg-light rounded border small'>${caseInfo.delayReason? caseInfo.delayReason.replace(/\n/g,'<br>'):'无'}</div></div>`;
+        const feedbackBlock = `<div class='mb-2'><span class='text-muted'>反馈情况：</span><div class='p-2 bg-light rounded border small'>${caseInfo.preFeedback? caseInfo.preFeedback.replace(/\n/g,'<br>'):'无'}</div></div>`;
+        const returnBlock = `<div class='mb-2'><span class='text-muted'>退回情况：</span><div class='p-2 bg-light rounded border small'>${caseInfo.returnReason? caseInfo.returnReason.replace(/\n/g,'<br>'):'无'}</div></div>`;
+        const completionBlock = `<div class='mb-2'><span class='text-muted'>完成情况：</span><div class='p-2 bg-light rounded border small'>${caseInfo.completionNotes? caseInfo.completionNotes.replace(/\n/g,'<br>'):'无'}</div></div>`;
+        const failRemarkBlock = `<div class='mb-2'><span class='text-muted'>调解失败备注：</span><div class='p-2 bg-light rounded border small'>${caseInfo.completionRemark? caseInfo.completionRemark.replace(/\n/g,'<br>'):'无'}</div></div>`;
+        const basicHtml = `<div class='row g-2'>
+            <div class='col-md-6'><span class='text-muted'>案件号：</span><span class='fw-bold'>${caseInfo.caseNumber||'-'}</span></div>
+            <div class='col-md-6'><span class='text-muted'>案件ID：</span>${caseInfo.caseId}</div>
+            <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>澎和案件号：</span>${caseInfo.pengheCaseNumber!=null?caseInfo.pengheCaseNumber:'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>案由：</span>${caseInfo.caseName||'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>标的额：</span>${formatAmount(caseInfo.amount)}</div>
+            <div class='col-md-6'><span class='text-muted'>归属地：</span>${caseInfo.caseLocation||'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>法官：</span>${caseInfo.judge||'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>收案时间：</span>${formatDate(caseInfo.courtReceiveTime)}</div>
+            <div class='col-md-6'><span class='text-muted'>领取时间：</span>${caseInfo.receiveTime? new Date(caseInfo.receiveTime).toLocaleString():'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>原告：</span>${caseInfo.plaintiffName||'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>被告：</span>${caseInfo.defendantName||'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>案件助理：</span>${caseInfo.assistantName||'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>处理人：</span>${caseInfo.username||'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>关联案件包：</span>${caseInfo.taskName||'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>状态：</span><span class='badge bg-info text-dark'>${caseInfo.status||'-'}</span></div>
         </div>`;
+        const modalHtml = `
+        <div class=\"modal fade\" id=\"myCaseDetailModal\" tabindex=\"-1\" aria-hidden=\"true\">\n            <div class=\"modal-dialog modal-xl\">\n                <div class=\"modal-content\" style=\"border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);\">\n                    <div class=\"modal-header\" style=\"background:linear-gradient(90deg,#4096ff,#69c0ff);color:#fff;border-bottom:none;\">\n                        <h5 class=\"modal-title d-flex align-items-center\"><i class=\"fa fa-file-text-o me-2\"></i>案件详情</h5>\n                        <button type=\"button\" class=\"btn-close btn-close-white\" data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>\n                    </div>\n                    <div class=\"modal-body p-0\" style=\"background:#f5f8fa;\">\n                        <ul class=\"nav nav-tabs small px-3 pt-3\" id=\"caseDetailTabs\" role=\"tablist\" style=\"border-bottom:1px solid #e1e5eb;\">\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link active\" id=\"tab-basic\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-basic\" type=\"button\" role=\"tab\">基本详情</button>\n                          </li>\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link\" id=\"tab-flow\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-flow\" type=\"button\" role=\"tab\">流转信息</button>\n                          </li>\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link\" id=\"tab-close\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-close\" type=\"button\" role=\"tab\">结案信息</button>\n                          </li>\n                        </ul>\n                        <div class=\"tab-content p-3\" style=\"max-height:70vh;overflow-y:auto;\">\n                          <div class=\"tab-pane fade show active\" id=\"panel-basic\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-body\">\n                                ${basicHtml}\n                              </div>\n                            </div>\n                          </div>\n                          <div class=\"tab-pane fade\" id=\"panel-flow\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">反馈 / 退回 / 延期</div>\n                              <div class=\"card-body\">\n                                ${feedbackBlock}${returnBlock}${delayBlock}\n                              </div>\n                            </div>\n                            <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">历史流转记录</div>\n                              <div class=\"card-body\" style=\"background:#fcfdff;\">\n                                ${historyHtml}\n                              </div>\n                            </div>\n                          </div>\n                          <div class=\"tab-pane fade\" id=\"panel-close\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">完成 / 失败备注</div>\n                              <div class=\"card-body\">${completionBlock}${failRemarkBlock}</div>\n                            </div>\n                            <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">结案扩展信息</div>\n                              <div class=\"card-body\">${extHtml}</div>\n                            </div>\n                          </div>\n                        </div>\n                    </div>\n                    <div class=\"modal-footer\" style=\"border-top:1px solid #e1e5eb;background:#fff;border-radius:0 0 12px 12px;\">\n                        <button type=\"button\" class=\"btn btn-outline-secondary\" data-bs-dismiss=\"modal\">关闭</button>\n                    </div>\n                </div>\n            </div>\n        </div>`;
         modalContainer.innerHTML = modalHtml;
         new bootstrap.Modal(document.getElementById('myCaseDetailModal')).show();
     } catch (error) {
