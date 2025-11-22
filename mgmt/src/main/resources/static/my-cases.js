@@ -307,7 +307,16 @@ async function getCurrentUserName() {
  */
 async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
     try {
-        const username = App?.user?.username || '';
+        const username = await getCurrentUserName();
+        const tableBodyEl = document.getElementById('myCaseTableBody');
+        if (!tableBodyEl) {
+            // 页面容器尚未渲染，直接退出，稍后用户重新触发或页面重新加载
+            return;
+        }
+        if (!username) {
+            tableBodyEl.innerHTML = `<tr><td colspan="11" class="text-center text-danger">未获取到用户信息</td></tr>`;
+            return;
+        }
         const caseName = document.getElementById('myCaseSearchInput')?.value.trim() || '';
         const station = document.getElementById('myCaseStationSelect')?.value.trim() || '';
         const plaintiff = document.getElementById('myCasePlaintiffInput')?.value.trim() || '';
@@ -329,7 +338,6 @@ async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
             keyword: keyword || undefined
         };
         const response = await request('/case/page', 'POST', payload);
-        const tableBodyEl = document.getElementById('myCaseTableBody');
         if (tableBodyEl) { renderMyCaseTable(response.records); }
         renderMyPagination({ total: response.total, pageNum: response.pageNum, pageSize: response.pageSize });
     } catch (error) {
