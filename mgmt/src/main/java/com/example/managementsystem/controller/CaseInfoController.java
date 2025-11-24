@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -671,12 +672,7 @@ public class CaseInfoController {
         if (!("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before))) {
             return Result.fail("当前状态不允许提交结案审核");
         }
-        // 自动生成收款单号（若为空）
-        if (caseInfo.getReceiptNumber() == null) {
-            Integer maxReceipt = caseInfoService.getMaxReceiptNumber();
-            int nextReceipt = (maxReceipt == null || maxReceipt < 818) ? 818 : maxReceipt + 1;
-            caseInfo.setReceiptNumber(nextReceipt);
-        }
+
         // 自动生成澎和案件号（仅司法确认且为空）
         if (("司法确认".equals(notes)||"其他".equals(notes)) && caseInfo.getPengheCaseNumber() == null) {
             Integer maxPenghe = caseInfoService.getMaxPengheCaseNumber();
@@ -697,6 +693,13 @@ public class CaseInfoController {
             }
         } catch (NumberFormatException e) {
             return Result.fail("金额格式错误");
+        }
+        // 自动生成收款单号（若为空）
+        BigDecimal mediationFee = ext.getMediationFee();
+        if (caseInfo.getReceiptNumber() == null && null!=mediationFee && mediationFee.intValue()>0 ) {
+            Integer maxReceipt = caseInfoService.getMaxReceiptNumber();
+            int nextReceipt = (maxReceipt == null || maxReceipt < 818) ? 818 : maxReceipt + 1;
+            caseInfo.setReceiptNumber(nextReceipt);
         }
         ext.setPayer(payer);
         ext.setInvoiced(invoiced);
