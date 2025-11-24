@@ -678,7 +678,7 @@ public class CaseInfoController {
             caseInfo.setReceiptNumber(nextReceipt);
         }
         // 自动生成澎和案件号（仅司法确认且为空）
-        if ("司法确认".equals(notes) && caseInfo.getPengheCaseNumber() == null) {
+        if (("司法确认".equals(notes)||"其他".equals(notes)) && caseInfo.getPengheCaseNumber() == null) {
             Integer maxPenghe = caseInfoService.getMaxPengheCaseNumber();
             int nextPenghe = (maxPenghe == null || maxPenghe < 689) ? 689 : maxPenghe + 1;
             caseInfo.setPengheCaseNumber(nextPenghe);

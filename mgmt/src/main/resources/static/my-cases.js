@@ -843,6 +843,7 @@ async function showCompleteCaseModal(caseId) {
                                 <option value="司法确认">司法确认</option>
                                 <option value="撤诉">撤诉</option>
                                 <option value="民初">民初</option>
+                                <option value="其他">其他</option>
                             </select>
                         </div>
                         <hr/>
