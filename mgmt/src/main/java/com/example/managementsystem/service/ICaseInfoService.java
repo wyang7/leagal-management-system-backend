@@ -124,4 +124,9 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     Integer getMaxReceiptNumber();
 
     Integer getMaxPengheCaseNumber();
+
+    /**
+     * 查询本部最大收款单号（S0XX格式）
+     */
+    String getMaxReceiptNumberForBenbu();
 }

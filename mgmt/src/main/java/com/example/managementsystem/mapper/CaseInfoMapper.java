@@ -130,4 +130,9 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 查询最大鹏合案件编号
      */
     Integer selectMaxPengheCaseNumber();
+
+    /**
+     * 查询本部最大收款单号（S0XX格式）
+     */
+    String selectMaxReceiptNumberForBenbu();
 }

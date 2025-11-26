@@ -186,7 +186,7 @@ public class CaseInfo implements Serializable {
      * 收款单号
      */
     @TableField("receipt_number")
-    private Integer receiptNumber;
+    private String receiptNumber;
 
     /**
      * 澎和案件号（司法确认时生成）

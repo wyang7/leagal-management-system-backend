@@ -696,10 +696,22 @@ public class CaseInfoController {
         }
         // 自动生成收款单号（若为空）
         BigDecimal mediationFee = ext.getMediationFee();
-        if (caseInfo.getReceiptNumber() == null && null!=mediationFee && mediationFee.intValue()>0 ) {
-            Integer maxReceipt = caseInfoService.getMaxReceiptNumber();
-            int nextReceipt = (maxReceipt == null || maxReceipt < 818) ? 818 : maxReceipt + 1;
-            caseInfo.setReceiptNumber(nextReceipt);
+        if (caseInfo.getReceiptNumber() == null && mediationFee != null && mediationFee.intValue() > 0) {
+            if ("本部".equals(caseInfo.getCaseLocation())) {
+                String maxReceipt = caseInfoService.getMaxReceiptNumberForBenbu();
+                String nextReceipt = "S069";
+                if (maxReceipt != null && maxReceipt.startsWith("S0")) {
+                    try {
+                        int num = Integer.parseInt(maxReceipt.substring(2));
+                        nextReceipt = String.format("S0%02d", num + 1);
+                    } catch (NumberFormatException ignored) {}
+                }
+                caseInfo.setReceiptNumber(nextReceipt);
+            } else {
+                Integer maxReceipt = caseInfoService.getMaxReceiptNumber();
+                int nextReceipt = (maxReceipt == null || maxReceipt < 818) ? 818 : maxReceipt + 1;
+                caseInfo.setReceiptNumber(String.valueOf(nextReceipt));
+            }
         }
         ext.setPayer(payer);
         ext.setInvoiced(invoiced);
