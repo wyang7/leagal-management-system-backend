@@ -699,7 +699,7 @@ public class CaseInfoController {
         if (caseInfo.getReceiptNumber() == null && mediationFee != null && mediationFee.intValue() > 0) {
             if ("本部".equals(caseInfo.getCaseLocation())) {
                 String maxReceipt = caseInfoService.getMaxReceiptNumberForBenbu();
-                String nextReceipt = "S069";
+                String nextReceipt = "S070";
                 if (maxReceipt != null && maxReceipt.startsWith("S0")) {
                     try {
                         int num = Integer.parseInt(maxReceipt.substring(2));
