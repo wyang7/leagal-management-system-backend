@@ -1661,7 +1661,11 @@ async function exportCases() {
     const selectedCaseIds = getSelectedCaseIds();
     let params = {};
     if (selectedCaseIds.length > 0) {
+        // 勾选了案件时，既传caseIds也传当前状态，方便后端识别结案导出场景
         params.caseIds = selectedCaseIds;
+        if (typeof currentFilterStatus !== 'undefined' && currentFilterStatus && currentFilterStatus !== 'all') {
+            params.status = currentFilterStatus;
+        }
     } else {
         // 当前查询条件
         params = {
@@ -1688,9 +1692,7 @@ async function exportCases() {
         const response = await fetch(url, fetchOptions);
         if (!response.ok) throw new Error('导出失败');
         const blob = await response.blob();
-        // 文件名
         const filename = '案件导出_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-        // 下载
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
         link.download = filename;

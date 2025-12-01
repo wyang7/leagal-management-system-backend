@@ -813,12 +813,13 @@ public class CaseInfoController {
                 request.setStatus((String) params.get("status"));
                 request.setStation((String) params.get("station"));
                 request.setKeyword((String) params.getOrDefault("keyword", null));
-                request.setPageNum(1); request.setPageSize(10000);
+                request.setPageNum(1);
+                request.setPageSize(10000);
                 Map<String, Object> pageResult = caseInfoService.getCasePage(request);
                 exportList = (List<CaseInfo>) pageResult.get("records");
             }
 
-            // 如果状态为“结案”，导出特殊格式
+            // 如果状态为“结案”，无论是否勾选案件，都导出结案专用格式
             String status = (String) params.get("status");
             if ("结案".equals(status)) {
                 // 表头：序号、日期、案件、法院/引调、涉案金额、调解员、调解费、备注、驻点
