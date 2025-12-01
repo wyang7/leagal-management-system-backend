@@ -818,13 +818,109 @@ public class CaseInfoController {
                 exportList = (List<CaseInfo>) pageResult.get("records");
             }
 
-            // 3. 字段去重合并（详情+列表字段）
+            // 如果状态为“结案”，导出特殊格式
+            String status = (String) params.get("status");
+            if ("结案".equals(status)) {
+                // 表头：序号、日期、案件、法院/引调、涉案金额、调解员、调解费、备注、驻点
+                String[] headers = {"序号", "日期", "案件", "法院/引调", "涉案金额", "调解员", "调解费", "备注", "驻点"};
+                Workbook workbook = new XSSFWorkbook();
+                Sheet sheet = workbook.createSheet("结案案件导出");
+                Row headerRow = sheet.createRow(0);
+                for (int i = 0; i < headers.length; i++) {
+                    headerRow.createCell(i).setCellValue(headers[i]);
+                }
+
+                int rowIdx = 1;
+                double totalAdjustedAmount = 0d;
+                double totalMediationFee = 0d;
+
+                for (CaseInfo c : exportList) {
+                    if (c == null) continue;
+                    Row row = sheet.createRow(rowIdx);
+                    int col = 0;
+                    // 1. 序号
+                    row.createCell(col++).setCellValue(rowIdx); // 从1开始
+                    // 2. 日期 - 退回法院时间
+                    row.createCell(col++).setCellValue(c.getReturnCourtTime() == null ? "" : c.getReturnCourtTime());
+                    // 3. 案件 = 原告 被告 案由
+                    String plaintiff = c.getPlaintiffName() == null ? "" : c.getPlaintiffName();
+                    String defendant = c.getDefendantName() == null ? "" : c.getDefendantName();
+                    String caseName = c.getCaseName() == null ? "" : c.getCaseName();
+                    String caseDesc = (plaintiff + " " + defendant + " " + caseName).trim();
+                    row.createCell(col++).setCellValue(caseDesc);
+                    // 4. 法院/引调
+                    String courtOrYD;
+                    String caseNumber = c.getCaseNumber() == null ? "" : c.getCaseNumber();
+                    if (caseNumber.startsWith("YT")) {
+                        courtOrYD = "引调";
+                    } else {
+                        String location = c.getCaseLocation() == null ? "" : c.getCaseLocation();
+                        if ("彭埠".equals(location) || "九堡".equals(location)) {
+                            courtOrYD = "九堡";
+                        } else {
+                            courtOrYD = location;
+                        }
+                    }
+                    row.createCell(col++).setCellValue(courtOrYD);
+                    // 5. 涉案金额 - 调成标的额（caseCloseExt.adjustedAmount）
+                    double adjustedAmount = 0d;
+                    double mediationFee = 0d;
+                    try {
+                        String extJson = c.getCaseCloseExt();
+                        if (extJson != null && !extJson.isEmpty()) {
+                            CaseCloseExtDTO ext = objectMapper.readValue(extJson, CaseCloseExtDTO.class);
+                            if (ext.getAdjustedAmount() != null) {
+                                adjustedAmount = ext.getAdjustedAmount().doubleValue();
+                            }
+                            if (ext.getMediationFee() != null) {
+                                mediationFee = ext.getMediationFee().doubleValue();
+                            }
+                        }
+                    } catch (Exception e) {
+                        // JSON 解析失败时跳过扩展字段，继续写入
+                    }
+                    row.createCell(col++).setCellValue(adjustedAmount);
+                    // 6. 调解员 - 处理人
+                    row.createCell(col++).setCellValue(c.getUsername() == null ? "" : c.getUsername());
+                    // 7. 调解费 - caseCloseExt.mediationFee
+                    row.createCell(col++).setCellValue(mediationFee);
+                    // 8. 备注 - 结案备注（completion_notes）
+                    row.createCell(col++).setCellValue(c.getCompletionRemark() == null ? "" : c.getCompletionRemark());
+                    // 9. 驻点 - 驻点
+                    row.createCell(col++).setCellValue(c.getCaseLocation() == null ? "" : c.getCaseLocation());
+
+                    totalAdjustedAmount += adjustedAmount;
+                    totalMediationFee += mediationFee;
+                    rowIdx++;
+                }
+
+                // 合计行：只在涉案金额和调解费两列写入合计
+                Row totalRow = sheet.createRow(rowIdx);
+                totalRow.createCell(0).setCellValue("合计");
+                // 涉案金额合计（第 5 列，索引4）
+                totalRow.createCell(4).setCellValue(totalAdjustedAmount);
+                // 调解费合计（第 7 列，索引6）
+                totalRow.createCell(6).setCellValue(totalMediationFee);
+
+                for (int i = 0; i < headers.length; i++) {
+                    sheet.autoSizeColumn(i);
+                }
+
+                String filename = "结案案件导出_" + java.time.LocalDate.now() + ".xlsx";
+                response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                response.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(filename, "UTF-8"));
+                workbook.write(response.getOutputStream());
+                response.flushBuffer();
+                workbook.close();
+                return;
+            }
+
+            // 非结案状态：保持原有导出列
             String[] headers = {
                 "案件号", "案由", "标的额", "案件归属地", "原告", "被告", "法官", "案件助理", "领取时间", "退回法院时间",
                 "状态", "处理人", "法院收案时间", "反馈情况", "退回情况", "案件完成情况", "调解失败备注", "关联案件包"
             };
 
-            // 4. 创建Excel
             Workbook workbook = new XSSFWorkbook();
             Sheet sheet = workbook.createSheet("案件导出");
             Row headerRow = sheet.createRow(0);
@@ -854,20 +950,16 @@ public class CaseInfoController {
                 row.createCell(col++).setCellValue(c.getCompletionRemark() == null ? "" : c.getCompletionRemark());
                 row.createCell(col++).setCellValue(c.getTaskName() == null ? "" : c.getTaskName());
             }
-            // 自动列宽
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
             }
-            // 5. 响应下载
             String filename = "案件导出_" + java.time.LocalDate.now() + ".xlsx";
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(filename, "UTF-8"));
             workbook.write(response.getOutputStream());
-            response.flushBuffer(); // 确保数据全部写出
+            response.flushBuffer();
             workbook.close();
         } catch (Exception e) {
-            // 不能向response写入任何非二进制内容，否则会破坏Excel文件
-            // 仅记录日志
             e.printStackTrace();
         }
     }
