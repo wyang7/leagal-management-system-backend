@@ -11,7 +11,7 @@ create table management_system.case_info
     updated_time       timestamp default CURRENT_TIMESTAMP   null on update CURRENT_TIMESTAMP comment '更新时间',
     amount             decimal(10, 2)                        null comment '标的额（精确到小数点后两位）',
     completion_notes   text                                  null comment '案件完成情况说明',
-    case_location      enum ('九堡', '彭埠', '笕桥', '本部') null comment '案件归属地',
+    case_location      enum ('九堡', '彭埠', '艮桥', '本部', '四季青') null comment '案件归属地',
     court_receive_time datetime                              null comment '法院收案时间',
     plaintiff_name     varchar(255)                          null comment '原告',
     defendant_name     varchar(255)                          null comment '被告',
@@ -91,6 +91,3 @@ create index idx_role_id
 
 create index idx_username
     on management_system.user (username);
-
-
-

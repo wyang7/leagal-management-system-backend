@@ -346,10 +346,10 @@
     </select>
 
 
-    <!-- 查询本部最大收款单号（S0XX格式） -->
+    <!-- 查询本部和四季青最大收款单号（S0XX格式） -->
     <select id="selectMaxReceiptNumberForBenbu" resultType="java.lang.String">
         SELECT MAX(receipt_number) FROM case_info
-        WHERE case_location = '本部' AND receipt_number LIKE 'S0%'
+        WHERE case_location IN ('本部','四季青') AND receipt_number LIKE 'S0%'
     </select>
 
 </mapper>

@@ -697,7 +697,7 @@ public class CaseInfoController {
         // 自动生成收款单号（若为空）
         BigDecimal mediationFee = ext.getMediationFee();
         if (caseInfo.getReceiptNumber() == null && mediationFee != null && mediationFee.intValue() > 0) {
-            if ("本部".equals(caseInfo.getCaseLocation())) {
+            if ("本部".equals(caseInfo.getCaseLocation()) || "四季青".equals(caseInfo.getCaseLocation())) {
                 String maxReceipt = caseInfoService.getMaxReceiptNumberForBenbu();
                 String nextReceipt = "S070";
                 if (maxReceipt != null && maxReceipt.startsWith("S0")) {

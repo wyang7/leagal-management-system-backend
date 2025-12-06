@@ -55,7 +55,7 @@ create table management_system.task
     updated_time timestamp   default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
     status       varchar(20) default '待领取'          not null comment '案件包状态：待领取、已领取',
     owner_id     bigint                                null comment '归属人ID',
-    station      varchar(20)                           null comment '驻点（九堡彭埠、本部、笕桥、总部）',
+    station      varchar(20)                           null comment '驻点（九堡彭埠、本部、艮桥、总部、四季青）',
     constraint uk_task_name
         unique (task_name)
 )
@@ -166,11 +166,3 @@ nohup java -jar mgmt/target/mgmt-0.0.1-SNAPSHOT.jar > /dev/null 2>&1 &
 
 防火墙
 https://help.aliyun.com/zh/ecs/user-guide/enable-or-disable-the-system-firewall-in-a-linux-instance?spm=a2c4g.11186623.0.0.e85a2eb0EQsXF2#6d44d28dbba78
-
-
-
-
-
-
-
-
