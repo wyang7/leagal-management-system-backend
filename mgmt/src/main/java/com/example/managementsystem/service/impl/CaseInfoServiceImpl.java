@@ -379,4 +379,14 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     public String getMaxReceiptNumberForBenbu() {
         return baseMapper.selectMaxReceiptNumberForBenbu();
     }
+
+    @Override
+    public String getMaxReceiptNumberForKaixuan() {
+        return baseMapper.selectMaxReceiptNumberForKaixuan();
+    }
+
+    @Override
+    public String getMaxReceiptNumberForZhanongkou() {
+        return baseMapper.selectMaxReceiptNumberForZhanongkou();
+    }
 }

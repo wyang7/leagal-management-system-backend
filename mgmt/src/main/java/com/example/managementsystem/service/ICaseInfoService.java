@@ -129,4 +129,14 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * 查询本部最大收款单号（S0XX格式）
      */
     String getMaxReceiptNumberForBenbu();
+
+    /**
+     * 查询凯旋街道最大收款单号（KXX格式）
+     */
+    String getMaxReceiptNumberForKaixuan();
+
+    /**
+     * 查询闸弄口最大收款单号（ZXX格式）
+     */
+    String getMaxReceiptNumberForZhanongkou();
 }

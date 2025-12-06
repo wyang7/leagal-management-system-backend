@@ -135,4 +135,8 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 查询本部最大收款单号（S0XX格式）
      */
     String selectMaxReceiptNumberForBenbu();
+
+    String selectMaxReceiptNumberForKaixuan();
+
+    String selectMaxReceiptNumberForZhanongkou();
 }

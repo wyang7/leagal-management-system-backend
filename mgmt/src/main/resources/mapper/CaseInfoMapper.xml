@@ -352,4 +352,16 @@
         WHERE case_location IN ('本部','四季青') AND receipt_number LIKE 'S0%'
     </select>
 
+    <!-- 查询凯旋街道最大收款单号（KXX格式） -->
+    <select id="selectMaxReceiptNumberForKaixuan" resultType="java.lang.String">
+        SELECT MAX(receipt_number) FROM case_info
+        WHERE case_location = '凯旋街道' AND receipt_number LIKE 'K%'
+    </select>
+
+    <!-- 查询闸弄口最大收款单号（ZXX格式） -->
+    <select id="selectMaxReceiptNumberForZhanongkou" resultType="java.lang.String">
+        SELECT MAX(receipt_number) FROM case_info
+        WHERE case_location = '闸弄口' AND receipt_number LIKE 'Z%'
+    </select>
+
 </mapper>

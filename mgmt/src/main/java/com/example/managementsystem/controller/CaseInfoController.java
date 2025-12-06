@@ -697,7 +697,9 @@ public class CaseInfoController {
         // 自动生成收款单号（若为空）
         BigDecimal mediationFee = ext.getMediationFee();
         if (caseInfo.getReceiptNumber() == null && mediationFee != null && mediationFee.intValue() > 0) {
-            if ("本部".equals(caseInfo.getCaseLocation()) || "四季青".equals(caseInfo.getCaseLocation())) {
+            String caseLocation = caseInfo.getCaseLocation();
+            if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
+                // 本部 + 四季青：共用 S0XX 序列
                 String maxReceipt = caseInfoService.getMaxReceiptNumberForBenbu();
                 String nextReceipt = "S070";
                 if (maxReceipt != null && maxReceipt.startsWith("S0")) {
@@ -707,7 +709,30 @@ public class CaseInfoController {
                     } catch (NumberFormatException ignored) {}
                 }
                 caseInfo.setReceiptNumber(nextReceipt);
+            } else if ("凯旋街道".equals(caseLocation)) {
+                // 凯旋街道：K01,K02... 独立一套
+                String maxK = caseInfoService.getMaxReceiptNumberForKaixuan();
+                String nextK = "K01";
+                if (maxK != null && maxK.startsWith("K")) {
+                    try {
+                        int num = Integer.parseInt(maxK.substring(1));
+                        nextK = String.format("K%02d", num + 1);
+                    } catch (NumberFormatException ignored) {}
+                }
+                caseInfo.setReceiptNumber(nextK);
+            } else if ("闸弄口".equals(caseLocation)) {
+                // 闸弄口：Z01,Z02... 独立一套
+                String maxZ = caseInfoService.getMaxReceiptNumberForZhanongkou();
+                String nextZ = "Z01";
+                if (maxZ != null && maxZ.startsWith("Z")) {
+                    try {
+                        int num = Integer.parseInt(maxZ.substring(1));
+                        nextZ = String.format("Z%02d", num + 1);
+                    } catch (NumberFormatException ignored) {}
+                }
+                caseInfo.setReceiptNumber(nextZ);
             } else {
+                // 其他驻点：保持原有纯数字逻辑
                 Integer maxReceipt = caseInfoService.getMaxReceiptNumber();
                 int nextReceipt = (maxReceipt == null || maxReceipt < 818) ? 818 : maxReceipt + 1;
                 caseInfo.setReceiptNumber(String.valueOf(nextReceipt));
