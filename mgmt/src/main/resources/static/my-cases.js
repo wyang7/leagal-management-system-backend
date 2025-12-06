@@ -206,15 +206,32 @@ async function showmyCaseDetailModal(caseId) {
         };
         let extHtml='';
         if(caseInfo.caseCloseExt){
-            try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml = `<div class='row g-2'>
+            try{ const ext=JSON.parse(caseInfo.caseCloseExt); const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[]; const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00'; const flowsHtml = flows.length
+  ? flows.map((f,idx)=>`<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
+        <div class='flex-grow-1'>
+            <div>序号：${idx+1}</div>
+            <div>时间：${f.payTime||'-'}</div>
+            <div>金额：${fmtAmount(f.amount)}</div>
+        </div>
+        <div class='ms-3'>
+            ${f.screenshotUrl? `<img src="${f.screenshotUrl}"
+                                      alt="付款截图${idx+1}"
+                                      style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
+                                      onclick="showImagePreview('${f.screenshotUrl.replace(/'/g, "\\'")}')">`
+                              : '<span class="text-muted">无截图</span>'}
+        </div>
+    </div>`).join('')
+  : '<div class="text-muted">暂无付款流水</div>'; extHtml = `<div class='row g-2'>
                 <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?formatAmount(ext.adjustedAmount):'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?formatAmount(ext.mediationFee):'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>原告调解费：</span>${ext.plaintiffMediationFee!=null?formatAmount(ext.plaintiffMediationFee):'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>被告调解费：</span>${ext.defendantMediationFee!=null?formatAmount(ext.defendantMediationFee):'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
                 ${ext.invoiced? `<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
+                <div class='col-12 mt-2'><span class='text-muted fw-bold'>案件付款流水：</span></div>
+                <div class='col-12'>${flowsHtml}</div>
             </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
         } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
         // 新增：结案编号展示（澎和案件号在前，收款单号在后）
@@ -565,6 +582,9 @@ function renderMyCaseTable(cases) {
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})"><i class="fa fa-comment"></i> 反馈</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})"><i class="fa fa-clock-o"></i> 延期</a></li>
                       ` : ''}
+                      ${(caseInfo.status === '待结案') ? `
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId}, true)"><i class="fa fa-credit-card"></i> 补充结案信息</a></li>
+                      ` : ''}
                       ${(caseInfo.status !== '待结案') ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 提交结案审核</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
@@ -579,232 +599,175 @@ function renderMyCaseTable(cases) {
     bindFixedDropdownMenus();
 }
 
-/**
- * 创建延期模态框容器
- */
-function createDelayModalContainer() {
-    if (!document.getElementById('delayModalContainer')) {
-        const container = document.createElement('div');
-        container.id = 'delayModalContainer';
+// 付款流水弹窗（复用管理端逻辑，增加 isMyCases 标记控制接口前缀）
+function showPaymentFlowsModal(caseId, fromMyCases) {
+    const modalId = 'paymentFlowsModal';
+    // 我的案件页复用一个全局容器
+    let container = document.getElementById('paymentFlowsModalContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'paymentFlowsModalContainer';
         document.body.appendChild(container);
     }
-}
-
-/**
- * 显示延期弹窗
- */
-async function showDelayModal(caseId) {
-    createDelayModalContainer();
-    const modalContainer = document.getElementById('delayModalContainer');
-
-    // 渲染弹窗HTML（antd风格）
-    modalContainer.innerHTML = `
-    <div class="modal fade" id="delayModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+    container.innerHTML = `
+    <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
                 <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                    <h5 class="modal-title"><i class="fa fa-clock-o text-primary me-2"></i>案件延期申请</h5>
+                    <h5 class="modal-title"><i class="fa fa-credit-card text-primary me-2"></i>补充结案信息 - 付款流水</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background:#fafcff;">
-                    <form id="delayForm">
-                        <input type="hidden" id="delayCaseId" value="${caseId}">
-                        <div class="form-group">
-                            <label for="delayReasonContent">延期原因</label>
-                            <textarea id="delayReasonContent" class="form-control" rows="5" required placeholder="请输入延期原因..."></textarea>
+                    <input type="hidden" id="paymentFlowsCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">已有付款流水</label>
+                        <div id="paymentFlowsList" class="list-group small"></div>
+                    </div>
+                    <hr/>
+                    <div class="mb-2 fw-bold">新增付款流水</div>
+                    <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 时间 + 金额），只能新增和删除，不允许修改。</div>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">付款截图 (jpg/png)</label>
+                            <input type="file" id="paymentScreenshotFile" accept="image/png,image/jpeg" class="form-control" />
                         </div>
-                    </form>
+                        <div class="col-md-4">
+                            <label class="form-label">付款时间</label>
+                            <input type="datetime-local" id="paymentTimeInput" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">付款金额 (元)</label>
+                            <input type="number" step="0.01" id="paymentAmountInput" class="form-control" />
+                        </div>
+                        <div class="col-md-1 d-grid">
+                            <button type="button" class="btn btn-primary" onclick="submitNewPaymentFlow()">添加</button>
+                        </div>
+                    </div>
+                    <div class="text-danger mt-2" id="paymentFlowsError" style="display:none;"></div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
-                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitDelay()" style="border-radius:4px;">确认提交</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                 </div>
             </div>
         </div>
-    </div>
-    `;
-
-    // 显示模态框
-    const modal = new bootstrap.Modal(document.getElementById('delayModal'));
+    </div>`;
+    const modal = new bootstrap.Modal(document.getElementById(modalId));
     modal.show();
+    // 标记来源便于接口前缀统一（这里实际上前后端接口相同，所以不区分 fromMyCases）
+    loadPaymentFlows(caseId);
 }
 
-/**
- * 提交延期申请到后端
- */
-async function submitDelay() {
-    const caseId = document.getElementById('delayCaseId').value;
-    const delayReason = document.getElementById('delayReasonContent').value.trim();
-
-    if (!delayReason) {
-        alert('请输入延期原因');
-        return;
-    }
-
+async function loadPaymentFlows(caseId) {
+    const listEl = document.getElementById('paymentFlowsList');
+    const errEl = document.getElementById('paymentFlowsError');
+    listEl.innerHTML = '<div class="text-muted">加载中...</div>';
+    errEl.style.display = 'none';
     try {
-        // 调用后端延期接口
-        await request('/case/delay', 'POST', {
-            caseId: caseId,
-            delayReason: delayReason
-        });
-
-        // 关闭弹窗并刷新列表
-        const modal = bootstrap.Modal.getInstance(document.getElementById('delayModal'));
-        modal.hide();
-        loadMyCases(currentMyCasePage,currentMyCasePageSize); // 刷新案件列表
-        alert('延期申请提交成功');
-    } catch (error) {
-        console.error('延期申请提交失败:', error);
-        alert('延期申请提交失败，请重试');
-    }
-}
-
-/**
- * 创建反馈模态框容器
- */
-function createPreFeedbackModalContainer() {
-    if (!document.getElementById('preFeedbackModalContainer')) {
-        const container = document.createElement('div');
-        container.id = 'preFeedbackModalContainer';
-        document.body.appendChild(container);
-    }
-}
-
-/**
- * 显示反馈弹窗
- */
-async function showPreFeedbackModal(caseId) {
-    createPreFeedbackModalContainer();
-    const modalContainer = document.getElementById('preFeedbackModalContainer');
-
-    // 渲染弹窗HTML（antd风格）
-    modalContainer.innerHTML = `
-    <div class="modal fade" id="preFeedbackModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
-                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                    <h5 class="modal-title"><i class="fa fa-comment text-primary me-2"></i>案件反馈</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        const caseInfo = await request(`/case/detail/${caseId}`);
+        if (!caseInfo || !caseInfo.caseCloseExt) {
+            listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
+            return;
+        }
+        let ext;
+        try { ext = JSON.parse(caseInfo.caseCloseExt); } catch(e) { ext = null; }
+        const flows = (ext && Array.isArray(ext.paymentFlows)) ? ext.paymentFlows : [];
+        if (!flows.length) {
+            listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
+            return;
+        }
+        const fmtAmt = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
+        listEl.innerHTML = flows.map((f,idx)=>`
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <div>序号：${idx+1}</div>
+                    <div>时间：${f.payTime||'-'}</div>
+                    <div>金额：${fmtAmt(f.amount)}</div>
                 </div>
-                <div class="modal-body" style="background:#fafcff;">
-                    <form id="preFeedbackForm">
-                        <input type="hidden" id="preFeedbackCaseId" value="${caseId}">
-                        <div class="form-group">
-                            <label for="preFeedbackContent">反馈内容</label>
-                            <textarea id="preFeedbackContent" class="form-control" rows="5" required placeholder="请输入反馈内容..."></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
-                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitPreFeedback()" style="border-radius:4px;">确认提交</button>
+                <div class="d-flex align-items-center gap-2">
+                    ${f.screenshotUrl? `<img src="${f.screenshotUrl}"
+                                      alt="付款截图${idx+1}"
+                                      style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
+                                      onclick="showImagePreview('${f.screenshotUrl.replace(/'/g, "\\'")}')">`
+                              : '<span class="text-muted">无截图</span>'}
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlow(${idx})">删除</button>
                 </div>
             </div>
-        </div>
-    </div>
-    `;
-
-    // 显示模态框
-    const modal = new bootstrap.Modal(document.getElementById('preFeedbackModal'));
-    modal.show();
+        `).join('');
+    } catch (e) {
+        listEl.innerHTML = '<div class="text-danger">加载付款流水失败</div>';
+    }
 }
 
-/**
- * 提交反馈内容到后端
- */
-async function submitPreFeedback() {
-    const caseId = document.getElementById('preFeedbackCaseId').value;
-    const feedbackContent = document.getElementById('preFeedbackContent').value.trim();
-
-    if (!feedbackContent) {
-        alert('请输入反馈内容');
+async function submitNewPaymentFlow() {
+    const caseId = document.getElementById('paymentFlowsCaseId').value;
+    const fileInput = document.getElementById('paymentScreenshotFile');
+    const payTimeInput = document.getElementById('paymentTimeInput');
+    const amountInput = document.getElementById('paymentAmountInput');
+    const errEl = document.getElementById('paymentFlowsError');
+    errEl.style.display = 'none';
+    const file = fileInput.files[0];
+    const payTime = payTimeInput.value.trim();
+    const amountRaw = amountInput.value.trim();
+    if (!file || !payTime || !amountRaw) {
+        errEl.textContent = '付款截图、付款时间和付款金额为必填项';
+        errEl.style.display = 'block';
         return;
     }
-
-    try {
-        // 调用后端反馈接口
-        await request('/case/pre-feedback','POST', {
-            caseId: caseId,
-            preFeedback: feedbackContent
-        });
-
-        // 关闭弹窗并刷新列表
-        const modal = bootstrap.Modal.getInstance(document.getElementById('preFeedbackModal'));
-        modal.hide();
-        loadMyCases(currentMyCasePage,currentMyCasePageSize); // 刷新案件列表
-        alert('反馈提交成功');
-    } catch (error) {
-        console.error('反馈提交失败:', error);
-        alert('反馈提交失败，请重试');
-    }
-}
-
-
-/**
- * 显示退回案件模态框
- * @param {number} caseId 案件ID
- */
-function showReturnCaseModal(caseId) {
-    const modalContainer = document.getElementById('completeCaseModalContainer');
-
-    // 创建模态框（antd风格）
-    const modalHtml = `
-    <div class="modal fade" id="returnCaseModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
-                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                    <h5 class="modal-title"><i class="fa fa-undo text-primary me-2"></i>退回案件原因</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" style="background:#fafcff;">
-                    <form id="returnCaseForm">
-                        <input type="hidden" id="returnCaseId" value="${caseId}">
-                        <div class="form-group">
-                            <label for="returnReason">请输入退回原因</label>
-                            <textarea id="returnReason" class="form-control" rows="5" required placeholder="请详细描述退回原因..."></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
-                    <button type="button" class="ant-btn ant-btn-warning btn btn-warning" onclick="submitCaseReturn()" style="border-radius:4px;">提交退回</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-
-    modalContainer.innerHTML = modalHtml;
-
-    // 显示模态框
-    const returnModal = new bootstrap.Modal(document.getElementById('returnCaseModal'));
-    returnModal.show();
-}
-
-/**
- * 提交案件退回
- */
-async function submitCaseReturn() {
-    const caseId = document.getElementById('returnCaseId').value;
-    const returnReason = document.getElementById('returnReason').value.trim();
-
-    if (!returnReason) {
-        alert('请输入退回原因');
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith('.jpg') && !lower.endsWith('.jpeg') && !lower.endsWith('.png')) {
+        errEl.textContent = '仅支持 jpg 或 png 格式的图片';
+        errEl.style.display = 'block';
         return;
     }
-
+    if (isNaN(amountRaw) || Number(amountRaw) < 0) {
+        errEl.textContent = '付款金额格式不正确或为负';
+        errEl.style.display = 'block';
+        return;
+    }
     try {
-        await request('/case/return', 'POST', {
-            caseId: caseId,
-            returnReason: returnReason
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadResp = await fetch('/api/case/upload-payment-screenshot', {
+            method: 'POST',
+            body: formData
         });
+        const uploadJson = await uploadResp.json();
+        if (!uploadResp.ok || uploadJson.code !== 200) {
+            throw new Error(uploadJson.msg || '上传失败');
+        }
+        const screenshotUrl = uploadJson.data;
+        await request('/case/payment-flows', 'POST', {
+            caseId,
+            action: 'add',
+            screenshotUrl,
+            payTime,
+            amount: amountRaw
+        });
+        fileInput.value = '';
+        payTimeInput.value = '';
+        amountInput.value = '';
+        loadPaymentFlows(caseId);
+    } catch (e) {
+        errEl.textContent = '保存付款流水失败：' + (e.message || '未知错误');
+        errEl.style.display = 'block';
+    }
+}
 
-        // 关闭模态框并刷新列表
-        const returnModal = bootstrap.Modal.getInstance(document.getElementById('returnCaseModal'));
-        returnModal.hide();
-        loadMyCases(currentMyCasePage,currentMyCasePageSize);
-        alert('案件已成功退回');
-    } catch (error) {
+async function removePaymentFlow(index) {
+    const caseId = document.getElementById('paymentFlowsCaseId').value;
+    const errEl = document.getElementById('paymentFlowsError');
+    errEl.style.display = 'none';
+    if (!confirm('确定要删除该条付款流水吗？')) return;
+    try {
+        await request('/case/payment-flows', 'POST', {
+            caseId,
+            action: 'remove',
+            index
+        });
+        loadPaymentFlows(caseId);
+    } catch (e) {
+        errEl.textContent = '删除付款流水失败';
+        errEl.style.display = 'block';
     }
 }
 
@@ -1147,4 +1110,31 @@ function bindFixedDropdownMenus() {
             }, 0);
         };
     });
+}
+
+// 在文件末尾（如还未定义 showImagePreview）新增统一的图片预览函数
+if (typeof showImagePreview === 'undefined') {
+    function showImagePreview(url) {
+        let container = document.getElementById('imagePreviewModalContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'imagePreviewModalContainer';
+            document.body.appendChild(container);
+        }
+        container.innerHTML = `
+        <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
+                <div class="modal-content" style="background:rgba(0,0,0,0.85);border:none;">
+                    <div class="modal-header border-0">
+                        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body d-flex justify-content-center align-items-center p-2">
+                        <img src="${url}" alt="预览" style="max-width:100%;max-height:80vh;border-radius:4px;">
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+        modal.show();
+    }
 }

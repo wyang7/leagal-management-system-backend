@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -1128,5 +1129,133 @@ public class CaseInfoController {
         } else {
             return Result.fail("部分案件结案失败，成功结案数：" + successCount + "/" + caseIds.size());
         }
+    }
+
+    /**
+     * 上传结案付款截图（仅 jpg/png），返回访问URL
+     */
+    @PostMapping("/upload-payment-screenshot")
+    public Result<String> uploadPaymentScreenshot(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return Result.fail("文件不能为空");
+        }
+        String originalName = file.getOriginalFilename();
+        if (originalName == null) {
+            return Result.fail("文件名不能为空");
+        }
+        String lower = originalName.toLowerCase();
+        if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
+            return Result.fail("仅支持上传 jpg 或 png 格式的图片");
+        }
+        try {
+            String ext = lower.substring(lower.lastIndexOf('.'));
+            String newName = java.util.UUID.randomUUID().toString().replace("-", "") + ext;
+            // 计算项目根目录的上一级目录，在其下创建 uploads/payment
+            String userDir = System.getProperty("user.dir");
+            java.io.File projectDir = new java.io.File(userDir); // leagal-management-system-backend
+            java.io.File parentDir = projectDir.getParentFile();
+            if (parentDir == null) {
+                parentDir = projectDir; // 兜底：万一没有上级目录，则仍落在当前项目目录
+            }
+            java.io.File dir = new java.io.File(parentDir, "uploads/payment");
+            if (!dir.exists() && !dir.mkdirs()) {
+                return Result.fail("创建上传目录失败");
+            }
+            java.io.File dest = new java.io.File(dir, newName);
+            file.transferTo(dest);
+            // 前端访问路径仍然使用 /uploads/payment/xxx
+            String url = "/uploads/payment/" + newName;
+            return Result.success(url);
+        } catch (Exception e) {
+            log.error("上传付款截图失败", e);
+            return Result.fail("上传失败，请稍后重试");
+        }
+    }
+
+    /**
+     * 为待结案案件补充付款流水；只允许新增和删除，不允许修改
+     */
+    @PostMapping("/payment-flows")
+    public Result<?> updatePaymentFlows(@RequestBody Map<String, Object> params, HttpSession session) {
+        Long caseId = Long.parseLong(params.get("caseId").toString());
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+        if (!"待结案".equals(caseInfo.getStatus())) {
+            return Result.fail("仅待结案状态的案件可以补充付款流水");
+        }
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+        // 解析现有 ext
+        CaseCloseExtDTO ext = null;
+        try {
+            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
+                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+            }
+        } catch (Exception e) {
+            log.error("解析结案扩展信息失败", e);
+        }
+        if (ext == null) {
+            ext = new CaseCloseExtDTO();
+        }
+        if (ext.getPaymentFlows() == null) {
+            ext.setPaymentFlows(new java.util.ArrayList<>());
+        }
+        String action = (String) params.getOrDefault("action", "add");
+        if ("add".equals(action)) {
+            // 新增一条流水：screenshotUrl, payTime, amount
+            String screenshotUrl = (String) params.get("screenshotUrl");
+            String payTime = (String) params.get("payTime");
+            Object amountObj = params.get("amount");
+            if (screenshotUrl == null || screenshotUrl.isEmpty() || payTime == null || payTime.isEmpty() || amountObj == null) {
+                return Result.fail("付款截图、付款时间和付款金额不能为空");
+            }
+            java.math.BigDecimal amount;
+            try {
+                amount = new java.math.BigDecimal(amountObj.toString());
+            } catch (NumberFormatException e) {
+                return Result.fail("付款金额格式错误");
+            }
+            if (amount.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                return Result.fail("付款金额不能为负");
+            }
+            CaseCloseExtDTO.PaymentFlow flow = new CaseCloseExtDTO.PaymentFlow();
+            flow.setScreenshotUrl(screenshotUrl);
+            flow.setPayTime(payTime);
+            flow.setAmount(amount);
+            ext.getPaymentFlows().add(flow);
+        } else if ("remove".equals(action)) {
+            // 按索引删除一条流水
+            Object idxObj = params.get("index");
+            if (idxObj == null) {
+                return Result.fail("缺少要删除的流水索引");
+            }
+            int idx;
+            try {
+                idx = Integer.parseInt(idxObj.toString());
+            } catch (NumberFormatException e) {
+                return Result.fail("流水索引格式错误");
+            }
+            java.util.List<CaseCloseExtDTO.PaymentFlow> list = ext.getPaymentFlows();
+            if (idx < 0 || idx >= list.size()) {
+                return Result.fail("流水索引超出范围");
+            }
+            list.remove(idx);
+        } else {
+            return Result.fail("不支持的操作类型");
+        }
+
+        try {
+            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
+        } catch (Exception e) {
+            log.error("序列化结案扩展信息失败", e);
+            return Result.fail("保存付款流水失败");
+        }
+        caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        boolean ok = caseInfoService.updateById(caseInfo);
+        return ok ? Result.success() : Result.fail("保存付款流水失败");
     }
 }

@@ -24,4 +24,16 @@ public class CaseCloseExtDTO {
     private Boolean invoiced;
     /** 开票信息（在 invoiced = true 时有效） */
     private String invoiceInfo;
+    /** 付款流水列表 */
+    private java.util.List<PaymentFlow> paymentFlows;
+
+    @Data
+    public static class PaymentFlow {
+        /** 付款截图URL */
+        private String screenshotUrl;
+        /** 付款时间 (yyyy-MM-dd HH:mm:ss) */
+        private String payTime;
+        /** 付款金额 */
+        private BigDecimal amount;
+    }
 }

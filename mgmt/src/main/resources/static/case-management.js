@@ -414,15 +414,32 @@ async function showCaseDetailModal(caseId) {
         };
         let extHtml='';
         if(caseInfo.caseCloseExt){
-          try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml=`<div class='row g-2'>
+          try{ const ext=JSON.parse(caseInfo.caseCloseExt); const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[]; const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00'; const flowsHtml = flows.length
+  ? flows.map((f,idx)=>`<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
+        <div class='flex-grow-1'>
+          <div>序号：${idx+1}</div>
+          <div>时间：${f.payTime||'-'}</div>
+          <div>金额：${fmtAmount(f.amount)}</div>
+        </div>
+        <div class='ms-3'>
+          ${f.screenshotUrl ? `<img src="${f.screenshotUrl}"
+                                    alt="付款截图${idx+1}"
+                                    style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
+                                    onclick="showImagePreview('${f.screenshotUrl.replace(/'/g, "\\'")}')">`
+                            : '<span class="text-muted">无截图</span>'}
+        </div>
+    </div>`).join('')
+  : '<div class="text-muted">暂无付款流水</div>'; extHtml=`<div class='row g-2'>
               <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?fmtAmount(ext.adjustedAmount):'-'}</div>
-              <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?fmtAmount(ext.mediationFee):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>原告调解费：</span>${ext.plaintiffMediationFee!=null?fmtAmount(ext.plaintiffMediationFee):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>被告调解费：</span>${ext.defendantMediationFee!=null?fmtAmount(ext.defendantMediationFee):'-'}</div>
+              <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced?'是':'否'}</div>
               ${ext.invoiced?`<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
+              <div class='col-12 mt-2'><span class='text-muted fw-bold'>案件付款流水：</span></div>
+              <div class='col-12'>${flowsHtml}</div>
           </div>`;}catch(e){extHtml='<div class="text-danger">结案扩展信息解析失败</div>'}
         } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
         // 历史
@@ -775,6 +792,7 @@ function renderCaseTable(cases) {
                     <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">案件操作</button>
                     <ul class="dropdown-menu" style="display:none;">
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})"><i class="fa fa-edit"></i> 编辑</a></li>
+                      ${caseInfo.status === '待结案' ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId})"><i class="fa fa-credit-card"></i> 补充结案信息</a></li>` : ''}
                       ${caseInfo.status !== '结案' ? ((App.user.roleType === '管理员' && App.user.station === '总部') ? `<li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})"><i class="fa fa-trash"></i> 删除</a></li>` : '') : ''}
                       ${caseInfo.status !== '结案' ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})"><i class="fa fa-handshake-o"></i> 分派案件</a></li>
@@ -990,8 +1008,7 @@ async function confirmFinishCase() {
         loadCases();
         alert('案件已标记为调解失败');
     } catch (error) {
-        console.error('调解失败案件失败:', error);
-        alert('调解失败案件失败');
+        alert('调解失败案件失败:', error);
     }
 }
 
@@ -1346,7 +1363,7 @@ async function saveCase() {
         return;
     }
     
-    if (!caseName) {
+ if (!caseName) {
         alert('请输入案由');
         return;
     }
@@ -1643,7 +1660,7 @@ async function showCaseHistoryModal(caseId) {
                         ${historyHtml}
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" style="border-radius:4px;">关闭</button>
                     </div>
                 </div>
             </div>
@@ -1946,3 +1963,29 @@ function afterPageInitOrFilter() {
     updateBatchFailedBtnVisibility();
     updateBatchCloseCaseBtnVisibility();
 }
+
+// 在文件末尾（或全局作用域）新增图片预览弹窗函数
+function showImagePreview(url) {
+    let container = document.getElementById('imagePreviewModalContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'imagePreviewModalContainer';
+        document.body.appendChild(container);
+    }
+    container.innerHTML = `
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content" style="background:rgba(0,0,0,0.85);border:none;">
+                <div class="modal-header border-0">
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body d-flex justify-content-center align-items-center p-2">
+                    <img src="${url}" alt="预览" style="max-width:100%;max-height:80vh;border-radius:4px;">
+                </div>
+            </div>
+        </div>
+    </div>`;
+    const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+    modal.show();
+}
+
