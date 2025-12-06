@@ -209,8 +209,10 @@ async function showmyCaseDetailModal(caseId) {
             try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml = `<div class='row g-2'>
                 <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?formatAmount(ext.adjustedAmount):'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?formatAmount(ext.mediationFee):'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?formatAmount(ext.mediationFee):'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>原告调解费：</span>${ext.plaintiffMediationFee!=null?formatAmount(ext.plaintiffMediationFee):'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>被告调解费：</span>${ext.defendantMediationFee!=null?formatAmount(ext.defendantMediationFee):'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
                 ${ext.invoiced? `<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
             </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
@@ -859,13 +861,27 @@ async function showCompleteCaseModal(caseId) {
                             <input type="number" step="0.01" id="adjustedAmount" required class="form-control" placeholder="请输入调成标的额" value="${defaultAmount}">
                             <div class="form-text">默认值来自案件原标的额，可自行修改。</div>
                         </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">调解费 (元) <span class="text-danger">*</span></label>
+                        <div class="form-group mb-3" id="mediationFeeGroup">
+                            <label class="form-label">
+                                调解费 (元) <span class="text-danger">*</span>
+                            </label>
                             <input type="number" step="0.01" id="mediationFee" required class="form-control" placeholder="请输入调解费">
+                        </div>
+                        <div class="form-group mb-3" id="plaintiffMediationFeeGroup" style="display:none;">
+                            <label class="form-label">
+                                原告调解费 (元) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" step="0.01" id="plaintiffMediationFee" class="form-control" placeholder="请输入原告调解费">
+                        </div>
+                        <div class="form-group mb-3" id="defendantMediationFeeGroup" style="display:none;">
+                            <label class="form-label">
+                                被告调解费 (元) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" step="0.01" id="defendantMediationFee" class="form-control" placeholder="请输入被告调解费">
                         </div>
                         <div class="form-group mb-3">
                             <label class="form-label">支付方 <span class="text-danger">*</span></label>
-                            <select id="payer" class="form-select" required>
+                            <select id="payer" class="form-select" required onchange="togglePayerMediationFields()">
                                 <option value="">请选择</option>
                                 <option value="原告">原告</option>
                                 <option value="被告">被告</option>
@@ -907,27 +923,79 @@ function toggleInvoiceInfo(){
         document.getElementById('invoiceInfo').removeAttribute('required');
     }
 }
+function togglePayerMediationFields() {
+    const payer = document.getElementById('payer')?.value || '';
+    const totalGroup = document.getElementById('mediationFeeGroup');
+    const totalInput = document.getElementById('mediationFee');
+    const pGroup = document.getElementById('plaintiffMediationFeeGroup');
+    const dGroup = document.getElementById('defendantMediationFeeGroup');
+    const pInput = document.getElementById('plaintiffMediationFee');
+    const dInput = document.getElementById('defendantMediationFee');
+    if (!totalGroup || !totalInput || !pGroup || !dGroup || !pInput || !dInput) return;
+    if (payer === '原被告') {
+        // 隐藏总调解费，显示原告/被告调解费
+        totalGroup.style.display = 'none';
+        totalInput.removeAttribute('required');
+        totalInput.value = '';
+        pGroup.style.display = '';
+        dGroup.style.display = '';
+        pInput.setAttribute('required','required');
+        dInput.setAttribute('required','required');
+    } else if (payer === '原告' || payer === '被告') {
+        // 显示总调解费，隐藏拆分
+        totalGroup.style.display = '';
+        totalInput.setAttribute('required','required');
+        pGroup.style.display = 'none';
+        dGroup.style.display = 'none';
+        pInput.removeAttribute('required');
+        dInput.removeAttribute('required');
+        pInput.value = '';
+        dInput.value = '';
+    } else {
+        // 未选择支付方时，默认显示总调解费
+        totalGroup.style.display = '';
+        totalInput.setAttribute('required','required');
+        pGroup.style.display = 'none';
+        dGroup.style.display = 'none';
+        pInput.removeAttribute('required');
+        dInput.removeAttribute('required');
+        pInput.value = '';
+        dInput.value = '';
+    }
+}
 async function submitCaseCompletion() {
     const notes = document.getElementById('completionNotes').value.trim();
     if (!notes) { alert('请选择结案方式'); return; }
     const adjustedAmountRaw = document.getElementById('adjustedAmount').value.trim();
-    const mediationFeeRaw = document.getElementById('mediationFee').value.trim();
     const payer = document.getElementById('payer').value.trim();
     const invoicedStr = document.getElementById('invoiced').value.trim();
     const signDate = document.getElementById('signDate').value || undefined;
+    const totalMediationRaw = document.getElementById('mediationFee').value.trim();
+    const pMediationRaw = document.getElementById('plaintiffMediationFee')?.value.trim() || '';
+    const dMediationRaw = document.getElementById('defendantMediationFee')?.value.trim() || '';
     // 必填校验
     if(adjustedAmountRaw===''){ alert('请填写调成标的额'); return; }
-    if(mediationFeeRaw===''){ alert('请填写调解费'); return; }
     if(payer===''){ alert('请选择支付方'); return; }
     if(invoicedStr===''){ alert('请选择是否开票'); return; }
+    if(payer === '原被告') {
+        if(pMediationRaw===''){ alert('请填写原告调解费'); return; }
+        if(dMediationRaw===''){ alert('请填写被告调解费'); return; }
+    } else {
+        if(totalMediationRaw===''){ alert('请填写调解费'); return; }
+    }
     // 数值校验
     if(isNaN(adjustedAmountRaw) || Number(adjustedAmountRaw)<0){ alert('调成标的额格式不正确或为负'); return; }
-    if(isNaN(mediationFeeRaw) || Number(mediationFeeRaw)<0){ alert('调解费格式不正确或为负'); return; }
+    if(payer === '原被告') {
+        if(isNaN(pMediationRaw) || Number(pMediationRaw)<0){ alert('原告调解费格式不正确或为负'); return; }
+        if(isNaN(dMediationRaw) || Number(dMediationRaw)<0){ alert('被告调解费格式不正确或为负'); return; }
+    } else {
+        if(isNaN(totalMediationRaw) || Number(totalMediationRaw)<0){ alert('调解费格式不正确或为负'); return; }
+    }
     const invoiced = invoicedStr==='true';
     let invoiceInfo;
     if(invoiced){
         invoiceInfo = document.getElementById('invoiceInfo').value.trim();
-        if(!invoiceInfo){ alert('请选择开票为“是”时需填写开票信息'); return; }
+        if(!invoiceInfo){ alert('选择开票为“是”时需填写开票信息'); return; }
     }
     const caseId = document.getElementById('completeCaseId').value;
     const payload = {
@@ -935,7 +1003,9 @@ async function submitCaseCompletion() {
         notes,
         signDate,
         adjustedAmount: adjustedAmountRaw,
-        mediationFee: mediationFeeRaw,
+        mediationFee: payer === '原被告' ? undefined : totalMediationRaw,
+        plaintiffMediationFee: payer === '原被告' ? pMediationRaw : undefined,
+        defendantMediationFee: payer === '原被告' ? dMediationRaw : undefined,
         payer,
         invoiced,
         invoiceInfo: invoiceInfo || undefined

@@ -12,8 +12,12 @@ public class CaseCloseExtDTO {
     private String signDate;
     /** 调成标的额，默认原案件 amount */
     private BigDecimal adjustedAmount;
-    /** 调解费 */
+    /** 调解费（总额） */
     private BigDecimal mediationFee;
+    /** 原告调解费（当支付方为原被告时使用） */
+    private BigDecimal plaintiffMediationFee;
+    /** 被告调解费（当支付方为原被告时使用） */
+    private BigDecimal defendantMediationFee;
     /** 支付方：原告/被告/原被告 */
     private String payer;
     /** 是否开票 */
@@ -21,4 +25,3 @@ public class CaseCloseExtDTO {
     /** 开票信息（在 invoiced = true 时有效） */
     private String invoiceInfo;
 }
-

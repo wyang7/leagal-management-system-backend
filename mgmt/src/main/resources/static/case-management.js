@@ -417,8 +417,10 @@ async function showCaseDetailModal(caseId) {
           try{ const ext=JSON.parse(caseInfo.caseCloseExt); extHtml=`<div class='row g-2'>
               <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?fmtAmount(ext.adjustedAmount):'-'}</div>
-              <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?fmtAmount(ext.mediationFee):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
+              <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?fmtAmount(ext.mediationFee):'-'}</div>
+              <div class='col-md-6'><span class='text-muted'>原告调解费：</span>${ext.plaintiffMediationFee!=null?fmtAmount(ext.plaintiffMediationFee):'-'}</div>
+              <div class='col-md-6'><span class='text-muted'>被告调解费：</span>${ext.defendantMediationFee!=null?fmtAmount(ext.defendantMediationFee):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced?'是':'否'}</div>
               ${ext.invoiced?`<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
           </div>`;}catch(e){extHtml='<div class="text-danger">结案扩展信息解析失败</div>'}

@@ -654,6 +654,8 @@ public class CaseInfoController {
         String signDate = (String) params.getOrDefault("signDate", null);
         Object adjustedAmountObj = params.get("adjustedAmount");
         Object mediationFeeObj = params.get("mediationFee");
+        Object plaintiffMediationFeeObj = params.get("plaintiffMediationFee");
+        Object defendantMediationFeeObj = params.get("defendantMediationFee");
         String payer = (String) params.getOrDefault("payer", null);
         Boolean invoiced = params.get("invoiced") == null ? null : Boolean.valueOf(params.get("invoiced").toString());
         String invoiceInfo = (String) params.getOrDefault("invoiceInfo", null);
@@ -679,7 +681,7 @@ public class CaseInfoController {
             int nextPenghe = (maxPenghe == null || maxPenghe < 689) ? 689 : maxPenghe + 1;
             caseInfo.setPengheCaseNumber(nextPenghe);
         }
-        // 构造扩展 DTO（默认调成标的额用原值）
+        // 构造扩展 DTO
         CaseCloseExtDTO ext = new CaseCloseExtDTO();
         ext.setSignDate(signDate);
         try {
@@ -691,12 +693,22 @@ public class CaseInfoController {
             if (mediationFeeObj != null) {
                 ext.setMediationFee(new java.math.BigDecimal(mediationFeeObj.toString()));
             }
+            if (plaintiffMediationFeeObj != null) {
+                ext.setPlaintiffMediationFee(new java.math.BigDecimal(plaintiffMediationFeeObj.toString()));
+            }
+            if (defendantMediationFeeObj != null) {
+                ext.setDefendantMediationFee(new java.math.BigDecimal(defendantMediationFeeObj.toString()));
+            }
         } catch (NumberFormatException e) {
             return Result.fail("金额格式错误");
         }
-        // 自动生成收款单号（若为空）
-        BigDecimal mediationFee = ext.getMediationFee();
-        if (caseInfo.getReceiptNumber() == null && mediationFee != null && mediationFee.intValue() > 0) {
+        // 计算用于生成收款单号的调解费总额
+        BigDecimal mediationFeeForReceipt = ext.getMediationFee();
+        if (mediationFeeForReceipt == null && ext.getPlaintiffMediationFee() != null && ext.getDefendantMediationFee() != null) {
+            mediationFeeForReceipt = ext.getPlaintiffMediationFee().add(ext.getDefendantMediationFee());
+        }
+        // 自动生成收款单号（若为空，且总调解费>0）
+        if (caseInfo.getReceiptNumber() == null && mediationFeeForReceipt != null && mediationFeeForReceipt.intValue() > 0) {
             String caseLocation = caseInfo.getCaseLocation();
             if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
                 // 本部 + 四季青：共用 S0XX 序列
