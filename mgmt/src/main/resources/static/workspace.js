@@ -47,8 +47,8 @@ async function getAdminStations(userInfo) {
             return []; // 无角色ID无法判定
         }
         const role = await request(`/role/${userInfo.roleId}`);
-        const station = role.station; // 可能为 "总部"、"九堡彭埠"、"本部"、"笕桥" 或其他
-        const allStations = ['九堡','彭埠','本部','笕桥'];
+        const station = role.station;
+        const allStations = ['九堡','彭埠','本部','笕桥','四季青','凯旋街道','闸弄口'];
         if (!station || station === '总部') {
             // 总部管理员显示全部驻点
             return allStations;

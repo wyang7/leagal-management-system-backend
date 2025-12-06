@@ -416,6 +416,16 @@
                             <i class="fa fa-angle-right me-1"></i>四季青
                         </a>
                     </li>
+                    <li class="nav-item" id="submenu-kaixuan">
+                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('凯旋街道')">
+                            <i class="fa fa-angle-right me-1"></i>凯旋街道
+                        </a>
+                    </li>
+                    <li class="nav-item" id="submenu-zhanongkou">
+                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('闸弄口')">
+                            <i class="fa fa-angle-right me-1"></i>闸弄口
+                        </a>
+                    </li>
                     <li class="nav-item" id="submenu-jianqiao">
                         <a href="#" class="nav-link" onclick="loadCaseManagementPage('笕桥')">
                             <i class="fa fa-angle-right me-1"></i>笕桥
@@ -476,12 +486,16 @@
                 document.getElementById('submenu-jiubao').style.display = userStation === '九堡彭埠' ? 'block' : 'none';
                 document.getElementById('submenu-benbu').style.display = userStation === '本部' ? 'block' : 'none';
                 document.getElementById('submenu-sijiqing').style.display = userStation === '四季青' ? 'block' : 'none';
+                document.getElementById('submenu-kaixuan').style.display = userStation === '凯旋街道' ? 'block' : 'none';
+                document.getElementById('submenu-zhanongkou').style.display = userStation === '闸弄口' ? 'block' : 'none';
                 document.getElementById('submenu-jianqiao').style.display = userStation === '笕桥' ? 'block' : 'none';
             } else {
                 // 总部用户，显示所有二级菜单
                 document.getElementById('submenu-jiubao').style.display = 'block';
                 document.getElementById('submenu-benbu').style.display = 'block';
                 document.getElementById('submenu-sijiqing').style.display = 'block';
+                document.getElementById('submenu-kaixuan').style.display = 'block';
+                document.getElementById('submenu-zhanongkou').style.display = 'block';
                 document.getElementById('submenu-jianqiao').style.display = 'block';
             }
         } catch (error) {
