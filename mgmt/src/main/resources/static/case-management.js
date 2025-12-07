@@ -427,8 +427,9 @@ async function showCaseDetailModal(caseId) {
         <div class='ms-3'>
           ${imgSrc ? `<img src="${imgSrc}"
                             alt="付款截图${idx+1}"
-                            style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
-                            onclick="showImagePreview('${imgSrc.replace(/'/g, "\\'")})">`
+                            class="payment-screenshot"
+                            data-url="${imgSrc}"
+                            style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
                     : '<span class="text-muted">无截图</span>'}
         </div>
     </div>`;
@@ -1993,3 +1994,16 @@ function showImagePreview(url) {
     modal.show();
 }
 
+// === 新增：付款流水图片预览事件代理 ===
+if (!window.__caseMgmtImagePreviewBound) {
+    window.__caseMgmtImagePreviewBound = true;
+    document.addEventListener('click', function (e) {
+        const target = e.target;
+        if (target && target.classList && target.classList.contains('payment-screenshot')) {
+            const url = target.getAttribute('data-url');
+            if (url) {
+                showImagePreview(url);
+            }
+        }
+    });
+}

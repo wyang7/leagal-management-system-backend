@@ -219,8 +219,9 @@ async function showmyCaseDetailModal(caseId) {
         <div class='ms-3'>
             ${imgSrc? `<img src="${imgSrc}"
                               alt="付款截图${idx+1}"
-                              style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
-                              onclick="showImagePreview('${imgSrc.replace(/'/g, "\\'")})">`
+                              class="payment-screenshot"
+                              data-url="${imgSrc}"
+                              style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
                       : '<span class="text-muted">无截图</span>'}
         </div>
     </div>`;
@@ -693,8 +694,9 @@ async function loadPaymentFlows(caseId) {
         <div class="d-flex align-items-center gap-2">
             ${imgSrc? `<img src="${imgSrc}"
                               alt="付款截图${idx+1}"
-                              style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
-                              onclick="showImagePreview('${imgSrc.replace(/'/g, "\\'")})">`
+                              class="payment-screenshot"
+                              data-url="${imgSrc}"
+                              style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
                       : '<span class="text-muted">无截图</span>'}
             <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlow(${idx})">删除</button>
         </div>
@@ -1144,4 +1146,18 @@ if (typeof showImagePreview === 'undefined') {
         const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
         modal.show();
     }
+}
+
+// 在文件靠后位置增加一次性的图片点击代理绑定
+if (!window.__myCasesImagePreviewBound) {
+    window.__myCasesImagePreviewBound = true;
+    document.addEventListener('click', function (e) {
+        const target = e.target;
+        if (target && target.classList && target.classList.contains('payment-screenshot')) {
+            const url = target.getAttribute('data-url');
+            if (url && typeof showImagePreview === 'function') {
+                showImagePreview(url);
+            }
+        }
+    });
 }
