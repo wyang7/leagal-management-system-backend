@@ -1145,7 +1145,7 @@ public class CaseInfoController {
         }
         String lower = originalName.toLowerCase();
         if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
-            return Result.fail("仅支持上传 jpg 或 png 格式的图片");
+            return Result.fail("仅支持上传 jpg、jpeg 或 png 格式的图片");
         }
         try {
             String ext = lower.substring(lower.lastIndexOf('.'));

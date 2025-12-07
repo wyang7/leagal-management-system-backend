@@ -633,7 +633,7 @@ function showPaymentFlowsModal(caseId, fromMyCases) {
                     <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 时间 + 金额），只能新增和删除，不允许修改。</div>
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4">
-                            <label class="form-label">付款截图 (jpg/png)</label>
+                            <label class="form-label">付款截图 (jpg/jpeg/png)</label>
                             <input type="file" id="paymentScreenshotFile" accept="image/png,image/jpeg" class="form-control" />
                         </div>
                         <div class="col-md-4">
@@ -1161,3 +1161,164 @@ if (!window.__myCasesImagePreviewBound) {
         }
     });
 }
+
+// 反馈弹窗
+function showPreFeedbackModal(caseId) {
+    const modalHtml = `
+    <div class="modal fade" id="myPreFeedbackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-comment text-primary me-2"></i>案件反馈</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <input type="hidden" id="myPreFeedbackCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">反馈内容 <span class="text-danger">*</span></label>
+                        <textarea id="myPreFeedbackContent" class="form-control" rows="4" placeholder="请输入反馈内容"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitMyPreFeedback()">提交反馈</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHtml;
+    document.body.appendChild(temp);
+    const modal = new bootstrap.Modal(document.getElementById('myPreFeedbackModal'));
+    modal.show();
+    document.getElementById('myPreFeedbackModal').addEventListener('hidden.bs.modal', () => temp.remove());
+}
+
+async function submitMyPreFeedback() {
+    const caseId = document.getElementById('myPreFeedbackCaseId').value;
+    const content = document.getElementById('myPreFeedbackContent').value.trim();
+    if (!content) {
+        alert('请填写反馈内容');
+        return;
+    }
+    try {
+        await request('/case/pre-feedback', 'POST', { caseId, preFeedback: content });
+        const modalEl = document.getElementById('myPreFeedbackModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal && modal.hide();
+        }
+        // 刷新“我的案件”页面
+        loadMyCasesPage();
+        alert('反馈已提交');
+    } catch (e) {
+        alert('提交反馈失败，请稍后重试');
+    }
+}
+
+// 延期弹窗
+function showDelayModal(caseId) {
+    const modalHtml = `
+    <div class="modal fade" id="myDelayModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-clock-o text-primary me-2"></i>延期申请</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <input type="hidden" id="myDelayCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">延期原因 <span class="text-danger">*</span></label>
+                        <textarea id="myDelayReason" class="form-control" rows="4" placeholder="请输入延期原因"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitMyDelay()">提交延期</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHtml;
+    document.body.appendChild(temp);
+    const modal = new bootstrap.Modal(document.getElementById('myDelayModal'));
+    modal.show();
+    document.getElementById('myDelayModal').addEventListener('hidden.bs.modal', () => temp.remove());
+}
+
+async function submitMyDelay() {
+    const caseId = document.getElementById('myDelayCaseId').value;
+    const reason = document.getElementById('myDelayReason').value.trim();
+    if (!reason) {
+        alert('请填写延期原因');
+        return;
+    }
+    try {
+        await request('/case/delay', 'POST', { caseId, delayReason: reason });
+        const modalEl = document.getElementById('myDelayModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal && modal.hide();
+        }
+        loadMyCasesPage();
+        alert('延期申请已提交');
+    } catch (e) {
+        alert('提交延期失败，请稍后重试');
+    }
+}
+
+// 退回弹窗
+function showReturnCaseModal(caseId) {
+    const modalHtml = `
+    <div class="modal fade" id="myReturnCaseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-undo text-primary me-2"></i>退回案件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <input type="hidden" id="myReturnCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">退回原因 <span class="text-danger">*</span></label>
+                        <textarea id="myReturnReason" class="form-control" rows="4" placeholder="请输入退回原因"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitMyReturnCase()">确认退回</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHtml;
+    document.body.appendChild(temp);
+    const modal = new bootstrap.Modal(document.getElementById('myReturnCaseModal'));
+    modal.show();
+    document.getElementById('myReturnCaseModal').addEventListener('hidden.bs.modal', () => temp.remove());
+}
+
+async function submitMyReturnCase() {
+    const caseId = document.getElementById('myReturnCaseId').value;
+    const reason = document.getElementById('myReturnReason').value.trim();
+    if (!reason) {
+        alert('请填写退回原因');
+        return;
+    }
+    try {
+        await request('/case/return', 'POST', { caseId, returnReason: reason });
+        const modalEl = document.getElementById('myReturnCaseModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal && modal.hide();
+        }
+        loadMyCasesPage();
+        alert('案件已退回');
+    } catch (e) {
+        alert('退回案件失败，请稍后重试');
+    }
+}
+
