@@ -331,9 +331,13 @@
         WHERE case_id = #{caseId}
     </update>
 
-    <!-- 查询最大收款单号 -->
+    <!-- 查询最大收款单号（仅统计无字母前缀的纯数字收款单号，用于老规则） -->
     <select id="selectMaxReceiptNumber" resultType="java.lang.Integer">
-        SELECT MAX(receipt_number) FROM case_info
+        SELECT MAX(receipt_number)
+        FROM case_info
+        /* 仅保留没有字母前缀的收款单号，这里假定纯数字即为“无前缀” */
+        WHERE receipt_number IS NOT NULL
+          AND receipt_number NOT REGEXP '^[A-Za-z]'
     </select>
     <!-- 查询最大澎和案件号 -->
     <select id="selectMaxPengheCaseNumber" resultType="java.lang.Integer">

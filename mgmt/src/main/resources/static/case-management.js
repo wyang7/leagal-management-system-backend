@@ -437,10 +437,10 @@ async function showCaseDetailModal(caseId) {
   : '<div class="text-muted">暂无付款流水</div>'; extHtml=`<div class='row g-2'>
               <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?fmtAmount(ext.adjustedAmount):'-'}</div>
+              <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?fmtAmount(ext.mediationFee):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>原告调解费：</span>${ext.plaintiffMediationFee!=null?fmtAmount(ext.plaintiffMediationFee):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>被告调解费：</span>${ext.defendantMediationFee!=null?fmtAmount(ext.defendantMediationFee):'-'}</div>
-              <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced?'是':'否'}</div>
               ${ext.invoiced?`<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
               <div class='col-12 mt-2'><span class='text-muted fw-bold'>案件付款流水：</span></div>
@@ -1198,6 +1198,9 @@ function createCaseModal(taskOptions, assistantOptions) {
                                     <option value="彭埠">彭埠</option>
                                     <option value="笕桥">笕桥</option>
                                     <option value="本部">本部</option>
+                                    <option value="四季青">四季青</option>
+                                    <option value="闸弄口">闸弄口</option>
+                                    <option value="凯旋街道">凯旋街道</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -1969,41 +1972,163 @@ function afterPageInitOrFilter() {
     updateBatchCloseCaseBtnVisibility();
 }
 
-// 在文件末尾（或全局作用域）新增图片预览弹窗函数
-function showImagePreview(url) {
-    let container = document.getElementById('imagePreviewModalContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'imagePreviewModalContainer';
-        document.body.appendChild(container);
-    }
-    container.innerHTML = `
-    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content" style="background:rgba(0,0,0,0.85);border:none;">
-                <div class="modal-header border-0">
-                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+// 在文件靠后位置，批量操作等函数之后，增加三个案件操作弹窗：反馈、延期、退回
+
+// 反馈弹窗
+function showPreFeedbackModal(caseId) {
+    const modalHtml = `
+    <div class="modal fade" id="preFeedbackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-comment text-primary me-2"></i>案件反馈</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body d-flex justify-content-center align-items-center p-2">
-                    <img src="${url}" alt="预览" style="max-width:100%;max-height:80vh;border-radius:4px;">
+                <div class="modal-body" style="background:#fafcff;">
+                    <input type="hidden" id="preFeedbackCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">反馈内容 <span class="text-danger">*</span></label>
+                        <textarea id="preFeedbackContent" class="form-control" rows="4" placeholder="请输入反馈内容"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitPreFeedback()">提交反馈</button>
                 </div>
             </div>
         </div>
     </div>`;
-    const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHtml;
+    document.body.appendChild(temp);
+    const modal = new bootstrap.Modal(document.getElementById('preFeedbackModal'));
     modal.show();
+    document.getElementById('preFeedbackModal').addEventListener('hidden.bs.modal', () => temp.remove());
 }
 
-// === 新增：付款流水图片预览事件代理 ===
-if (!window.__caseMgmtImagePreviewBound) {
-    window.__caseMgmtImagePreviewBound = true;
-    document.addEventListener('click', function (e) {
-        const target = e.target;
-        if (target && target.classList && target.classList.contains('payment-screenshot')) {
-            const url = target.getAttribute('data-url');
-            if (url) {
-                showImagePreview(url);
-            }
+async function submitPreFeedback() {
+    const caseId = document.getElementById('preFeedbackCaseId').value;
+    const content = document.getElementById('preFeedbackContent').value.trim();
+    if (!content) {
+        alert('请填写反馈内容');
+        return;
+    }
+    try {
+        await request('/case/pre-feedback', 'POST', { caseId, preFeedback: content });
+        const modalEl = document.getElementById('preFeedbackModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal && modal.hide();
         }
-    });
+        loadCases(currentPage, pageSize, currentStation);
+        alert('反馈已提交');
+    } catch (e) {
+        alert('提交反馈失败，请稍后重试');
+    }
+}
+
+// 延期弹窗
+function showDelayModal(caseId) {
+    const modalHtml = `
+    <div class="modal fade" id="delayModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-clock-o text-primary me-2"></i>延期申请</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <input type="hidden" id="delayCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">延期原因 <span class="text-danger">*</span></label>
+                        <textarea id="delayReason" class="form-control" rows="4" placeholder="请输入延期原因"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitDelay()">提交延期</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHtml;
+    document.body.appendChild(temp);
+    const modal = new bootstrap.Modal(document.getElementById('delayModal'));
+    modal.show();
+    document.getElementById('delayModal').addEventListener('hidden.bs.modal', () => temp.remove());
+}
+
+async function submitDelay() {
+    const caseId = document.getElementById('delayCaseId').value;
+    const reason = document.getElementById('delayReason').value.trim();
+    if (!reason) {
+        alert('请填写延期原因');
+        return;
+    }
+    try {
+        await request('/case/delay', 'POST', { caseId, delayReason: reason });
+        const modalEl = document.getElementById('delayModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal && modal.hide();
+        }
+        loadCases(currentPage, pageSize, currentStation);
+        alert('延期申请已提交');
+    } catch (e) {
+        alert('提交延期失败，请稍后重试');
+    }
+}
+
+// 退回弹窗
+function showReturnCaseModal(caseId) {
+    const modalHtml = `
+    <div class="modal fade" id="returnCaseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-undo text-primary me-2"></i>退回案件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <input type="hidden" id="returnCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">退回原因 <span class="text-danger">*</span></label>
+                        <textarea id="returnReason" class="form-control" rows="4" placeholder="请输入退回原因"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitReturnCase()">确认退回</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHtml;
+    document.body.appendChild(temp);
+    const modal = new bootstrap.Modal(document.getElementById('returnCaseModal'));
+    modal.show();
+    document.getElementById('returnCaseModal').addEventListener('hidden.bs.modal', () => temp.remove());
+}
+
+async function submitReturnCase() {
+    const caseId = document.getElementById('returnCaseId').value;
+    const reason = document.getElementById('returnReason').value.trim();
+    if (!reason) {
+        alert('请填写退回原因');
+        return;
+    }
+    try {
+        await request('/case/return', 'POST', { caseId, returnReason: reason });
+        const modalEl = document.getElementById('returnCaseModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal && modal.hide();
+        }
+        loadCases(currentPage, pageSize, currentStation);
+        alert('案件已退回');
+    } catch (e) {
+        alert('退回案件失败，请稍后重试');
+    }
 }

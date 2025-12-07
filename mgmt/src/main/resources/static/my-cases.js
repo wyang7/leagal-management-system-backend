@@ -229,10 +229,10 @@ async function showmyCaseDetailModal(caseId) {
   : '<div class="text-muted">暂无付款流水</div>'; extHtml = `<div class='row g-2'>
                 <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?formatAmount(ext.adjustedAmount):'-'}</div>
+                <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?formatAmount(ext.mediationFee):'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>原告调解费：</span>${ext.plaintiffMediationFee!=null?formatAmount(ext.plaintiffMediationFee):'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>被告调解费：</span>${ext.defendantMediationFee!=null?formatAmount(ext.defendantMediationFee):'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
                 ${ext.invoiced? `<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
                 <div class='col-12 mt-2'><span class='text-muted fw-bold'>案件付款流水：</span></div>
