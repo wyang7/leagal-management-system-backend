@@ -12,72 +12,67 @@
 
     <!-- 查询所有案件总数 -->
     <select id="countAllCases" resultType="int">
-        SELECT COUNT(*) FROM case_info
+        SELECT COUNT(1)  FROM case_info c
+        LEFT JOIN user u ON c.user_id = u.user_id
+        LEFT JOIN user a ON c.assistant_id = a.user_id
+        LEFT JOIN task t ON c.task_id = t.task_id
         WHERE 1=1
         <if test="caseName != null and caseName != ''">
             AND case_name LIKE CONCAT(#{caseName}, '%')
         </if>
         <if test="status != null and status != '' and status != '我的案件' and status != '我的待办'">
-            AND status = #{status}
+            AND c.status = #{status}
         </if>
         <if test="status != null and status != '' and status == '我的案件'">
-            AND status NOT IN ('退回' ,'调解失败')
+            AND c.status NOT IN ('退回' ,'调解失败')
         </if>
         <if test="status != null and status != '' and status == '我的待办'">
-            AND status NOT IN ('退回' ,'调解失败','结案')
+            AND c.status NOT IN ('退回' ,'调解失败','结案')
         </if>
         <if test="caseNumber != null and caseNumber != ''">
-            AND case_number LIKE CONCAT('%', #{caseNumber}, '%')
+            AND c.case_number LIKE CONCAT('%', #{caseNumber}, '%')
         </if>
         <if test="plaintiff != null and plaintiff != ''">
-            AND plaintiff_name LIKE CONCAT('%', #{plaintiff}, '%')
+            AND c.plaintiff_name LIKE CONCAT('%', #{plaintiff}, '%')
         </if>
         <if test="defendant != null and defendant != ''">
-            AND defendant_name LIKE CONCAT('%', #{defendant}, '%')
+            AND c.defendant_name LIKE CONCAT('%', #{defendant}, '%')
         </if>
         <if test="receiveTimeStart != null and receiveTimeStart != ''">
-            AND court_receive_time &gt;= #{receiveTimeStart}
+            AND c.court_receive_time &gt;= #{receiveTimeStart}
         </if>
         <if test="receiveTimeEnd != null and receiveTimeEnd != ''">
-            AND court_receive_time &lt;= #{receiveTimeEnd}
+            AND c.court_receive_time &lt;= #{receiveTimeEnd}
         </if>
         <if test="userId != null and userId != ''">
-            AND user_id = #{userId}
+            AND c.user_id = #{userId}
         </if>
         <if test="assistantId != null and assistantId != ''">
-            AND assistant_id = #{assistantId}
+            AND c.assistant_id = #{assistantId}
         </if>
-        <if test="station != null and station != ''  and station != '总部'">
+        <if test="station != null and station != '' and station != '总部'">
             <choose>
                 <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
                 <when test="station == '九堡彭埠'">
-                    AND case_location in ('九堡', '彭埠')
+                    AND c.case_location in ('九堡', '彭埠')
                 </when>
                 <!-- 其他情况使用等于条件 -->
                 <otherwise>
-                    AND case_location = #{station}
+                    AND c.case_location = #{station}
                 </otherwise>
             </choose>
         </if>
         <!-- 万能搜索：案由、原告、被告、案号、助理用户名、处理人用户名 -->
         <if test="keyword != null and keyword != ''">
             AND (
-                case_name LIKE CONCAT('%', #{keyword}, '%')
-                OR plaintiff_name LIKE CONCAT('%', #{keyword}, '%')
-                OR defendant_name LIKE CONCAT('%', #{keyword}, '%')
-                OR case_number LIKE CONCAT('%', #{keyword}, '%')
-                OR CAST(receipt_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
-                OR CAST(penghe_case_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
-                OR EXISTS (
-                    SELECT 1 FROM user ua
-                    WHERE ua.user_id = assistant_id
-                      AND ua.username LIKE CONCAT('%', #{keyword}, '%')
-                )
-                OR EXISTS (
-                    SELECT 1 FROM user uu
-                    WHERE uu.user_id = user_id
-                      AND uu.username LIKE CONCAT('%', #{keyword}, '%')
-                )
+            c.case_name LIKE CONCAT('%', #{keyword}, '%')
+            OR c.plaintiff_name LIKE CONCAT('%', #{keyword}, '%')
+            OR c.defendant_name LIKE CONCAT('%', #{keyword}, '%')
+            OR c.case_number LIKE CONCAT('%', #{keyword}, '%')
+            OR CAST(c.receipt_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+            OR CAST(c.penghe_case_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+            OR a.username LIKE CONCAT('%', #{keyword}, '%')
+            OR u.username LIKE CONCAT('%', #{keyword}, '%')
             )
         </if>
     </select>
