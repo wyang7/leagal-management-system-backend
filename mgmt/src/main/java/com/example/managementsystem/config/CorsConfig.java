@@ -54,8 +54,21 @@ public class CorsConfig implements WebMvcConfigurer {
     // 静态资源映射（同上）
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 原有静态资源：classpath:/static/，受 context-path=/api 影响，对外访问路径为 /api/**
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
+                .setCacheControl(CacheControl.noCache().cachePrivate());
+        // 新增：将 /api/uploads/** 映射到项目根目录上一级的 uploads 目录
+        // 实际对外访问 URL 形如：http://localhost:8090/api/uploads/payment/xxx.png
+        String userDir = System.getProperty("user.dir");
+        java.io.File projectDir = new java.io.File(userDir);
+        java.io.File parentDir = projectDir.getParentFile();
+        if (parentDir == null) {
+            parentDir = projectDir;
+        }
+        String uploadPath = "file:" + parentDir.getAbsolutePath() + "/uploads/";
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations(uploadPath)
                 .setCacheControl(CacheControl.noCache().cachePrivate());
     }
 

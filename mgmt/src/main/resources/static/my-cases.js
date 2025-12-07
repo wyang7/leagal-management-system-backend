@@ -207,20 +207,24 @@ async function showmyCaseDetailModal(caseId) {
         let extHtml='';
         if(caseInfo.caseCloseExt){
             try{ const ext=JSON.parse(caseInfo.caseCloseExt); const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[]; const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00'; const flowsHtml = flows.length
-  ? flows.map((f,idx)=>`<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
+  ? flows.map((f,idx)=>{
+        const rawUrl = f.screenshotUrl || '';
+        const imgSrc = rawUrl ? (rawUrl.startsWith('/api') ? rawUrl : '/api' + rawUrl) : '';
+        return `<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
         <div class='flex-grow-1'>
             <div>序号：${idx+1}</div>
             <div>时间：${f.payTime||'-'}</div>
             <div>金额：${fmtAmount(f.amount)}</div>
         </div>
         <div class='ms-3'>
-            ${f.screenshotUrl? `<img src="${f.screenshotUrl}"
-                                      alt="付款截图${idx+1}"
-                                      style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
-                                      onclick="showImagePreview('${f.screenshotUrl.replace(/'/g, "\\'")}')">`
-                              : '<span class="text-muted">无截图</span>'}
+            ${imgSrc? `<img src="${imgSrc}"
+                              alt="付款截图${idx+1}"
+                              style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
+                              onclick="showImagePreview('${imgSrc.replace(/'/g, "\\'")})">`
+                      : '<span class="text-muted">无截图</span>'}
         </div>
-    </div>`).join('')
+    </div>`;
+    }).join('')
   : '<div class="text-muted">暂无付款流水</div>'; extHtml = `<div class='row g-2'>
                 <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
                 <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?formatAmount(ext.adjustedAmount):'-'}</div>
@@ -676,23 +680,26 @@ async function loadPaymentFlows(caseId) {
             return;
         }
         const fmtAmt = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
-        listEl.innerHTML = flows.map((f,idx)=>`
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <div>序号：${idx+1}</div>
-                    <div>时间：${f.payTime||'-'}</div>
-                    <div>金额：${fmtAmt(f.amount)}</div>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    ${f.screenshotUrl? `<img src="${f.screenshotUrl}"
-                                      alt="付款截图${idx+1}"
-                                      style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
-                                      onclick="showImagePreview('${f.screenshotUrl.replace(/'/g, "\\'")}')">`
-                              : '<span class="text-muted">无截图</span>'}
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlow(${idx})">删除</button>
-                </div>
-            </div>
-        `).join('');
+        listEl.innerHTML = flows.map((f,idx)=>{
+            const rawUrl = f.screenshotUrl || '';
+            const imgSrc = rawUrl ? (rawUrl.startsWith('/api') ? rawUrl : '/api' + rawUrl) : '';
+            return `
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+            <div>序号：${idx+1}</div>
+            <div>时间：${f.payTime||'-'}</div>
+            <div>金额：${fmtAmt(f.amount)}</div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            ${imgSrc? `<img src="${imgSrc}"
+                              alt="付款截图${idx+1}"
+                              style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;"
+                              onclick="showImagePreview('${imgSrc.replace(/'/g, "\\'")})">`
+                      : '<span class="text-muted">无截图</span>'}
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlow(${idx})">删除</button>
+        </div>
+    </div>`;
+}).join('');
     } catch (e) {
         listEl.innerHTML = '<div class="text-danger">加载付款流水失败</div>';
     }
