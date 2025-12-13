@@ -12,13 +12,14 @@
     <!-- 备用：<link rel="stylesheet" href="https://lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"> -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        /* 侧边栏整体布局 */
+        /* 侧边栏整体布局 - 与主内容区背景一致，无边界线 */
         .sidebar {
-            flex: 0 0 220px;
+            flex: 0 0 170px;
             max-width: 170px;
             min-height: 100vh;
-            background: #001529; /* Ant Design 深色侧边栏 */
-            color: #fff;
+            background: #ffffff; /* 与内容区域一致的纯白背景 */
+            border-right: none;  /* 去掉右侧边界线 */
+            color: #495057;
         }
         /* 侧边栏导航容器 */
         #sidebarNav {
@@ -35,38 +36,41 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
+            padding: 8px 12px;
             border-radius: 4px;
-            color: #fff;
+            color: #495057;
             font-size: 14px;
             background: transparent;
             border: none;
         }
-        /* 根菜单与子菜单统一 hover/active 效果 */
+        /* 根菜单与子菜单 hover/active 效果（浅色系） */
         .sidebar .nav-link:hover,
         .sidebar .nav-link-root:hover,
         .sidebar .nav-link-station:hover {
-            background-color: #112a45;
-            color: #fff;
+            background-color: #e9f3ff; /* 浅蓝 hover */
+            color: #0d6efd;
             text-decoration: none;
         }
         .sidebar .nav-link.active,
         .sidebar .nav-link-root.active,
         .sidebar .nav-link-station.active {
-            background-color: #1890ff;
+            background-color: #0d6efd; /* Bootstrap 主色 */
             color: #fff;
         }
         /* 非可点的分组标题（如“案件管理”父项） */
         .sidebar .nav-link.disabled {
             cursor: default;
-            opacity: 0.85;
+            opacity: 0.8;
+            font-weight: 600;
+            color: #6c757d;
         }
         .sidebar .nav-link.disabled:hover {
             background: transparent;
+            color: #6c757d;
         }
         /* 子驻点项缩进，使用小圆点图标 */
         .sidebar .nav-link-station {
-            padding-left: 32px;
+            padding-left: 24px;
             font-size: 13px;
             opacity: 0.9;
         }
@@ -384,6 +388,8 @@
         // 所有登录用户都有“我的工作区”“我的案件”
         items.push({ key: 'workspace', text: '我的工作区', icon: 'fa-home', onClick: 'handleRootClick(\'workspace\', loadWorkspacePage)', cssClass: 'nav-link-root' });
         items.push({ key: 'my-cases', text: '我的案件', icon: 'fa-briefcase', onClick: 'handleRootClick(\'my-cases\', loadMyCasesPage)', cssClass: 'nav-link-root' });
+        // 所有用户都可以看到“领取案件”入口（根据你原有逻辑，如需仅特定角色可见可再加判断）
+        items.push({ key: 'task-receive', text: '领取案件', icon: 'fa-inbox', onClick: 'handleRootClick(\'task-receive\', loadTaskReceivePage)', cssClass: 'nav-link-root' });
 
         if (isAdmin) {
             items.push({ key: 'user-mgmt', text: '用户管理', icon: 'fa-users', onClick: 'handleRootClick(\'user-mgmt\', loadUserManagementPage)', cssClass: 'nav-link-root' });
@@ -392,7 +398,6 @@
             // 主“案件管理”入口：不可点击，仅分组标题
             items.push({ key: 'case-mgmt-root', text: '案件管理', icon: 'fa-folder-open', cssClass: 'nav-link nav-link-root disabled', isFolder: true });
 
-            // 按驻点细分的子菜单
             const stationList = stationStr
                 .split(',')
                 .map(s => s.trim())
@@ -419,21 +424,18 @@
             const baseClass = item.cssClass || 'nav-link';
 
             if (item.isFolder) {
-                // 不可点击的“案件管理”分组标题
                 li.innerHTML = `
                     <a href="javascript:void(0);" class="${baseClass}">
                         <i class="fa ${item.icon} me-2"></i>${item.text}
                     </a>
                 `;
             } else if (item.isCaseStation) {
-                // 驻点子菜单
                 li.innerHTML = `
                     <a href="javascript:void(0);" class="nav-link nav-link-station" data-station-key="${item.key}" onclick="${item.onClick}">
                         <i class="fa ${item.icon} me-2"></i>${item.text}
                     </a>
                 `;
             } else {
-                // 普通根菜单，默认第一个（工作区）在 init 时单独高亮
                 li.innerHTML = `
                     <a href="javascript:void(0);" class="nav-link nav-link-root" data-key="${item.key}" onclick="${item.onClick}">
                         <i class="fa ${item.icon} me-2"></i>${item.text}
