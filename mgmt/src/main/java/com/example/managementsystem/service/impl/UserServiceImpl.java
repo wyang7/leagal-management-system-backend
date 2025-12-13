@@ -7,9 +7,11 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.example.managementsystem.entity.CaseInfo;
 import com.example.managementsystem.entity.Role;
 import com.example.managementsystem.entity.User;
+import com.example.managementsystem.entity.UserRole;
 import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.mapper.RoleMapper;
 import com.example.managementsystem.mapper.UserMapper;
+import com.example.managementsystem.mapper.UserRoleMapper;
 import com.example.managementsystem.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
@@ -35,9 +37,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Resource
     private CaseInfoMapper caseInfoMapper;
 
+    @Resource
+    private UserRoleMapper userRoleMapper;
+
     @Override
     public List<User> getUsersByRoleId(Long roleId) {
-        return baseMapper.selectByRoleId(roleId);
+        // 兼容新表：从 user_role 中查出 userId，再查用户
+        List<UserRole> relations = userRoleMapper.selectByRoleIds(java.util.Collections.singletonList(roleId));
+        if (CollectionUtils.isEmpty(relations)) {
+            return new ArrayList<>();
+        }
+        List<Long> userIds = new ArrayList<>();
+        for (UserRole ur : relations) {
+            userIds.add(ur.getUserId());
+        }
+        List<User> users = this.listByIds(userIds);
+        // 填充角色名称（多角色场景）
+        fillUsersRoleNames(users);
+        return users;
     }
 
     @Override
@@ -52,14 +69,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public boolean addUserWithRole(User user) {
-        // 直接保存用户，角色ID已在user对象中
-        return save(user);
+        // 先保存用户本身
+        boolean saved = save(user);
+        if (!saved) {
+            return false;
+        }
+        // 前端将传入一个 roleIds 列表字段（通过 transient 字段或扩展 DTO 实现
+        // 为保持最小改动，这里重用 user.getRoleId() 逻辑：如果有单一 roleId，插入一条关联
+        if (user.getRoleId() != null) {
+            UserRole ur = new UserRole();
+            ur.setUserId(user.getUserId());
+            ur.setRoleId(user.getRoleId());
+            userRoleMapper.insert(ur);
+        }
+        return true;
     }
 
     @Override
     public boolean updateUserWithRole(User user) {
-        // 直接更新用户，角色ID已在user对象中
-        return updateById(user);
+        boolean updated = updateById(user);
+        if (!updated) {
+            return false;
+        }
+        // 清理旧关联
+        userRoleMapper.deleteByUserId(user.getUserId());
+        if (user.getRoleId() != null) {
+            UserRole ur = new UserRole();
+            ur.setUserId(user.getUserId());
+            ur.setRoleId(user.getRoleId());
+            userRoleMapper.insert(ur);
+        }
+        return true;
     }
 
 
@@ -81,17 +121,50 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public List<User> list() {
         List<User> list = this.list(Wrappers.emptyWrapper());
-        if (list != null && !list.isEmpty()) {
-            for (User user : list) {
-                if (user.getRoleId() != null) {
-                    Role role = roleMapper.selectById(user.getRoleId());
-                    if (role != null) {
-                        user.setRoleName(role.getRoleName());
-                    }
+        fillUsersRoleNames(list);
+        return list;
+    }
+
+    private void fillUsersRoleNames(List<User> users) {
+        if (CollectionUtils.isEmpty(users)) {
+            return;
+        }
+        List<Long> userIds = new ArrayList<>();
+        for (User u : users) {
+            userIds.add(u.getUserId());
+        }
+        List<UserRole> relations = userRoleMapper.selectByUserIds(userIds);
+        if (CollectionUtils.isEmpty(relations)) {
+            return;
+        }
+        java.util.Map<Long, List<Long>> userRoleIdsMap = new java.util.HashMap<>();
+        for (UserRole ur : relations) {
+            userRoleIdsMap.computeIfAbsent(ur.getUserId(), k -> new ArrayList<>()).add(ur.getRoleId());
+        }
+        java.util.Set<Long> allRoleIds = new java.util.HashSet<>();
+        userRoleIdsMap.values().forEach(allRoleIds::addAll);
+        if (allRoleIds.isEmpty()) {
+            return;
+        }
+        List<Role> roles = roleMapper.selectBatchIds(allRoleIds);
+        java.util.Map<Long, Role> roleMap = new java.util.HashMap<>();
+        for (Role r : roles) {
+            roleMap.put(r.getRoleId(), r);
+        }
+        for (User u : users) {
+            List<Long> rids = userRoleIdsMap.get(u.getUserId());
+            if (CollectionUtils.isEmpty(rids)) {
+                continue;
+            }
+            List<String> names = new ArrayList<>();
+            for (Long rid : rids) {
+                Role r = roleMap.get(rid);
+                if (r != null) {
+                    names.add(r.getRoleName());
                 }
             }
+            u.setRoleName(String.join(",", names));
         }
-        return list;
     }
 
     /**
@@ -99,7 +172,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      */
     @Override
     public List<User> getUsersByRoleName(String roleName) {
-        // 1. 根据角色名称查询角色ID
         QueryWrapper<Role> roleQuery = new QueryWrapper<>();
         roleQuery.eq("role_name", roleName); // 假设角色表中角色名称字段为 role_name
 
@@ -116,27 +188,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      * 校验用户是否属于指定角色（新增实现）
      */
     @Override
-    public boolean checkUserRole(Long userId, List<String> roleName) {
-        // 1. 查询用户信息，获取其角色ID
-        User user = getById(userId);
-        if (user == null || user.getRoleId() == null) {
-            return false; // 用户不存在或未分配角色
+    public boolean checkUserRole(Long userId, List<String> roleTypes) {
+        // 从 user_role 查用户所有角色，再判断是否存在任一匹配的 role_type
+        List<UserRole> relations = userRoleMapper.selectByUserIds(java.util.Collections.singletonList(userId));
+        if (CollectionUtils.isEmpty(relations)) {
+            return false;
         }
-
-        // 2. 查询指定角色名称对应的角色ID
+        List<Long> roleIds = new ArrayList<>();
+        for (UserRole ur : relations) {
+            roleIds.add(ur.getRoleId());
+        }
+        if (roleIds.isEmpty()) {
+            return false;
+        }
         QueryWrapper<Role> roleQuery = new QueryWrapper<>();
-        roleQuery.in("role_type", roleName);
-        List<Role> role = roleMapper.selectList(roleQuery);
-        return CollectionUtils.isNotEmpty(role) ;
+        roleQuery.in("role_id", roleIds).in("role_type", roleTypes);
+        List<Role> matched = roleMapper.selectList(roleQuery);
+        return CollectionUtils.isNotEmpty(matched);
     }
-
 
     /**
      * 获取所有案件助理角色的用户
      * @return 案件助理用户列表
      */
     public List<User> getAssistants(String roleType){
-        // 1. 根据角色类型查询角色ID
         QueryWrapper<Role> roleQuery = new QueryWrapper<>();
         roleQuery.eq("role_type", roleType); // 假设角色表中角色类型字段为 role_type
 
@@ -144,13 +219,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (CollectionUtils.isEmpty(roleList)) {
             return new ArrayList<>(); // 角色不存在，返回空列表
         }
-
-        // 2. 根据角色ID查询用户（复用已有的 getUsersByRoleId 方法）
-        List<User> userList = new ArrayList<>();
-        roleList.forEach(role -> {
-            userList.addAll(getUsersByRoleId(role.getRoleId()));
-        });
-        return userList;
+        List<Long> roleIds = new ArrayList<>();
+        for (Role r : roleList) {
+            roleIds.add(r.getRoleId());
+        }
+        List<UserRole> relations = userRoleMapper.selectByRoleIds(roleIds);
+        if (CollectionUtils.isEmpty(relations)) {
+            return new ArrayList<>(); // 角色不存在，返回空列表
+        }
+        List<Long> userIds = new ArrayList<>();
+        for (UserRole ur : relations) {
+            userIds.add(ur.getUserId());
+        }
+        List<User> users = this.listByIds(userIds);
+        fillUsersRoleNames(users);
+        return users;
     }
 
     @Override
@@ -164,39 +247,46 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (CollectionUtils.isEmpty(roleList)) {
             return null; // 角色不存在，返回空列表
         }
-        List<User> matchAssistants = new ArrayList<>();
+        List<Role> matchRoles = new ArrayList<>();
         for (Role role : roleList) {
             if (role.getRoleName().contains(caseLocation)) {
-                List<User> assistants = getUsersByRoleId(role.getRoleId());
-                if (!assistants.isEmpty()) {
-                    matchAssistants.addAll(assistants);
-                }
+                matchRoles.add(role);
             }
         }
-        if (CollectionUtils.isEmpty(matchAssistants)) {
+        if (CollectionUtils.isEmpty(matchRoles)) {
             return null;
         }
-
-        // 3. 按数据库编号升序排序
-        matchAssistants.sort((a, b) -> a.getUserId().compareTo(b.getUserId()));
-
-        // 4. 查询上一个案件分配的助理ID
+        List<Long> roleIds = new ArrayList<>();
+        for (Role r : matchRoles) {
+            roleIds.add(r.getRoleId());
+        }
+        List<UserRole> relations = userRoleMapper.selectByRoleIds(roleIds);
+        if (CollectionUtils.isEmpty(relations)) {
+            return null;
+        }
+        List<Long> userIds = new ArrayList<>();
+        for (UserRole ur : relations) {
+            userIds.add(ur.getUserId());
+        }
+        List<User> assistants = this.listByIds(userIds);
+        if (CollectionUtils.isEmpty(assistants)) {
+            return null;
+        }
+        assistants.sort((a, b) -> a.getUserId().compareTo(b.getUserId()));
         QueryWrapper<CaseInfo> caseQuery = new QueryWrapper<>();
         caseQuery.orderByDesc("case_id").last("limit 1");
         CaseInfo lastCase = caseInfoMapper.selectOne(caseQuery);
         Long lastAssistantId = lastCase != null ? lastCase.getAssistantId() : null;
-
-        // 5. 轮询分配
         int index = 0;
         if (lastAssistantId != null) {
-            for (int i = 0; i < matchAssistants.size(); i++) {
-                if (matchAssistants.get(i).getUserId().equals(lastAssistantId)) {
-                    index = (i + 1) % matchAssistants.size();
+            for (int i = 0; i < assistants.size(); i++) {
+                if (assistants.get(i).getUserId().equals(lastAssistantId)) {
+                    index = (i + 1) % assistants.size();
                     break;
                 }
             }
         }
-        return matchAssistants.get(index);
+        return assistants.get(index);
     }
 
 

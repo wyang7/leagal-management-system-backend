@@ -7,6 +7,7 @@ import com.example.managementsystem.entity.Task;
 import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.ITaskService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
@@ -103,16 +104,26 @@ public class TaskController {
             @RequestParam(required = false) String taskStatus,
             HttpSession session) {
         UserSession currentUser = (UserSession) session.getAttribute("currentUser");
-        if (currentUser == null || currentUser.getRoleId() == null) {
+        if (currentUser == null || !StringUtils.hasText(currentUser.getRoleIds())) {
             return Result.fail("未登录或角色信息缺失");
         }
-        Long userRoleId = currentUser.getRoleId();
-        Role byId = roleService.getById(userRoleId);
-        if (byId == null) {
+        // 取第一个角色ID作为驻点判定基础，与 CaseInfoController / workspace.js 保持一致
+        String[] roleIdArray = currentUser.getRoleIds().split(",");
+        if (roleIdArray.length == 0 || !StringUtils.hasText(roleIdArray[0])) {
+            return Result.fail("角色信息缺失");
+        }
+        long firstRoleId;
+        try {
+            firstRoleId = Long.parseLong(roleIdArray[0].trim());
+        } catch (NumberFormatException e) {
+            return Result.fail("角色信息格式错误");
+        }
+        Role role = roleService.getById(firstRoleId);
+        if (role == null) {
             return Result.fail("角色信息不存在");
         }
-        String station = byId.getStation();
-        return Result.success(taskService.getTaskPage(pageNum, pageSize,taskName,taskStatus,station));
+        String station = role.getStation();
+        return Result.success(taskService.getTaskPage(pageNum, pageSize, taskName, taskStatus, station));
     }
 
     /**

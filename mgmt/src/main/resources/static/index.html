@@ -12,24 +12,95 @@
     <!-- 备用：<link rel="stylesheet" href="https://lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"> -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
+        /* 侧边栏整体布局 */
         .sidebar {
-            flex: 0 0 11%; /* 原8%，改为11% */
-            max-width: 11%;
+            flex: 0 0 220px;
+            max-width: 170px;
+            min-height: 100vh;
+            background: #001529; /* Ant Design 深色侧边栏 */
+            color: #fff;
         }
-        .nav-link {
-            color: #333;
-            font-size: 15px; /* 字体稍微变小 */
-            white-space: nowrap; /* 菜单名不换行 */
+        /* 侧边栏导航容器 */
+        #sidebarNav {
+            margin: 0;
+            padding: 0;
         }
-        .nav-link.active {
-            background-color: #0d6efd;
-            color: white;
+        /* 统一侧边栏导航项样式 */
+        .sidebar .nav-item {
+            margin-bottom: 4px;
         }
-        /* 主内容区宽度调整 */
+        .sidebar .nav-link,
+        .sidebar .nav-link-root,
+        .sidebar .nav-link-station {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 14px;
+            background: transparent;
+            border: none;
+        }
+        /* 根菜单与子菜单统一 hover/active 效果 */
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link-root:hover,
+        .sidebar .nav-link-station:hover {
+            background-color: #112a45;
+            color: #fff;
+            text-decoration: none;
+        }
+        .sidebar .nav-link.active,
+        .sidebar .nav-link-root.active,
+        .sidebar .nav-link-station.active {
+            background-color: #1890ff;
+            color: #fff;
+        }
+        /* 非可点的分组标题（如“案件管理”父项） */
+        .sidebar .nav-link.disabled {
+            cursor: default;
+            opacity: 0.85;
+        }
+        .sidebar .nav-link.disabled:hover {
+            background: transparent;
+        }
+        /* 子驻点项缩进，使用小圆点图标 */
+        .sidebar .nav-link-station {
+            padding-left: 32px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        .sidebar .nav-link-station i {
+            font-size: 10px;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            text-decoration: underline;
+        }
         .content {
             padding: 20px;
-            width: 89%;
-            max-width: 89%;
+            width: calc(100% - 220px);
+            max-width: calc(100% - 220px);
         }
         .status-badge {
             padding: 5px 12px; /* 增加水平内边距 */
@@ -87,30 +158,6 @@
         }
         .modal {
             z-index: 1050;
-        }
-        /* 顶部导航栏样式 */
-        .header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            margin-bottom: 20px;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .logout-btn {
-            background: none;
-            border: none;
-            color: #dc3545;
-            cursor: pointer;
-        }
-        .logout-btn:hover {
-            text-decoration: underline;
         }
         .pagination {
             margin-top: 20px;
@@ -291,230 +338,141 @@
 <script src="my-cases.js"></script>
 <script src="workspace.js"></script>
 <script>
-    // 页面加载时检查登录状态并获取用户信息
-    window.onload = function() {
-        checkLoginStatus();
-    };
+    const App = { user: null };
 
-    // 全局用户信息对象（页面加载时初始化）
-    window.App = window.App || {};
-    App.user = {
-        // 默认空值，登录后会被后端数据填充
-        userId: null,
-        userName: '',
-        roleType: '', // 角色标识，如 'admin'、'user'
-        roleName: '',
-        station: ''
-    };
+    // 清理所有根菜单高亮
+    function clearRootActive() {
+        document.querySelectorAll('#sidebarNav a.nav-link-root').forEach(a => {
+            a.classList.remove('active');
+        });
+    }
 
+    // 设置某个根菜单高亮（通过 key 判断）
+    function setRootActiveByKey(key) {
+        clearRootActive();
+        const el = document.querySelector(`#sidebarNav a.nav-link-root[data-key="${key}"]`);
+        if (el) {
+            el.classList.add('active');
+        }
+    }
 
-
-    // 检查登录状态并获取用户信息
-    async function checkLoginStatus() {
+    async function initCurrentUser() {
         try {
-            // 调用后端获取当前用户信息
             const userInfo = await request('/auth/currentUser');
-            if (userInfo && userInfo.username) {
-                document.getElementById('loginUsername').textContent = userInfo.username;
-                await loadSidebarNav(userInfo);
-                App.user = {
-                    userId: userInfo.userId,
-                    userName: userInfo.userName,
-                    roleType: userInfo.roleType,
-                    roleName: userInfo.roleName,
-                    station: userInfo.station
-                };
-                // 默认优先打开我的工作区页面
-                loadWorkspacePage();
-            } else {
-                // 未登录，跳转到登录页
-                window.location.href = 'login.html';
-            }
-        } catch (error) {
-            console.error('获取用户信息失败', error);
-            document.getElementById('loginUsername').textContent = '未登录';
+            App.user = userInfo;
+            document.getElementById('loginUsername').textContent = userInfo.username || '';
+            loadUserStationAndControlMenu(userInfo);
+            // 默认进入我的工作区并高亮
+            loadWorkspacePage();
+            setRootActiveByKey('workspace');
+        } catch (e) {
             window.location.href = 'login.html';
         }
     }
 
-    // 加载侧边栏导航（根据用户角色权限）
-    async function loadSidebarNav(userInfo) {
+    function loadUserStationAndControlMenu(userInfo) {
+        const roleType = userInfo.roleType || '';
+        const stationStr = userInfo.station || '';
         const sidebarNav = document.getElementById('sidebarNav');
-        let navHtml = '';
-        // 我的工作区菜单放最上面
-        navHtml += `
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadWorkspacePage()">
-                    <i class="fa fa-th-large me-2"></i>我的工作区
-                </a>
-            </li>
-        `;
-        // 所有用户都能看到的基础导航
-        navHtml += `
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadMyCasesPage()">
-                    <i class="fa fa-balance-scale me-2"></i>我的案件
-                </a>
-            </li>
-        `;
+        if (!sidebarNav) return;
+        sidebarNav.innerHTML = '';
 
-        // 判断是否为系统管理员（通过roleId关联角色表查询角色名称）
-        // 由于UserSession中只有roleId，需要额外查询角色信息
-        let isSystemAdmin = false;
-        let isAssistant = false;
-        let isSystemAdminMain = false;//是否总部系统管理员
-        try {
-            // 获取角色信息
-            const roles = await request('/role');
-            // 找到当前用户的角色
-            const userRole = roles.find(role => role.roleId === userInfo.roleId);
-            // 检查角色名称是否包含"系统管理员"
-            if (userRole && userRole.roleType && userRole.roleType.includes('管理员')) {
-                isSystemAdmin = true;
-            }
-            if (userRole && userRole.roleType && userRole.roleType.includes('管理员')
-                && userRole.station.includes('总部')) {
-                isSystemAdminMain = true;
-            }
-            // 检查角色名称是否包含"案件助理"
-            if (userRole && userRole.roleType && userRole.roleType.includes('助理')) {
-                isAssistant = true;
-            }
-            if (null==userRole){
-                isSystemAdmin=null;
-            }
-        } catch (error) {
-            console.error('获取角色信息失败:', error);
+        const isAdmin = roleType.indexOf('管理员') !== -1;
+        const isMediator = roleType.indexOf('调解员') !== -1;
+
+        const items = [];
+        // 所有登录用户都有“我的工作区”“我的案件”
+        items.push({ key: 'workspace', text: '我的工作区', icon: 'fa-home', onClick: 'handleRootClick(\'workspace\', loadWorkspacePage)', cssClass: 'nav-link-root' });
+        items.push({ key: 'my-cases', text: '我的案件', icon: 'fa-briefcase', onClick: 'handleRootClick(\'my-cases\', loadMyCasesPage)', cssClass: 'nav-link-root' });
+
+        if (isAdmin) {
+            items.push({ key: 'user-mgmt', text: '用户管理', icon: 'fa-users', onClick: 'handleRootClick(\'user-mgmt\', loadUserManagementPage)', cssClass: 'nav-link-root' });
+            items.push({ key: 'role-mgmt', text: '角色管理', icon: 'fa-id-badge', onClick: 'handleRootClick(\'role-mgmt\', loadRoleManagementPage)', cssClass: 'nav-link-root' });
+
+            // 主“案件管理”入口：不可点击，仅分组标题
+            items.push({ key: 'case-mgmt-root', text: '案件管理', icon: 'fa-folder-open', cssClass: 'nav-link nav-link-root disabled', isFolder: true });
+
+            // 按驻点细分的子菜单
+            const stationList = stationStr
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+            const uniqueStations = Array.from(new Set(stationList));
+            uniqueStations.forEach(st => {
+                const safe = st.replace(/'/g, "\\'");
+                items.push({
+                    key: `case-mgmt-${safe}`,
+                    text: `${st}`,
+                    icon: 'fa-circle-o',
+                    onClick: `handleCaseStationClick('${safe}')`,
+                    cssClass: 'nav-link-station',
+                    isCaseStation: true
+                });
+            });
+
+            items.push({ key: 'task-mgmt', text: '案件包管理', icon: 'fa-tasks', onClick: 'handleRootClick(\'task-mgmt\', loadTaskManagementPage)', cssClass: 'nav-link-root' });
         }
 
-        // 系统管理员额外可见菜单
-         if (null!=isSystemAdmin && isSystemAdmin) {
-            navHtml += `
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
-                    <i class="fa fa-inbox me-2"></i>领取案件
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="return false;">
-                <i class="fa fa-gavel me-2"></i>案件管理
-                </a>
-                <ul class="nav flex-column ms-3">
-                <!-- 根据用户驻点权限显示对应的二级菜单 -->
-                    <li class="nav-item" id="submenu-jiubao">
-                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('九堡彭埠')">
-                            <i class="fa fa-angle-right me-1"></i>九堡彭埠
-                        </a>
-                    </li>
-                    <li class="nav-item" id="submenu-benbu">
-                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('本部')">
-                            <i class="fa fa-angle-right me-1"></i>本部
-                        </a>
-                    </li>
-                    <li class="nav-item" id="submenu-sijiqing">
-                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('四季青')">
-                            <i class="fa fa-angle-right me-1"></i>四季青
-                        </a>
-                    </li>
-                    <li class="nav-item" id="submenu-kaixuan">
-                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('凯旋街道')">
-                            <i class="fa fa-angle-right me-1"></i>凯旋街道
-                        </a>
-                    </li>
-                    <li class="nav-item" id="submenu-zhanongkou">
-                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('闸弄口')">
-                            <i class="fa fa-angle-right me-1"></i>闸弄口
-                        </a>
-                    </li>
-                    <li class="nav-item" id="submenu-jianqiao">
-                        <a href="#" class="nav-link" onclick="loadCaseManagementPage('笕桥')">
-                            <i class="fa fa-angle-right me-1"></i>笕桥
-                        </a>
-                    </li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadTaskManagementPage()">
-                    <i class="fa fa-tasks me-2"></i>案件包管理
-                </a>
-            </li>
-        `;
-            if (isSystemAdminMain){
-                navHtml += `
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="loadUserManagementPage()">
-                        <i class="fa fa-users me-2"></i>用户管理
+        items.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.className = 'nav-item';
+            const baseClass = item.cssClass || 'nav-link';
+
+            if (item.isFolder) {
+                // 不可点击的“案件管理”分组标题
+                li.innerHTML = `
+                    <a href="javascript:void(0);" class="${baseClass}">
+                        <i class="fa ${item.icon} me-2"></i>${item.text}
                     </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="loadRoleManagementPage()">
-                        <i class="fa fa-key me-2"></i>角色管理
+                `;
+            } else if (item.isCaseStation) {
+                // 驻点子菜单
+                li.innerHTML = `
+                    <a href="javascript:void(0);" class="nav-link nav-link-station" data-station-key="${item.key}" onclick="${item.onClick}">
+                        <i class="fa ${item.icon} me-2"></i>${item.text}
                     </a>
-                </li>
-            `;
-            }
-        }else if (null!=isSystemAdmin && (!isSystemAdmin)){
-             navHtml += `
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadTaskReceivePage()">
-                    <i class="fa fa-inbox me-2"></i>领取案件
-                </a>
-            </li>
-            `;
-         }
-
-        sidebarNav.innerHTML = navHtml;
-        // 设置默认选中"我的工作区"
-        setActiveNav('我的工作区');
-        // 调用函数控制菜单显示
-        loadUserStationAndControlMenu();
-        // 加载默认页面
-        loadMyCasesPage();
-    }
-
-    // 获取当前用户驻点信息并控制二级菜单显示
-    async function loadUserStationAndControlMenu() {
-        try {
-            const userInfo = await request('/auth/currentUser');
-            // 获取用户关联的角色信息以获取驻点
-            const role = await request(`/role/${userInfo.roleId}`);
-            const userStation = role.station;
-
-            // 根据用户驻点控制二级菜单显示
-            if (userStation && userStation !== '总部' && userStation !== '') {
-                // 非总部用户，只显示对应驻点的二级菜单
-                document.getElementById('submenu-jiubao').style.display = userStation === '九堡彭埠' ? 'block' : 'none';
-                document.getElementById('submenu-benbu').style.display = userStation === '本部' ? 'block' : 'none';
-                document.getElementById('submenu-sijiqing').style.display = userStation === '四季青' ? 'block' : 'none';
-                document.getElementById('submenu-kaixuan').style.display = userStation === '凯旋街道' ? 'block' : 'none';
-                document.getElementById('submenu-zhanongkou').style.display = userStation === '闸弄口' ? 'block' : 'none';
-                document.getElementById('submenu-jianqiao').style.display = userStation === '笕桥' ? 'block' : 'none';
+                `;
             } else {
-                // 总部用户，显示所有二级菜单
-                document.getElementById('submenu-jiubao').style.display = 'block';
-                document.getElementById('submenu-benbu').style.display = 'block';
-                document.getElementById('submenu-sijiqing').style.display = 'block';
-                document.getElementById('submenu-kaixuan').style.display = 'block';
-                document.getElementById('submenu-zhanongkou').style.display = 'block';
-                document.getElementById('submenu-jianqiao').style.display = 'block';
+                // 普通根菜单，默认第一个（工作区）在 init 时单独高亮
+                li.innerHTML = `
+                    <a href="javascript:void(0);" class="nav-link nav-link-root" data-key="${item.key}" onclick="${item.onClick}">
+                        <i class="fa ${item.icon} me-2"></i>${item.text}
+                    </a>
+                `;
             }
-        } catch (error) {
-            console.error('获取用户驻点信息失败:', error);
+            sidebarNav.appendChild(li);
+        });
+    }
+
+    // 根菜单统一点击处理：设置高亮并调用对应加载函数
+    function handleRootClick(key, fn) {
+        setRootActiveByKey(key);
+        // 清除驻点高亮（从根菜单切过去时）
+        document.querySelectorAll('#sidebarNav a.nav-link-station').forEach(a => {
+            a.classList.remove('active');
+        });
+        if (typeof fn === 'function') {
+            fn();
         }
     }
 
-    // 退出登录功能
-    async function logout() {
-        if (confirm('确定要退出登录吗？')) {
-            try {
-                await request('/auth/logout', 'POST');
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error('退出登录失败', error);
-                alert('退出登录失败，请重试');
-            }
+    // 驻点子菜单点击：1）加载指定驻点案件；2）仅高亮当前驻点项
+    function handleCaseStationClick(station) {
+        loadCaseManagementPage(station);
+        // 取消所有驻点项高亮
+        document.querySelectorAll('#sidebarNav a.nav-link-station').forEach(a => {
+            a.classList.remove('active');
+        });
+        // 自己高亮
+        const safe = station.replace(/'/g, "\\'");
+        const current = document.querySelector(`#sidebarNav a.nav-link-station[onclick*="'${safe}'"]`);
+        if (current) {
+            current.classList.add('active');
         }
+        // 根菜单高亮留在上一次的根（通常是工作区），不强制切换
     }
+
+    document.addEventListener('DOMContentLoaded', initCurrentUser);
 </script>
 </body>
 </html>

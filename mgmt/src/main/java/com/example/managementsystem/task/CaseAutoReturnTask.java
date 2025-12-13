@@ -1,7 +1,9 @@
-package com.example.managementsystem.service;
+package com.example.managementsystem.task;
 
 import com.example.managementsystem.entity.CaseFlowHistory;
 import com.example.managementsystem.entity.CaseInfo;
+import com.example.managementsystem.service.ICaseFlowHistoryService;
+import com.example.managementsystem.service.ICaseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

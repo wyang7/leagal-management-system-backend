@@ -662,7 +662,7 @@ function renderPagination(pageInfo) {
     for (let i = startPage; i <= endPage; i++) {
         paginationHtml += `<li class="page-item ${i === pageNum ? 'active' : ''}"><a class="page-link" href="#" onclick="loadCases(${i}, ${currentPs})">${i}</a></li>`;
     }
-    // 添加最后一页按钮（当当前页不在后5页时）
+    // 添加最后一页按钮（当��前页不在后5页时）
     if (endPage < pages) {
         if (endPage < pages - 1) paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
         paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadCases(${pages}, ${currentPs})">${pages}</a></li>`;
@@ -798,7 +798,7 @@ function renderCaseTable(cases) {
                     <ul class="dropdown-menu" style="display:none;">
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})"><i class="fa fa-edit"></i> 编辑</a></li>
                       ${caseInfo.status === '待结案' ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId})"><i class="fa fa-credit-card"></i> 补充结案信息</a></li>` : ''}
-                      ${caseInfo.status !== '结案' ? ((App.user.roleType === '管理员' && App.user.station === '总部') ? `<li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})"><i class="fa fa-trash"></i> 删除</a></li>` : '') : ''}
+                      ${caseInfo.status !== '结案' ? ((App.user.roleType === '管理员' || (App.user.roleType && App.user.roleType.indexOf('管理员') !== -1)) && App.user.station && App.user.station.indexOf('总部') !== -1 ? `<li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})"><i class="fa fa-trash"></i> 删除</a></li>` : '') : ''}
                       ${caseInfo.status !== '结案' ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})"><i class="fa fa-handshake-o"></i> 分派案件</a></li>
                       ${caseInfo.status === '待结案' ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="closeCase(${caseInfo.caseId})"><i class="fa fa-check"></i> 结案</a></li>` : ''}
@@ -1566,7 +1566,7 @@ async function confirmAssignCase() {
 
 
 /**
- * 完成案件（状态从已领取变为待结案）
+ * 完成案件（状态从已领取变为待结���）
  * @param {number} caseId 案件ID
  */
 async function completeCase(caseId) {

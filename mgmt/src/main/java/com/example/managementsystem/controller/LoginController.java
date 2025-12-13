@@ -5,6 +5,8 @@ import com.example.managementsystem.dto.LoginDTO;
 import com.example.managementsystem.dto.UserSession;
 import com.example.managementsystem.entity.Role;
 import com.example.managementsystem.entity.User;
+import com.example.managementsystem.entity.UserRole;
+import com.example.managementsystem.mapper.UserRoleMapper;
 import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,9 @@ public class LoginController {
 
     @Autowired
     private IRoleService roleService;
+
+    @Autowired
+    private UserRoleMapper userRoleMapper;
 
 
 
@@ -77,19 +82,40 @@ public class LoginController {
             return Result.fail("账号已禁用，请联系管理员");
         }
 
-        Role role = roleService.getById(user.getRoleId());
-        if (role == null) {
+        // 查询用户所有角色
+        java.util.List<UserRole> relations = userRoleMapper.selectByUserIds(java.util.Collections.singletonList(user.getUserId()));
+        if (relations == null || relations.isEmpty()) {
+            return Result.fail("用户未绑定角色，请联系管理员");
+        }
+        java.util.List<Long> roleIds = new java.util.ArrayList<>();
+        for (UserRole ur : relations) {
+            roleIds.add(ur.getRoleId());
+        }
+        java.util.List<Role> roles = roleService.listByIds(roleIds);
+        if (roles == null || roles.isEmpty()) {
             return Result.fail("用户角色无效，请联系管理员");
         }
-
+        java.util.List<String> idStrs = new java.util.ArrayList<>();
+        java.util.List<String> names = new java.util.ArrayList<>();
+        java.util.List<String> types = new java.util.ArrayList<>();
+        java.util.List<String> stations = new java.util.ArrayList<>();
+        for (Role r : roles) {
+            idStrs.add(String.valueOf(r.getRoleId()));
+            names.add(r.getRoleName());
+            types.add(r.getRoleType());
+            if (r.getStation() != null && !r.getStation().isEmpty()) {
+                stations.add(r.getStation());
+            }
+        }
         // 保存登录状态
         UserSession userSession = new UserSession();
         userSession.setUserId(user.getUserId());
         userSession.setUsername(user.getUsername());
-        userSession.setRoleId(user.getRoleId());
-        userSession.setRoleName(role.getRoleName());
-        userSession.setRoleType(role.getRoleType());
-        userSession.setStation(role.getStation());
+        userSession.setRoleIds(String.join(",", idStrs));
+        userSession.setRoleName(String.join(",", names));
+        userSession.setRoleType(String.join(",", types));
+        // 若存在多个驻点，前端可以自行解析，这里简单用逗号拼接
+        userSession.setStation(String.join(",", stations));
         userSession.setLoginTime(new Date(System.currentTimeMillis()));
 
         session.setAttribute("currentUser", userSession);
@@ -110,7 +136,7 @@ public class LoginController {
         // 创建新用户
         User user = new User();
         user.setUsername(loginDTO.getUsername());
-        user.setRoleId(loginDTO.getRoleId());
+        // user.setRoleId(loginDTO.getRoleId()); // 不再直接使用单一角色字段
         // 密码加密存储
         user.setPassword(DigestUtils.md5DigestAsHex(
             loginDTO.getPassword().getBytes(StandardCharsets.UTF_8)
@@ -120,7 +146,17 @@ public class LoginController {
         user.setUpdatedTime(new Date(System.currentTimeMillis()));
         
         boolean success = userService.save(user);
-        return success ? Result.success(true) : Result.fail("注册失败");
+        if (!success) {
+            return Result.fail("注册失败");
+        }
+        // 如果注册时传了 roleId，建立一条默认关联
+        if (loginDTO.getRoleId() != null) {
+            UserRole ur = new UserRole();
+            ur.setUserId(user.getUserId());
+            ur.setRoleId(loginDTO.getRoleId());
+            userRoleMapper.insert(ur);
+        }
+        return Result.success(true);
     }
 
     /**

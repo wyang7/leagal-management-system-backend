@@ -19,20 +19,17 @@ function loadWorkspacePage() {
 
 // 渲染工作区内容
 async function renderWorkspaceContent() {
-    // 获取当前用户信息
     const userInfo = await request('/auth/currentUser');
-    const roleType = userInfo.roleType;
+    const roleType = userInfo.roleType; // 多角色时为逗号分隔，下面展示原样或稍作美化
     const username = userInfo.username;
-    // 顶部角色信息
     document.getElementById('workspaceRoleInfo').innerHTML = `
         <div class="d-flex align-items-center gap-3">
             <span class="ant-tag ant-tag-blue">角色：${roleType}</span>
             <span class="ant-tag ant-tag-green">用户：${username}</span>
         </div>
     `;
-    // 管理员
     if (isSystemAdmin(userInfo)) {
-        const stations = await getAdminStations(userInfo); // 根据驻点权限过滤
+        const stations = await getAdminStations(userInfo);
         await renderAdminWorkspace(stations);
     } else if (isMediator(userInfo)) {
         await renderMediatorWorkspace(username);
@@ -43,10 +40,15 @@ async function renderWorkspaceContent() {
 async function getAdminStations(userInfo) {
     // 参考 index.html 中的 loadUserStationAndControlMenu 逻辑
     try {
-        if (!userInfo.roleId) {
-            return []; // 无角色ID无法判定
+        // userInfo.roleIds 为逗号分隔字符串
+        if (!userInfo.roleIds) {
+            return [];
         }
-        const role = await request(`/role/${userInfo.roleId}`);
+        const firstRoleId = userInfo.roleIds.split(',')[0];
+        if (!firstRoleId) {
+            return [];
+        }
+        const role = await request(`/role/${firstRoleId}`);
         const station = role.station;
         const allStations = ['九堡','彭埠','本部','笕桥','四季青','凯旋街道','闸弄口'];
         if (!station || station === '总部') {
@@ -208,10 +210,11 @@ async function getMyTimeoutCaseCount(username) {
 
 // 角色判断（参考index.html逻辑）
 function isSystemAdmin(userInfo) {
-    return userInfo.roleType === '管理员' || (userInfo.roleType && userInfo.roleType.includes('管理员'));
+    // 多角色时 roleType 为逗号分隔，此处使用 includes 兼容
+    return userInfo.roleType === '管理员' || (userInfo.roleType && userInfo.roleType.indexOf('管理员') !== -1);
 }
 function isMediator(userInfo) {
-    return userInfo.roleType === '调解员' || (userInfo.roleType && userInfo.roleType.includes('调解员'));
+    return userInfo.roleType === '调解员' || (userInfo.roleType && userInfo.roleType.indexOf('调解员') !== -1);
 }
 
 // ===== 图表数据与渲染 =====

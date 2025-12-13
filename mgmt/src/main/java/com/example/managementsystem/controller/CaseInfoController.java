@@ -63,24 +63,36 @@ public class CaseInfoController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 根据状态筛选案件（支持多个状态）
+     * 根据状态筛选案件（支持多个状态），按当前登录用户的角色驻点过滤
      */
     @GetMapping("/filter-by-status")
     public Result<List<CaseInfo>> filterCasesByStatus(
             @RequestParam List<String> statusList,
             @RequestParam Integer taskId,
-            @RequestParam(required = false) String caseName, HttpSession session) {
+            @RequestParam(required = false) String caseName,
+            HttpSession session) {
         UserSession currentUser = (UserSession) session.getAttribute("currentUser");
-        if (currentUser == null || currentUser.getRoleId() == null) {
+        if (currentUser == null || !StringUtils.hasText(currentUser.getRoleIds())) {
             return Result.fail("未登录或角色信息缺失");
         }
-        Long userRoleId = currentUser.getRoleId();
-        Role byId = roleService.getById(userRoleId);
-        if (null==byId){
+        // 取第一个角色ID作为驻点判定的基础（与 workspace 中 getAdminStations 一致）
+        String[] roleIdArray = currentUser.getRoleIds().split(",");
+        if (roleIdArray.length == 0 || !StringUtils.hasText(roleIdArray[0])) {
+            return Result.fail("角色信息缺失");
+        }
+        Long firstRoleId;
+        try {
+            firstRoleId = Long.parseLong(roleIdArray[0].trim());
+        } catch (NumberFormatException e) {
+            return Result.fail("角色信息格式错误");
+        }
+        Role role = roleService.getById(firstRoleId);
+        if (role == null) {
             return Result.fail("角色信息异常");
         }
-        String station = byId.getStation();
-        return Result.success(caseInfoService.getCasesByStatusList(statusList,taskId,caseName,station));
+        String station = role.getStation();
+        List<CaseInfo> list = caseInfoService.getCasesByStatusList(statusList, taskId, caseName, station);
+        return Result.success(list);
     }
 
     /**
@@ -457,7 +469,7 @@ public class CaseInfoController {
         }
         String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
-        caseInfo.setStatus("反馈"); // 变更状态为反馈
+        caseInfo.setStatus("反���"); // 变更状态为反馈
         //修改反馈结构
         String finalPreFeedback = buildAccumulatedRemark(caseInfo.getPreFeedback(), preFeedback, operatorId);
         caseInfo.setPreFeedback(finalPreFeedback); // 存储反馈内容

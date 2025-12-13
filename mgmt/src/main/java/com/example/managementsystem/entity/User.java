@@ -44,13 +44,13 @@ public class User implements Serializable {
     private Integer status;
 
     /**
-     * 关联角色ID
+     * 关联角色ID（已废弃，改用 user_role 关联表，多角色场景保留字段以兼容历史逻辑，不再作为唯一来源）
      */
     @TableField(value ="role_id" , updateStrategy = FieldStrategy.IGNORED)
     private Long roleId;
-    
+
     /**
-     * 角色名称（非数据库字段，用于前端展示）
+     * 角色名称（非数据库字段，用于前端展示；多角色时以逗号拼接）
      */
     @TableField(exist = false)
     private String roleName;

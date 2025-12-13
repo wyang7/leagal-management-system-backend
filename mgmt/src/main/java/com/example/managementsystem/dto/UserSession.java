@@ -6,13 +6,20 @@ import java.util.Date;
 public class UserSession implements Serializable {
     private Long userId;
     private String username;
-    private Long roleId;
+    /**
+     * 多角色ID，逗号分隔，例如 "1,2,3"
+     */
+    private String roleIds;
+    /**
+     * 多角色名称，逗号分隔
+     */
     private String roleName;
+    /**
+     * 多角色类型，逗号分隔
+     */
     private String roleType;
     private String station;
     private Date loginTime;
-    
-    // 省略getter和setter方法
 
     public String getStation() {
         return station;
@@ -53,12 +60,12 @@ public class UserSession implements Serializable {
         this.username = username;
     }
 
-    public Long getRoleId() {
-        return roleId;
+    public String getRoleIds() {
+        return roleIds;
     }
 
-    public void setRoleId(Long roleId) {
-        this.roleId = roleId;
+    public void setRoleIds(String roleIds) {
+        this.roleIds = roleIds;
     }
 
     public Date getLoginTime() {

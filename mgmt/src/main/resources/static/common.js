@@ -176,4 +176,21 @@ async function showCaseHistoryModal(caseId) {
         alert('获取案件历史记录失败');
     }
 }
-    
+
+/**
+ * 退出登录：调用后端 /auth/logout 并跳转到登录页
+ */
+async function logout() {
+    try {
+        await request('/auth/logout', 'POST');
+    } catch (e) {
+        // 即使后端报错，也尝试清理前端状态并跳转
+        console.error('调用登出接口失败:', e);
+    } finally {
+        // 清理全局用户信息并跳转到登录页
+        if (typeof App !== 'undefined') {
+            App.user = null;
+        }
+        window.location.href = 'login.html';
+    }
+}

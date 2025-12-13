@@ -118,11 +118,12 @@ function renderUserTable(users) {
     
     let html = '';
     users.forEach(user => {
+        const roleNameDisplay = user.roleName || ''; // 多角色后端会用逗号拼接
         html += `
         <tr>
             <td>${user.userId}</td>
             <td>${user.username}</td>
-            <td>${user.roleName}</td>
+            <td>${roleNameDisplay}</td>
             <td>${user.createdTime ? new Date(user.createdTime).toLocaleString() : ''}</td>
             <td>
                 <button class="ant-btn ant-btn-primary btn btn-sm btn-primary" onclick="showEditUserModal(${user.userId})">
@@ -145,16 +146,11 @@ function renderUserTable(users) {
 async function loadRolesForUserForm() {
     try {
         const roles = await request('/role');
-        
-        // 创建角色选项HTML，确保roleId正确获取
-        let roleOptions = '<option value="">请选择角色</option>';
+        let roleOptions = '';
         roles.forEach(role => {
-            // 确保roleId存在且为有效值
             const roleId = role.roleId || '';
             roleOptions += `<option value="${roleId}">${role.roleName} (${role.roleType})</option>`;
         });
-        
-        // 创建用户表单模态框
         await createUserModal(roleOptions);
     } catch (error) {
         console.error('加载角色失败:', error);
@@ -190,8 +186,8 @@ function createUserModal(roleOptions) {
                                     <input type="password" id="password" class="form-control" required>
                                 </div>
                                 <div class="form-group mb-2">
-                                    <label for="roleId">角色</label>
-                                    <select id="roleId" class="form-control" required>
+                                    <label for="roleIds">角色（可多选）</label>
+                                    <select id="roleIds" class="form-control" multiple required>
                                         ${roleOptions}
                                     </select>
                                 </div>
@@ -208,7 +204,7 @@ function createUserModal(roleOptions) {
             modalContainer.innerHTML = modalHtml;
             setTimeout(() => { resolve(); }, 0);
         } else {
-            document.getElementById('roleId').innerHTML = roleOptions;
+            document.getElementById('roleIds').innerHTML = roleOptions;
             resolve();
         }
     });
@@ -224,9 +220,9 @@ function showAddUserModal() {
         form.reset();
     }
     // 确保角色选择框清空
-    const roleSelect = document.getElementById('roleId');
+    const roleSelect = document.getElementById('roleIds');
     if (roleSelect) {
-        roleSelect.value = '';
+        Array.from(roleSelect.options).forEach(opt => opt.selected = false);
     }
     document.getElementById('userId').value = '';
     document.getElementById('userModalTitle').textContent = '新增用户';
@@ -237,8 +233,6 @@ function showAddUserModal() {
         // 确保正确实例化模态框
         const userModal = new bootstrap.Modal(userModalElement);
         userModal.show();
-    } else {
-        alert('模态框加载失败，请刷新页面重试');
     }
 }
 
@@ -255,13 +249,26 @@ async function showEditUserModal(userId) {
         document.getElementById('username').value = user.username || '';
         // 编辑时清空密码字段
         document.getElementById('password').value = '';
-        
-        // 确保角色选择正确设置
-        const roleSelect = document.getElementById('roleId');
-        if (roleSelect && user.roleId) {
-            roleSelect.value = user.roleId.toString();
+        const roleSelect = document.getElementById('roleIds');
+        if (roleSelect) {
+            Array.from(roleSelect.options).forEach(opt => {
+                opt.selected = false;
+            });
+            // 后端可以返回 user.roleIds: 数组 或 逗号分隔字符串，这里做兼容
+            let roleIds = [];
+            if (Array.isArray(user.roleIds)) {
+                roleIds = user.roleIds.map(String);
+            } else if (typeof user.roleIds === 'string') {
+                roleIds = user.roleIds.split(',').map(s => s.trim()).filter(Boolean);
+            } else if (user.roleId) {
+                roleIds = [String(user.roleId)];
+            }
+            Array.from(roleSelect.options).forEach(opt => {
+                if (roleIds.includes(opt.value)) {
+                    opt.selected = true;
+                }
+            });
         }
-        
         document.getElementById('userModalTitle').textContent = '编辑用户';
         
         // 显示模态框
@@ -269,12 +276,8 @@ async function showEditUserModal(userId) {
         if (userModalElement) {
             const userModal = new bootstrap.Modal(userModalElement);
             userModal.show();
-        } else {
-            alert('模态框加载失败，请刷新页面重试');
         }
-    } catch (error) {
-        // 错误处理已在request函数中完成
-    }
+    } catch (e) {}
 }
 
 /**
@@ -285,10 +288,10 @@ async function saveUser() {
     const userIdElement = document.getElementById('userId');
     const usernameElement = document.getElementById('username');
     const passwordElement = document.getElementById('password');
-    const roleIdElement = document.getElementById('roleId');
-    
+    const roleSelect = document.getElementById('roleIds');
+
     // 检查元素是否存在
-    if (!usernameElement || !roleIdElement) {
+    if (!usernameElement || !roleSelect) {
         alert('表单加载失败，请刷新页面重试');
         return;
     }
@@ -297,8 +300,8 @@ async function saveUser() {
     const userId = userIdElement.value;
     const username = usernameElement.value.trim();
     const password = passwordElement.value.trim();
-    const roleId = roleIdElement.value;
-    
+    const selectedRoleIds = Array.from(roleSelect.selectedOptions).map(opt => opt.value).filter(v => v);
+
     // 详细验证
     if (!username) {
         alert('请输入用户名');
@@ -306,71 +309,29 @@ async function saveUser() {
         return;
     }
     
-    if (!roleId || roleId === '') {
-        alert('请选择角色');
-        roleIdElement.focus();
+    if (selectedRoleIds.length === 0) {
+        alert('请至少选择一个角色');
+        roleSelect.focus();
         return;
     }
     
-    // 确保roleId是数字
-    if (isNaN(parseInt(roleId))) {
-        alert('选择的角色无效');
-        roleIdElement.focus();
-        return;
-    }
-    
-    const userData = {
-        username: username,
-        roleId: parseInt(roleId)
+    const payload = {
+        userId: userId ? parseInt(userId) : undefined,
+        username,
+        // 后端注册/修改接口中处理密码为空不修改
+        password: password || undefined,
+        roleIds: selectedRoleIds.map(id => parseInt(id, 10))
     };
-    
-    try {
-        if (userId) {
-            // 编辑用户
-            userData.userId = parseInt(userId);
-            await request('/user', 'PUT', userData);
-        } else {
-            // 新增用户
-            await request('/auth/register', 'POST', {
-                username,
-                password,
-                roleId: parseInt(roleId)
-            });
-        }
-        
-        // 关闭模态框
-        const userModalElement = document.getElementById('userModal');
-        if (userModalElement) {
-            const userModal = bootstrap.Modal.getInstance(userModalElement);
-            if (userModal) {
-                userModal.hide();
-            }
-        }
-        
-        // 重新加载用户列表
-        loadUsers();
-        
-        alert(userId ? '用户更新成功' : '用户新增成功');
-    } catch (error) {
-        // 错误处理已在request函数中完成
-    }
-}
+    const method = userId ? 'PUT' : 'POST';
+    await request('/user', method, payload);
 
-/**
- * 删除用户
- * @param {number} userId 用户ID
- */
-async function deleteUser(userId) {
-    if (!confirm('确定要删除这个用户吗？')) {
-        return;
+    // 关闭模态框
+    const userModalElement = document.getElementById('userModal');
+    if (userModalElement) {
+        const modalInstance = bootstrap.Modal.getInstance(userModalElement) || new bootstrap.Modal(userModalElement);
+        modalInstance.hide();
     }
-    
-    try {
-        await request(`/user/${userId}`, 'DELETE');
-        // 重新加载用户列表
-        loadUsers();
-        alert('用户删除成功');
-    } catch (error) {
-        // 错误处理已在request函数中完成
-    }
+
+    // 重新加载用户列表
+    loadUsers();
 }
