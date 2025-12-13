@@ -117,13 +117,37 @@ function renderUserTable(users) {
     }
     
     let html = '';
-    users.forEach(user => {
-        const roleNameDisplay = user.roleName || ''; // 多角色后端会用逗号拼接
+    users.forEach((user, idx) => {
+        const roleNameDisplay = (user.roleName || '').trim();
+        const roleNames = roleNameDisplay
+            ? roleNameDisplay.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+        const rowId = `user-role-row-${user.userId || idx}`;
+        let roleCellHtml = '';
+        if (roleNames.length === 0) {
+            roleCellHtml = '<span class="text-muted">未分配角色</span>';
+        } else {
+            const visible = roleNames.slice(0, 3);
+            const hidden = roleNames.slice(3);
+            roleCellHtml += `<div id="${rowId}" class="d-flex flex-wrap align-items-center" style="font-size:14px;">`;
+            visible.forEach(name => {
+                roleCellHtml += `<span class="badge bg-light text-dark border me-1 mb-1" style="font-weight:500;">${name}</span>`;
+            });
+            if (hidden.length > 0) {
+                const moreId = `${rowId}-more`;
+                const hiddenHtml = hidden.map(n => `<span class=\"badge bg-light text-dark border me-1 mb-1\" style=\"font-weight:500;\">${n}</span>`).join('');
+                roleCellHtml += `
+                    <a href="javascript:void(0);" class="text-primary" style="font-size:12px;" onclick="toggleMoreRoles('${moreId}')">更多</a>
+                    <div id="${moreId}" class="mt-1" style="display:none;">${hiddenHtml}</div>
+                `;
+            }
+            roleCellHtml += `</div>`;
+        }
         html += `
         <tr>
             <td>${user.userId}</td>
             <td>${user.username}</td>
-            <td>${roleNameDisplay}</td>
+            <td>${roleCellHtml}</td>
             <td>${user.createdTime ? new Date(user.createdTime).toLocaleString() : ''}</td>
             <td>
                 <button class="ant-btn ant-btn-primary btn btn-sm btn-primary" onclick="showEditUserModal(${user.userId})">
@@ -138,6 +162,13 @@ function renderUserTable(users) {
     });
     
     tableBody.innerHTML = html;
+}
+
+// 切换“更多”角色展开/收起
+function toggleMoreRoles(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = el.style.display === 'none' || el.style.display === '' ? 'block' : 'none';
 }
 
 /**
@@ -160,7 +191,7 @@ async function loadRolesForUserForm() {
 
 /**
  * 创建用户表单模态框
- * @param {string} roleOptions 角色下拉框选项HTML
+ * @param {string} roleOptions 角色下拉框选项HTML（仍保留参数但不再直接使用 select）
  */
 function createUserModal(roleOptions) {
     return new Promise((resolve) => {
@@ -185,11 +216,10 @@ function createUserModal(roleOptions) {
                                     <label for="password">密码</label>
                                     <input type="password" id="password" class="form-control" required>
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label for="roleIds">角色（可多选）</label>
-                                    <select id="roleIds" class="form-control" multiple required>
-                                        ${roleOptions}
-                                    </select>
+                                <div class="form-group mb-1">
+                                    <label>角色（可多选）</label>
+                                    <div id="roleCheckboxGroup" class="border rounded p-2" style="max-height:220px;overflow-y:auto;background:#fff;"></div>
+                                    <div class="form-text text-muted" style="font-size:12px;">直接勾选需要赋予给用户的角色。</div>
                                 </div>
                             </form>
                         </div>
@@ -202,12 +232,39 @@ function createUserModal(roleOptions) {
             </div>
             `;
             modalContainer.innerHTML = modalHtml;
+            // 渲染角色复选框
+            renderRoleCheckboxes(roleOptions);
             setTimeout(() => { resolve(); }, 0);
         } else {
-            document.getElementById('roleIds').innerHTML = roleOptions;
+            renderRoleCheckboxes(roleOptions);
             resolve();
         }
     });
+}
+
+// 将后端角色列表渲染为复选框
+function renderRoleCheckboxes(roleOptions) {
+    const container = document.getElementById('roleCheckboxGroup');
+    if (!container) return;
+    try {
+        // roleOptions 是一串 <option>，这里解析出 value 和文本
+        const temp = document.createElement('select');
+        temp.innerHTML = roleOptions;
+        let html = '';
+        Array.from(temp.options).forEach(opt => {
+            const value = opt.value;
+            const text = opt.textContent || opt.innerText;
+            html += `
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" name="roleIdCheckbox" value="${value}" id="role_cb_${value}">
+                    <label class="form-check-label" for="role_cb_${value}">${text}</label>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    } catch (e) {
+        console.error('渲染角色复选框失败', e);
+    }
 }
 
 /**
