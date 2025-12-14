@@ -2,9 +2,12 @@ package com.example.managementsystem.controller;
 
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.entity.User;
+import com.example.managementsystem.entity.UserRole;
 import com.example.managementsystem.service.IUserService;
+import com.example.managementsystem.mapper.UserRoleMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import javax.annotation.Resource;
 import java.util.List;
 
 /**
@@ -21,6 +24,9 @@ public class UserController {
 
     @Autowired
     private IUserService userService;
+
+    @Resource
+    private UserRoleMapper userRoleMapper;
 
 
     @GetMapping("/role/{roleName}")
@@ -49,7 +55,19 @@ public class UserController {
     @GetMapping("/{id}")
     public Result<User> getUserById(@PathVariable Long id) {
         User user = userService.getById(id);
-        return user != null ? Result.success(user) : Result.fail("用户不存在");
+        if (user == null) {
+            return Result.fail("用户不存在");
+        }
+        // 查询该用户的所有角色ID列表，用于前端多角色回显
+        java.util.List<UserRole> relations = userRoleMapper.selectByUserIds(java.util.Collections.singletonList(id));
+        java.util.List<Long> roleIds = new java.util.ArrayList<>();
+        if (relations != null) {
+            for (UserRole ur : relations) {
+                roleIds.add(ur.getRoleId());
+            }
+        }
+        user.setRoleIds(roleIds);
+        return Result.success(user);
     }
 
     /**
