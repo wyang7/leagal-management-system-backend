@@ -384,26 +384,33 @@
         const isAdmin = roleType.indexOf('管理员') !== -1;
         const isMediator = roleType.indexOf('调解员') !== -1;
 
+        // 所有可枚举驻点
+        const ALL_STATIONS = ['九堡彭埠', '本部', '四季青', '凯旋街道', '闸弄口', '笕桥'];
+
+        // 当前用户拥有的驻点列表（逗号分隔字符串 -> 去重数组）
+        const userStations = Array.from(new Set(
+            stationStr.split(',').map(s => s.trim()).filter(Boolean)
+        ));
+
+        // 是否拥有“总部管理员”角色：简单规则为 用户是管理员 且 station 中包含“总部”
+        const hasHeadquartersAdmin = isAdmin && userStations.includes('总部');
+
         const items = [];
-        // 所有登录用户都有“我的工作区”“我的案件”
+        // 所有登录用户都有“我的工作区”“我的案件”“领取案件”
         items.push({ key: 'workspace', text: '我的工作区', icon: 'fa-home', onClick: 'handleRootClick(\'workspace\', loadWorkspacePage)', cssClass: 'nav-link-root' });
         items.push({ key: 'my-cases', text: '我的案件', icon: 'fa-briefcase', onClick: 'handleRootClick(\'my-cases\', loadMyCasesPage)', cssClass: 'nav-link-root' });
-        // 所有用户都可以看到“领取案件”入口（根据你原有逻辑，如需仅特定角色可见可再加判断）
         items.push({ key: 'task-receive', text: '领取案件', icon: 'fa-inbox', onClick: 'handleRootClick(\'task-receive\', loadTaskReceivePage)', cssClass: 'nav-link-root' });
 
         if (isAdmin) {
             items.push({ key: 'user-mgmt', text: '用户管理', icon: 'fa-users', onClick: 'handleRootClick(\'user-mgmt\', loadUserManagementPage)', cssClass: 'nav-link-root' });
             items.push({ key: 'role-mgmt', text: '角色管理', icon: 'fa-id-badge', onClick: 'handleRootClick(\'role-mgmt\', loadRoleManagementPage)', cssClass: 'nav-link-root' });
 
-            // 主“案件管理”入口：不可点击，仅分组标题
+            // 案件管理分组标题
             items.push({ key: 'case-mgmt-root', text: '案件管理', icon: 'fa-folder-open', cssClass: 'nav-link nav-link-root disabled', isFolder: true });
 
-            const stationList = stationStr
-                .split(',')
-                .map(s => s.trim())
-                .filter(Boolean);
-            const uniqueStations = Array.from(new Set(stationList));
-            uniqueStations.forEach(st => {
+            // 需要展示的驻点列表：总部管理员 -> 全部驻点；否则仅展示当前用户拥有的驻点
+            const stationsToShow = hasHeadquartersAdmin ? ALL_STATIONS : userStations;
+            stationsToShow.forEach(st => {
                 const safe = st.replace(/'/g, "\\'");
                 items.push({
                     key: `case-mgmt-${safe}`,
