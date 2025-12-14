@@ -387,3 +387,24 @@ async function saveUser() {
     // 重新加载用户列表
     loadUsers();
 }
+
+/**
+ * 删除用户
+ * @param {number} userId 用户ID
+ */
+async function deleteUser(userId) {
+    if (!userId && userId !== 0) {
+        return;
+    }
+    if (!confirm('确认要删除该用户吗？删除后不可恢复。')) {
+        return;
+    }
+    try {
+        await request(`/user/${userId}`, 'DELETE');
+        // 删除成功后重新加载用户列表
+        await loadUsers();
+    } catch (e) {
+        // 错误提示在 request 内部已处理，这里可按需补充
+        console.error('删除用户失败', e);
+    }
+}
