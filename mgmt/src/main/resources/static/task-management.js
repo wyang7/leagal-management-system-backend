@@ -59,14 +59,15 @@ function loadTaskManagementPage() {
                         </tbody>
                     </table>
                 </div>
+                <!-- 任务分页容器将插在这里 -->
+                <div id="taskPaginationContainer" class="d-flex flex-column align-items-center mt-3"></div>
             </div>
         </div>
     `;
 
-    // 创建任务模态框容器
     createTaskModalContainer();
-    // 加载任务列表（分页）
-    loadTasks(1, 10);
+    // 初次加载任务列表（使用全局 taskPageSize）
+    loadTasks(1, taskPageSize);
 }
 
 function searchTasks() {
@@ -100,11 +101,13 @@ function createTaskModalContainer() {
 /**
  * 加载任务列表
  */
-async function loadTasks(pageNum = 1, pageSize = 10, taskName = '') {
+async function loadTasks(pageNum = 1, pageSizeParam = taskPageSize, taskName = '') {
 
     try {
-        currentTaskPage = pageNum; // 保存当前页码
-        let url = `/task/page?pageNum=${pageNum}&pageSize=${pageSize}`;
+        // 同步全局页码和每页条数
+        currentTaskPage = pageNum;
+        taskPageSize = pageSizeParam;
+        let url = `/task/page?pageNum=${pageNum}&pageSize=${pageSizeParam}`;
         if (taskName) {
             url += `&taskName=${encodeURIComponent(taskName)}`;
         }
@@ -117,8 +120,10 @@ async function loadTasks(pageNum = 1, pageSize = 10, taskName = '') {
         });
     } catch (error) {
         document.getElementById('taskTableBody').innerHTML = `
-            <tr><td colspan="6" class="text-center text-danger">加载任务失败</td></tr>
+            <tr><td colspan="9" class="text-center text-danger">加载任务失败</td></tr>
         `;
+        const pag = document.getElementById('taskPaginationContainer');
+        if (pag) pag.innerHTML = '';
     }
 }
 
@@ -424,92 +429,357 @@ async function confirmAssignTask() {
 function renderTaskPagination(pageInfo) {
     const { total, pageNum, pageSize } = pageInfo;
     const totalPages = Math.ceil(total / pageSize);
+    const container = document.getElementById('taskPaginationContainer');
+    if (!container) return;
 
-    // 移除旧分页容器（如果存在）
-    const oldPagination = document.getElementById('taskPaginationContainer');
-    if (oldPagination) {
-        oldPagination.remove();
-    }
-
-    // 只有一页时不显示分页
+    // 只有一页时，展示简要信息和页大小选择器
     if (totalPages <= 1) {
+        container.innerHTML = `
+            <div class="d-flex align-items-center gap-3 mt-2 text-secondary">
+                <div>共 ${total} 条记录</div>
+                ${buildTaskPageSizeSelector()}
+            </div>
+        `;
+        bindTaskPageSizeChange();
         return;
     }
 
-    // 创建新分页容器
-    const paginationContainer = document.createElement('div');
-    paginationContainer.id = 'taskPaginationContainer';
-    paginationContainer.className = 'd-flex justify-content-center mt-4';
-
-    // 计算显示的页码范围
+    // 计算页码范围
     let startPage = Math.max(1, pageNum - 2);
     let endPage = Math.min(totalPages, startPage + 4);
     if (endPage - startPage < 4) {
         startPage = Math.max(1, endPage - 4);
     }
 
-    let paginationHtml = `
-    <div class="d-flex justify-content-center mb-2 text-secondary">
-        共 ${total} 条记录，当前第 ${pageNum}/${totalPages} 页
+    let html = `
+    <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-2 text-secondary">
+        <div>共 ${total} 条记录，当前第 ${pageNum}/${totalPages} 页</div>
+        ${buildTaskPageSizeSelector()}
     </div>
     <nav aria-label="任务分页">
-        <ul class="pagination">
+        <ul class="pagination mb-0">
             <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadTasks(${pageNum - 1}, ${pageSize})" aria-label="上一页">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-            </li>
-    `;
+                <a class="page-link" href="#" onclick="loadTasks(${pageNum - 1}, ${pageSize})" aria-label="上一页"><span aria-hidden="true">&laquo;</span></a>
+            </li>`;
 
-    // 添加第一页按钮（当前页不在前5页时）
     if (startPage > 1) {
-        paginationHtml += `
-            <li class="page-item"><a class="page-link" href="#" onclick="loadTasks(1, ${pageSize})">1</a></li>
-            ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
-        `;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadTasks(1, ${pageSize})">1</a></li>`;
+        if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
     }
 
-    // 添加中间页码
     for (let i = startPage; i <= endPage; i++) {
-        paginationHtml += `
-            <li class="page-item ${i === pageNum ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="loadTasks(${i}, ${pageSize})">${i}</a>
-            </li>
-        `;
+        html += `<li class="page-item ${i === pageNum ? 'active' : ''}"><a class="page-link" href="#" onclick="loadTasks(${i}, ${pageSize})">${i}</a></li>`;
     }
 
-    // 添加最后一页按钮（当前页不在后5页时）
     if (endPage < totalPages) {
-        paginationHtml += `
-            ${endPage < totalPages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
-            <li class="page-item"><a class="page-link" href="#" onclick="loadTasks(${totalPages}, ${pageSize})">${totalPages}</a></li>
-        `;
+        if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadTasks(${totalPages}, ${pageSize})">${totalPages}</a></li>`;
     }
 
-    // 下一页按钮
-    paginationHtml += `
-            <li class="page-item ${pageNum === totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadTasks(${pageNum + 1}, ${pageSize})" aria-label="下一页">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
-    `;
+    html += `<li class="page-item ${pageNum === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadTasks(${pageNum + 1}, ${pageSize})" aria-label="下一页"><span aria-hidden="true">&raquo;</span></a></li></ul></nav>`;
 
-    paginationContainer.innerHTML = paginationHtml;
-    // 将分页容器添加到表格下方
-    const tableContainer = document.querySelector('.table-responsive');
-    if (tableContainer) {
-        tableContainer.after(paginationContainer);
-    } else {
-        console.error('表格容器不存在，无法添加分页');
+    container.innerHTML = html;
+    bindTaskPageSizeChange();
+}
+
+function buildTaskPageSizeSelector() {
+    const options = [10, 20, 50, 100];
+    return `<div class="d-flex align-items-center gap-1">
+        <label for="taskPageSizeSelect" class="form-label mb-0 small text-muted">每页</label>
+        <select id="taskPageSizeSelect" class="form-select form-select-sm" style="width:auto;">
+            ${options.map(o => `<option value='${o}' ${o === taskPageSize ? 'selected' : ''}>${o}</option>`).join('')}
+        </select>
+        <span class="small text-muted">条</span>
+    </div>`;
+}
+
+function bindTaskPageSizeChange() {
+    const sel = document.getElementById('taskPageSizeSelect');
+    if (!sel) return;
+    sel.onchange = function() {
+        const val = parseInt(this.value, 10) || 10;
+        taskPageSize = val;
+        const taskName = document.getElementById('taskSearchInput')?.value.trim() || '';
+        loadTasks(1, taskPageSize, taskName);
+    };
+}
+
+/**
+ * 创建任务表单模态框
+ */
+function createTaskModal() {
+    const modalContainer = document.getElementById('taskModalContainer');
+    if (!document.getElementById('taskModal')) {
+        const modalHtml = `
+        <div class="modal fade" id="taskModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title" id="taskModalTitle"><i class="fa fa-briefcase text-primary me-2"></i>新增案件包</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="background:#fafcff;">
+                        <form id="taskForm">
+                            <input type="hidden" id="taskId">
+                            <div class="form-group mb-2">
+                                <label for="taskName">任务名</label>
+                                <input type="text" id="taskName" class="form-control" required>
+                            </div>
+                            <div class="form-group mb-2">
+                                <label for="taskStation">案件包归属地</label>
+                                <select id="taskStation" class="form-control" required>
+                                    <option value="">请选择归属地</option>
+                                    <option value="九堡彭埠">九堡彭埠</option>
+                                    <option value="本部">本部</option>
+                                    <option value="四季青">四季青</option>
+                                    <option value="笕桥">笕桥</option>
+                                    <option value="凯旋街道">凯旋街道</option>
+                                    <option value="闸弄口">闸弄口</option>
+                                    <option value="总部">总部</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                        <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="saveTask()" style="border-radius:4px;">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        modalContainer.innerHTML = modalHtml;
     }
 }
 
-// 修改loadTasks函数，添加分页参数保存和搜索支持
-let currentTaskPage = 1;
-const taskPageSize = 10; // 改为10条每页，方便分页展示
+/**
+ * 显示新增案件包模态框
+ */
+function showAddTaskModal() {
+    createTaskModal();
+
+    // 重置表单
+    document.getElementById('taskForm').reset();
+    document.getElementById('taskId').value = '';
+    document.getElementById('taskModalTitle').textContent = '新增案件包';
+
+    // 显示模态框
+    const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
+    taskModal.show();
+}
+
+/**
+ * 显示编辑任务模态框
+ * @param {number} taskId 任务ID
+ */
+async function showEditTaskModal(taskId) {
+    createTaskModal();
+
+    try {
+        const task = await request(`/task/${taskId}`);
+
+        // 填充表单数据
+        document.getElementById('taskId').value = task.taskId;
+        document.getElementById('taskName').value = task.taskName;
+        document.getElementById('taskStation').value = task.station || '';
+        document.getElementById('taskModalTitle').textContent = '编辑任务';
+
+        // 显示模态框
+        const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
+        taskModal.show();
+    } catch (error) {
+        // 错误处理已在request函数中完成
+    }
+}
+/**
+ * 显示分派案件包给用户的模态框
+ */
+function showAssignTaskToUserModal(taskId) {
+    const modalContainer = document.getElementById('taskModalContainer');
+
+    // 先加载用户列表数据
+    loadUsersForDropdown();
+
+    const modalHtml = `
+    <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title">分派案件包给用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="assignTaskForm">
+                        <input type="hidden" id="assignTaskId" value="${taskId}">
+                        <div class="form-group">
+                            <label for="assignUserId">选择用户</label>
+                            <select id="assignUserId" class="form-select" required>
+                                <option value="">加载用户中...</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmAssignTask()">确认分派</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    modalContainer.innerHTML = modalHtml;
+    const assignModal = new bootstrap.Modal(document.getElementById('assignTaskModal'));
+    assignModal.show();
+}
+
+/**
+ * 加载用户列表到下拉框
+ */
+async function loadUsersForDropdown() {
+    try {
+        // 假设后端提供获取用户列表的接口
+        const users = await request('/user');
+        const userSelect = document.getElementById('assignUserId');
+
+        // 清空现有选项
+        userSelect.innerHTML = '';
+
+        // 添加默认选项
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '请选择用户';
+        userSelect.appendChild(defaultOption);
+
+        // 添加用户选项
+        if (users && users.length > 0) {
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.userId; // 提交时使用用户ID
+                option.textContent = user.username; // 显示用户名
+                userSelect.appendChild(option);
+            });
+        } else {
+            const noUserOption = document.createElement('option');
+            noUserOption.value = '';
+            noUserOption.textContent = '没有可用用户';
+            noUserOption.disabled = true;
+            userSelect.appendChild(noUserOption);
+        }
+    } catch (error) {
+        console.error('加载用户列表失败:', error);
+        const userSelect = document.getElementById('assignUserId');
+        userSelect.innerHTML = '<option value="">加载用户失败</option>';
+    }
+}
+
+
+/**
+ * 确认分派案件包
+ */
+async function confirmAssignTask() {
+    const taskId = document.getElementById('assignTaskId').value;
+    const userId = document.getElementById('assignUserId').value.trim();
+
+    if (!userId) {
+        alert('请输入用户ID');
+        return;
+    }
+
+    try {
+        await request('/task/assign', 'POST', {
+            taskId: taskId,
+            userId: userId
+        });
+
+        // 关闭模态框并刷新列表
+        const assignModal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
+        assignModal.hide();
+        loadTasks(currentTaskPage, taskPageSize);
+        alert('案件包分派成功');
+    } catch (error) {
+        alert('分派失败：' + (error.message || '未知错误'));
+    }
+}
+
+// 添加分页渲染函数
+function renderTaskPagination(pageInfo) {
+    const { total, pageNum, pageSize } = pageInfo;
+    const totalPages = Math.ceil(total / pageSize);
+    const container = document.getElementById('taskPaginationContainer');
+    if (!container) return;
+
+    // 只有一页时，展示简要信息和页大小选择器
+    if (totalPages <= 1) {
+        container.innerHTML = `
+            <div class="d-flex align-items-center gap-3 mt-2 text-secondary">
+                <div>共 ${total} 条记录</div>
+                ${buildTaskPageSizeSelector()}
+            </div>
+        `;
+        bindTaskPageSizeChange();
+        return;
+    }
+
+    // 计算页码范围
+    let startPage = Math.max(1, pageNum - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    let html = `
+    <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-2 text-secondary">
+        <div>共 ${total} 条记录，当前第 ${pageNum}/${totalPages} 页</div>
+        ${buildTaskPageSizeSelector()}
+    </div>
+    <nav aria-label="任务分页">
+        <ul class="pagination mb-0">
+            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadTasks(${pageNum - 1}, ${pageSize})" aria-label="上一页"><span aria-hidden="true">&laquo;</span></a>
+            </li>`;
+
+    if (startPage > 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadTasks(1, ${pageSize})">1</a></li>`;
+        if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<li class="page-item ${i === pageNum ? 'active' : ''}"><a class="page-link" href="#" onclick="loadTasks(${i}, ${pageSize})">${i}</a></li>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadTasks(${totalPages}, ${pageSize})">${totalPages}</a></li>`;
+    }
+
+    html += `<li class="page-item ${pageNum === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadTasks(${pageNum + 1}, ${pageSize})" aria-label="下一页"><span aria-hidden="true">&raquo;</span></a></li></ul></nav>`;
+
+    container.innerHTML = html;
+    bindTaskPageSizeChange();
+}
+
+function buildTaskPageSizeSelector() {
+    const options = [10, 20, 50, 100];
+    return `<div class="d-flex align-items-center gap-1">
+        <label for="taskPageSizeSelect" class="form-label mb-0 small text-muted">每页</label>
+        <select id="taskPageSizeSelect" class="form-select form-select-sm" style="width:auto;">
+            ${options.map(o => `<option value='${o}' ${o === taskPageSize ? 'selected' : ''}>${o}</option>`).join('')}
+        </select>
+        <span class="small text-muted">条</span>
+    </div>`;
+}
+
+function bindTaskPageSizeChange() {
+    const sel = document.getElementById('taskPageSizeSelect');
+    if (!sel) return;
+    sel.onchange = function() {
+        const val = parseInt(this.value, 10) || 10;
+        taskPageSize = val;
+        const taskName = document.getElementById('taskSearchInput')?.value.trim() || '';
+        loadTasks(1, taskPageSize, taskName);
+    };
+}
 
 /**
  * 保存任务（新增或编辑）
@@ -948,3 +1218,8 @@ async function submitBatchCreateTask() {
         alert('批量创建失败: ' + (error.message || '未知错误'));
     }
 }
+
+// 全局任务分页状态（当前页 & 每页条数）
+let currentTaskPage = 1;
+let taskPageSize = 10; // 默认每页10条
+
