@@ -577,16 +577,22 @@ async function importCasesFromExcel(event) {
         const dateRegNoYear = /^\d{1,2}\.\d{1,2}$/;      // 8.15
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            // 校验字段缺失
-            if (!row || row.length < 9 || row.slice(1,7).some(cell => cell === undefined || cell === null || cell === '')
+            // 如果整行为空（所有单元格都是空/undefined/null），直接跳过，不参与导入
+            if (!row || row.every(cell => cell === undefined || cell === null || cell === '')) {
+                continue;
+            }
+            // 校验字段缺失（仅对非空行校验）
+            if (
+                row.length < 9 ||
+                row.slice(1, 7).some(cell => cell === undefined || cell === null || cell === '')
             ) {
-                alert(`第${i+1}行存在字段缺失`);
+                alert(`第${i + 1}行存在字段缺失`);
                 return;
             }
             // 校验日期格式
             const dateStr = row[2] + '';
             if (!dateRegFull.test(dateStr) && !dateRegNoYear.test(dateStr)) {
-                alert(`第${i+1}行法院收案时间格式错误，需为2025.8.15或8.15`);
+                alert(`第${i + 1}行法院收案时间格式错误，需为2025.8.15或8.15`);
                 return;
             }
             caseList.push({
