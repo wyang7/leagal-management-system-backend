@@ -469,7 +469,7 @@ public class CaseInfoController {
         }
         String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
-        caseInfo.setStatus("反���"); // 变更状态为反馈
+        caseInfo.setStatus("反馈"); // 变更状态为反馈
         //修改反馈结构
         String finalPreFeedback = buildAccumulatedRemark(caseInfo.getPreFeedback(), preFeedback, operatorId);
         caseInfo.setPreFeedback(finalPreFeedback); // 存储反馈内容
