@@ -276,18 +276,18 @@ function showAddUserModal() {
     if (form) {
         form.reset();
     }
-    // 确保角色选择框清空
-    const roleSelect = document.getElementById('roleIds');
-    if (roleSelect) {
-        Array.from(roleSelect.options).forEach(opt => opt.selected = false);
-    }
-    document.getElementById('userId').value = '';
-    document.getElementById('userModalTitle').textContent = '新增用户';
-    
+    // 清空角色复选框勾选
+    document.querySelectorAll('input[name="roleIdCheckbox"]').forEach(cb => {
+        cb.checked = false;
+    });
+    const idInput = document.getElementById('userId');
+    if (idInput) idInput.value = '';
+    const titleEl = document.getElementById('userModalTitle');
+    if (titleEl) titleEl.textContent = '新增用户';
+
     // 显示模态框
     const userModalElement = document.getElementById('userModal');
     if (userModalElement) {
-        // 确保正确实例化模态框
         const userModal = new bootstrap.Modal(userModalElement);
         userModal.show();
     }
@@ -300,86 +300,81 @@ function showAddUserModal() {
 async function showEditUserModal(userId) {
     try {
         const user = await request(`/user/${userId}`);
-        
-        // 填充表单数据
-        document.getElementById('userId').value = user.userId || '';
-        document.getElementById('username').value = user.username || '';
-        // 编辑时清空密码字段
-        document.getElementById('password').value = '';
-        const roleSelect = document.getElementById('roleIds');
-        if (roleSelect) {
-            Array.from(roleSelect.options).forEach(opt => {
-                opt.selected = false;
-            });
-            // 后端可以返回 user.roleIds: 数组 或 逗号分隔字符串，这里做兼容
-            let roleIds = [];
-            if (Array.isArray(user.roleIds)) {
-                roleIds = user.roleIds.map(String);
-            } else if (typeof user.roleIds === 'string') {
-                roleIds = user.roleIds.split(',').map(s => s.trim()).filter(Boolean);
-            } else if (user.roleId) {
-                roleIds = [String(user.roleId)];
-            }
-            Array.from(roleSelect.options).forEach(opt => {
-                if (roleIds.includes(opt.value)) {
-                    opt.selected = true;
-                }
-            });
+        // 填充基本信息
+        const idInput = document.getElementById('userId');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        if (idInput) idInput.value = user.userId || '';
+        if (usernameInput) usernameInput.value = user.username || '';
+        if (passwordInput) passwordInput.value = '';
+
+        // 解析用户已有角色ID（支持数组 / 字符串 / 单个）
+        let roleIds = [];
+        if (Array.isArray(user.roleIds)) {
+            roleIds = user.roleIds.map(String);
+        } else if (typeof user.roleIds === 'string') {
+            roleIds = user.roleIds.split(',').map(s => s.trim()).filter(Boolean);
+        } else if (user.roleId) {
+            roleIds = [String(user.roleId)];
         }
-        document.getElementById('userModalTitle').textContent = '编辑用户';
-        
-        // 显示模态框
+
+        // 根据 roleIds 勾选复选框
+        document.querySelectorAll('input[name="roleIdCheckbox"]').forEach(cb => {
+            cb.checked = roleIds.includes(cb.value);
+        });
+
+        const titleEl = document.getElementById('userModalTitle');
+        if (titleEl) titleEl.textContent = '编辑用户';
+
         const userModalElement = document.getElementById('userModal');
         if (userModalElement) {
             const userModal = new bootstrap.Modal(userModalElement);
             userModal.show();
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('加载用户信息失败', e);
+    }
 }
 
 /**
  * 保存用户（新增或编辑）
  */
 async function saveUser() {
-    // 获取表单元素
     const userIdElement = document.getElementById('userId');
     const usernameElement = document.getElementById('username');
     const passwordElement = document.getElementById('password');
-    const roleSelect = document.getElementById('roleIds');
 
-    // 检查元素是否存在
-    if (!usernameElement || !roleSelect) {
+    if (!usernameElement) {
         alert('表单加载失败，请刷新页面重试');
         return;
     }
-    
-    // 获取表单数据
-    const userId = userIdElement.value;
-    const username = usernameElement.value.trim();
-    const password = passwordElement.value.trim();
-    const selectedRoleIds = Array.from(roleSelect.selectedOptions).map(opt => opt.value).filter(v => v);
 
-    // 详细验证
+    const userId = userIdElement ? userIdElement.value : '';
+    const username = usernameElement.value.trim();
+    const password = passwordElement ? passwordElement.value.trim() : '';
+
+    // 从复选框收集选中的角色ID
+    const checkedBoxes = document.querySelectorAll('input[name="roleIdCheckbox"]:checked');
+    const selectedRoleIds = Array.from(checkedBoxes).map(cb => cb.value).filter(v => v);
+
     if (!username) {
         alert('请输入用户名');
         usernameElement.focus();
         return;
     }
-    
     if (selectedRoleIds.length === 0) {
         alert('请至少选择一个角色');
-        roleSelect.focus();
         return;
     }
-    
+
     const payload = {
-        userId: userId ? parseInt(userId) : undefined,
+        userId: userId ? parseInt(userId, 10) : undefined,
         username,
-        // 后端注册/修改接口中处理密码为空不修改
         password: password || undefined,
         roleIds: selectedRoleIds.map(id => parseInt(id, 10))
     };
     const method = userId ? 'PUT' : 'POST';
+
     await request('/user', method, payload);
 
     // 关闭模态框

@@ -74,9 +74,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (!saved) {
             return false;
         }
-        // 前端将传入一个 roleIds 列表字段（通过 transient 字段或扩展 DTO 实现
-        // 为保持最小改动，这里重用 user.getRoleId() 逻辑：如果有单一 roleId，插入一条关联
-        if (user.getRoleId() != null) {
+        // 兼容多角色：优先使用 user.roleIds，如果为空则回退到单个 roleId
+        java.util.List<Long> roleIds = user.getRoleIds();
+        if (roleIds != null && !roleIds.isEmpty()) {
+            for (Long rid : roleIds) {
+                if (rid == null) continue;
+                UserRole ur = new UserRole();
+                ur.setUserId(user.getUserId());
+                ur.setRoleId(rid);
+                userRoleMapper.insert(ur);
+            }
+        } else if (user.getRoleId() != null) {
             UserRole ur = new UserRole();
             ur.setUserId(user.getUserId());
             ur.setRoleId(user.getRoleId());
@@ -93,7 +101,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         // 清理旧关联
         userRoleMapper.deleteByUserId(user.getUserId());
-        if (user.getRoleId() != null) {
+        // 兼容多角色：优先使用 user.roleIds，如果为空则回退到单个 roleId
+        java.util.List<Long> roleIds = user.getRoleIds();
+        if (roleIds != null && !roleIds.isEmpty()) {
+            for (Long rid : roleIds) {
+                if (rid == null) continue;
+                UserRole ur = new UserRole();
+                ur.setUserId(user.getUserId());
+                ur.setRoleId(rid);
+                userRoleMapper.insert(ur);
+            }
+        } else if (user.getRoleId() != null) {
             UserRole ur = new UserRole();
             ur.setUserId(user.getUserId());
             ur.setRoleId(user.getRoleId());

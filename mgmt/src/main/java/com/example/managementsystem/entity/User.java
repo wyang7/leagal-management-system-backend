@@ -55,6 +55,12 @@ public class User implements Serializable {
     @TableField(exist = false)
     private String roleName;
 
+    /**
+     * 角色ID列表（前端传递的多个角色ID，用于添加/更新操作）
+     */
+    @TableField(exist = false)
+    private java.util.List<Long> roleIds;
+
     // 添加自动填充注解，创建时自动生成时间
     @TableField(value = "created_time", fill = FieldFill.INSERT)
     private Date createdTime;  // 改为Date类型
