@@ -398,9 +398,9 @@ public class CaseInfoController {
         Integer number = caseInfo.getPengheCaseNumber();
         if (number != null) {
             if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
-                resp.put("label", "青枫案件号");
+                resp.put("label", "青枫案件号:");
             } else {
-                resp.put("label", "澎和案件号");
+                resp.put("label", "澎和案件号:");
             }
             resp.put("number", number);
         }
