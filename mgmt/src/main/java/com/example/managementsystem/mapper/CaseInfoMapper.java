@@ -127,9 +127,19 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     Integer selectMaxReceiptNumber();
 
     /**
-     * 查询最大鹏合案件编号
+     * 查询最大鹏合案件编号（全局），保留兼容
      */
     Integer selectMaxPengheCaseNumber();
+
+    /**
+     * 查询本部/四季青青枫号最大值
+     */
+    Integer selectMaxQingfengCaseNumber();
+
+    /**
+     * 查询非本部/四季青澎和号最大值
+     */
+    Integer selectMaxPengheCaseNumberForOtherStations();
 
     /**
      * 查询本部最大收款单号（S0XX格式）

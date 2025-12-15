@@ -386,12 +386,25 @@ public class CaseInfoController {
      * 获取案件详情（包含完成情况）
      */
     @GetMapping("/detail/{id}")
-    public Result<CaseInfo> getCaseDetail(@PathVariable Long id) {
+    public Result<?> getCaseDetail(@PathVariable Long id) {
         CaseInfo caseInfo = caseInfoService.getCaseById(id);
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
-        return Result.success(caseInfo);
+        // 根据驻点动态返回青枫号/澎和号展示字段
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("case", caseInfo);
+        String caseLocation = caseInfo.getCaseLocation();
+        Integer number = caseInfo.getPengheCaseNumber();
+        if (number != null) {
+            if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
+                resp.put("label", "青枫号");
+            } else {
+                resp.put("label", "澎和号");
+            }
+            resp.put("number", number);
+        }
+        return Result.success(resp);
     }
 
     /**
@@ -688,11 +701,31 @@ public class CaseInfoController {
             return Result.fail("当前状态不允许提交结案审核");
         }
 
-        // 自动生成澎和案件号（仅司法确认且为空）
-        if (("司法确认".equals(notes)||"其他".equals(notes)|| "民初".equals(notes)) && caseInfo.getPengheCaseNumber() == null) {
-            Integer maxPenghe = caseInfoService.getMaxPengheCaseNumber();
-            int nextPenghe = (maxPenghe == null || maxPenghe < 689) ? 689 : maxPenghe + 1;
-            caseInfo.setPengheCaseNumber(nextPenghe);
+        // 自动生成青枫号/澎和号（仅司法确认/其他/民初且为空），两套序列互相独立
+        if (("司法确认".equals(notes) || "其他".equals(notes) || "民初".equals(notes))
+                && caseInfo.getPengheCaseNumber() == null) {
+            String caseLocation = caseInfo.getCaseLocation();
+            int nextNumber;
+            if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
+                // 青枫号：仅统计本部/四季青的最大号，从 03 开始
+                Integer maxQingfeng = caseInfoService.getMaxQingfengCaseNumber();
+                int baseStart = 3; // 03
+                if (maxQingfeng == null || maxQingfeng < baseStart) {
+                    nextNumber = baseStart;
+                } else {
+                    nextNumber = maxQingfeng + 1;
+                }
+            } else {
+                // 澎和号：仅统计非本部/四季青的最大号，从 689 开始
+                Integer maxPengheOther = caseInfoService.getMaxPengheCaseNumberForOtherStations();
+                int baseStart = 689;
+                if (maxPengheOther == null || maxPengheOther < baseStart) {
+                    nextNumber = baseStart;
+                } else {
+                    nextNumber = maxPengheOther + 1;
+                }
+            }
+            caseInfo.setPengheCaseNumber(nextNumber);
         }
         // 构造扩展 DTO
         CaseCloseExtDTO ext = new CaseCloseExtDTO();
@@ -759,7 +792,7 @@ public class CaseInfoController {
             } else {
                 // 其他驻点：保持原有纯数字逻辑
                 Integer maxReceipt = caseInfoService.getMaxReceiptNumber();
-                int nextReceipt = (maxReceipt == null || maxReceipt < 818) ? 818 : maxReceipt + 1;
+                Integer nextReceipt = (maxReceipt == null || maxReceipt < 70) ? 70 : maxReceipt + 1;
                 caseInfo.setReceiptNumber(String.valueOf(nextReceipt));
             }
         }

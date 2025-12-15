@@ -376,6 +376,16 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     }
 
     @Override
+    public Integer getMaxQingfengCaseNumber() {
+        return baseMapper.selectMaxQingfengCaseNumber();
+    }
+
+    @Override
+    public Integer getMaxPengheCaseNumberForOtherStations() {
+        return baseMapper.selectMaxPengheCaseNumberForOtherStations();
+    }
+
+    @Override
     public String getMaxReceiptNumberForBenbu() {
         return baseMapper.selectMaxReceiptNumberForBenbu();
     }

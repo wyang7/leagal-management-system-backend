@@ -123,7 +123,18 @@ public interface ICaseInfoService extends IService<CaseInfo> {
 
     Integer getMaxReceiptNumber();
 
+    // 原有：全局最大澎和号，保留以兼容老逻辑（如有其他地方使用）
     Integer getMaxPengheCaseNumber();
+
+    /**
+     * 查询本部/四季青的青枫号最大值（复用 penghe_case_number 字段）
+     */
+    Integer getMaxQingfengCaseNumber();
+
+    /**
+     * 查询非本部/四季青的澎和号最大值（复用 penghe_case_number 字段）
+     */
+    Integer getMaxPengheCaseNumberForOtherStations();
 
     /**
      * 查询本部最大收款单号（S0XX格式）
