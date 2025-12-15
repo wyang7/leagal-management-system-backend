@@ -244,7 +244,7 @@ async function showmyCaseDetailModal(caseId) {
             ? '澎和案件号：'
             : caseInfo.label;
         const settlementNumbersHtml = `<div class='row g-2 mb-3'>
-            <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfo.number!=null?caseInfo.pengheCaseNumber:'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfo.number!=null?caseInfo.number:'-'}</div>
             <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
         </div>`;
         const modalContainer = document.getElementById('myCaseDetailModalContainer');
