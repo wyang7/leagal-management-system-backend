@@ -187,10 +187,11 @@ function createMyCaseDetailModalContainer() {
  */
 async function showmyCaseDetailModal(caseId) {
     try {
-        const [caseInfo, historyList] = await Promise.all([
+        const [caseInfoResponse, historyList] = await Promise.all([
             request(`/case/detail/${caseId}`),
             request(`/case/history/${caseId}`).catch(()=>[])
         ]);
+        const caseInfo=caseInfoResponse.case;
         // 新增金额格式化函数
         const formatAmount = (v)=> (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
         // 新增动作图标映射
@@ -240,11 +241,11 @@ async function showmyCaseDetailModal(caseId) {
             </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
         } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
         // 新增：结案编号展示（澎和/青枫案件号在前，收款单号在后）
-        const pengheLabel = (caseInfo.label === null || caseInfo.label === undefined)
+        const pengheLabel = (caseInfoResponse.label === null || caseInfoResponse.label === undefined)
             ? '澎和案件号：'
-            : caseInfo.label;
+            : caseInfoResponse.label;
         const settlementNumbersHtml = `<div class='row g-2 mb-3'>
-            <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfo.number!=null?caseInfo.number:'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfoResponse.number!=null?caseInfoResponse.number:'-'}</div>
             <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
         </div>`;
         const modalContainer = document.getElementById('myCaseDetailModalContainer');

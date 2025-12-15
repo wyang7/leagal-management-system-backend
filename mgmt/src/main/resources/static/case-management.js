@@ -391,10 +391,11 @@ async function showCaseDetailModal(caseId) {
         createCaseDetailModalContainer();
         let modalContainer = document.getElementById('caseDetailModalContainer');
         if (!modalContainer) { return; }
-        const [caseInfo, historyList] = await Promise.all([
+        const [caseInfoResponse, historyList] = await Promise.all([
           request(`/case/detail/${caseId}`),
           request(`/case/history/${caseId}`).catch(()=>[])
         ]);
+        const caseInfo=caseInfoResponse.case;
         if (!caseInfo) {
             modalContainer.innerHTML = `<div class=\"modal fade\" id=\"caseDetailModal\" tabindex=\"-1\"><div class=\"modal-dialog\"><div class=\"modal-content\"><div class=\"modal-header\"><h5 class=\"modal-title\">案件详情</h5><button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\"></button></div><div class=\"modal-body\">未获取到案件详情</div></div></div></div>`;
             new bootstrap.Modal(document.getElementById('caseDetailModal')).show();
@@ -467,11 +468,11 @@ async function showCaseDetailModal(caseId) {
         const completionBlock = `<div class='mb-2'><span class='text-muted'>完成情况：</span><div class='p-2 bg-light rounded border small'>${caseInfo.completionNotes? caseInfo.completionNotes.replace(/\n/g,'<br>'):'无'}</div></div>`;
         const failedRemarkBlock = `<div class='mb-2'><span class='text-muted'>调解失败备注：</span><div class='p-2 bg-light rounded border small'>${caseInfo.completionRemark? caseInfo.completionRemark.replace(/\n/g,'<br>'):'无'}</div></div>`;
         // 新增：结案编号模块（澎和/青枫案件号在前，收款单号在后）
-        const pengheLabel = (caseInfo.label === null || caseInfo.label === undefined)
+        const pengheLabel = (caseInfoResponse.label === null || caseInfoResponse.label === undefined)
           ? '澎和案件号：'
-          : caseInfo.label;
+          : caseInfoResponse.label;
         const settlementNumbersHtml = `<div class='row g-2 mb-3'>
-          <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfo.number!=null?caseInfo.number:'-'}</div>
+          <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfoResponse.number!=null?caseInfoResponse.number:'-'}</div>
           <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
         </div>`;
         // 基本详情移除：案件ID、澎和案件号、收款单号
