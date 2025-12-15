@@ -466,9 +466,12 @@ async function showCaseDetailModal(caseId) {
         const delayBlock = `<div class='mb-2'><span class='text-muted'>延期原因：</span><div class='p-2 bg-light rounded border small'>${caseInfo.delayReason? caseInfo.delayReason.replace(/\n/g,'<br>'):'无'}</div></div>`;
         const completionBlock = `<div class='mb-2'><span class='text-muted'>完成情况：</span><div class='p-2 bg-light rounded border small'>${caseInfo.completionNotes? caseInfo.completionNotes.replace(/\n/g,'<br>'):'无'}</div></div>`;
         const failedRemarkBlock = `<div class='mb-2'><span class='text-muted'>调解失败备注：</span><div class='p-2 bg-light rounded border small'>${caseInfo.completionRemark? caseInfo.completionRemark.replace(/\n/g,'<br>'):'无'}</div></div>`;
-        // 新增：结案编号模块（澎和案件号在前，收款单号在后）
+        // 新增：结案编号模块（澎和/青枫案件号在前，收款单号在后）
+        const pengheLabel = (caseInfo.label === null || caseInfo.label === undefined)
+          ? '澎和案件号：'
+          : caseInfo.label;
         const settlementNumbersHtml = `<div class='row g-2 mb-3'>
-          <div class='col-md-6'><span class='text-muted'>澎和案件号：</span>${caseInfo.pengheCaseNumber!=null?caseInfo.pengheCaseNumber:'-'}</div>
+          <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfo.pengheCaseNumber!=null?caseInfo.pengheCaseNumber:'-'}</div>
           <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
         </div>`;
         // 基本详情移除：案件ID、澎和案件号、收款单号
@@ -1572,7 +1575,7 @@ async function confirmAssignCase() {
 
 
 /**
- * 完成案件（状态从已领取变为待结���）
+ * 完成案件（状态从已领取变为待结案）
  * @param {number} caseId 案件ID
  */
 async function completeCase(caseId) {

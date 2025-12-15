@@ -239,9 +239,12 @@ async function showmyCaseDetailModal(caseId) {
                 <div class='col-12'>${flowsHtml}</div>
             </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
         } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
-        // 新增：结案编号展示（澎和案件号在前，收款单号在后）
+        // 新增：结案编号展示（澎和/青枫案件号在前，收款单号在后）
+        const pengheLabel = (caseInfo.label === null || caseInfo.label === undefined)
+            ? '澎和案件号：'
+            : caseInfo.label;
         const settlementNumbersHtml = `<div class='row g-2 mb-3'>
-            <div class='col-md-6'><span class='text-muted'>澎和案件号：</span>${caseInfo.pengheCaseNumber!=null?caseInfo.pengheCaseNumber:'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfo.pengheCaseNumber!=null?caseInfo.pengheCaseNumber:'-'}</div>
             <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
         </div>`;
         const modalContainer = document.getElementById('myCaseDetailModalContainer');
