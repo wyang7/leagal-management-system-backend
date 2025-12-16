@@ -15,8 +15,11 @@ import com.example.managementsystem.mapper.UserRoleMapper;
 import com.example.managementsystem.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
+import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,6 +73,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public boolean addUserWithRole(User user) {
         // 先保存用户本身
+        user.setPassword(DigestUtils.md5DigestAsHex(
+                user.getPassword().getBytes(StandardCharsets.UTF_8)
+        ));
+        user.setCreatedTime(new Date(System.currentTimeMillis()));
+        user.setUpdatedTime(new Date(System.currentTimeMillis()));
         boolean saved = save(user);
         if (!saved) {
             return false;
