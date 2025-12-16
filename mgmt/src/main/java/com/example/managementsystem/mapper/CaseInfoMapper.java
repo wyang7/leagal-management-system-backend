@@ -132,12 +132,12 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     Integer selectMaxPengheCaseNumber();
 
     /**
-     * 查询本部/四季青青枫号最大值
+     * 查询四季青青枫号最大值
      */
     Integer selectMaxQingfengCaseNumber();
 
     /**
-     * 查询非本部/四季青澎和号最大值
+     * 查询非四季青澎和号最大值
      */
     Integer selectMaxPengheCaseNumberForOtherStations();
 

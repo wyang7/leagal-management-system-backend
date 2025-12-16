@@ -348,14 +348,14 @@
     <select id="selectMaxQingfengCaseNumber" resultType="java.lang.Integer">
         SELECT MAX(penghe_case_number)
         FROM case_info
-        WHERE case_location IN ('本部','四季青')
+        WHERE case_location IN ('四季青')
     </select>
 
     <!-- 查询除本部/四季青之外其他驻点的澎和号最大值，复用 penghe_case_number 字段 -->
     <select id="selectMaxPengheCaseNumberForOtherStations" resultType="java.lang.Integer">
         SELECT MAX(penghe_case_number)
         FROM case_info
-        WHERE (case_location IS NULL OR case_location NOT IN ('本部','四季青'))
+        WHERE (case_location IS NULL OR case_location NOT IN ('四季青'))
     </select>
 
     <!-- 查询本部和四季青最大收款单号（S0XX格式） -->

@@ -397,7 +397,7 @@ public class CaseInfoController {
         String caseLocation = caseInfo.getCaseLocation();
         Integer number = caseInfo.getPengheCaseNumber();
         if (number != null) {
-            if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
+            if ("四季青".equals(caseLocation)) {
                 resp.put("label", "青枫案件号：");
             } else {
                 resp.put("label", "澎和案件号：");
@@ -706,8 +706,8 @@ public class CaseInfoController {
                 && caseInfo.getPengheCaseNumber() == null) {
             String caseLocation = caseInfo.getCaseLocation();
             int nextNumber;
-            if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
-                // 青枫号：仅统计本部/四季青的最大号，从 03 开始
+            if ("四季青".equals(caseLocation)) {
+                // 青枫号：仅统计四季青的最大号，从 03 开始
                 Integer maxQingfeng = caseInfoService.getMaxQingfengCaseNumber();
                 int baseStart = 3; // 03
                 if (maxQingfeng == null || maxQingfeng < baseStart) {
@@ -716,7 +716,7 @@ public class CaseInfoController {
                     nextNumber = maxQingfeng + 1;
                 }
             } else {
-                // 澎和号：仅统计非本部/四季青的最大号，从 689 开始
+                // 澎和号：仅统计非四季青的最大号，从 689 开始
                 Integer maxPengheOther = caseInfoService.getMaxPengheCaseNumberForOtherStations();
                 int baseStart = 689;
                 if (maxPengheOther == null || maxPengheOther < baseStart) {
