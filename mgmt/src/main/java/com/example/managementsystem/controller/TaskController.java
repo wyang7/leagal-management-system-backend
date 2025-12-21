@@ -11,6 +11,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -121,6 +123,14 @@ public class TaskController {
         Role role = roleService.getById(firstRoleId);
         if (role == null) {
             return Result.fail("角色信息不存在");
+        }
+        if ("临时调解员".equals(role.getRoleType())){
+            Map<String, Object> result = new HashMap<>();
+            result.put("total", 0);
+            result.put("records", new ArrayList<>());
+            result.put("pageNum", pageNum);
+            result.put("pageSize", pageSize);
+            return Result.success(result);
         }
         String station = role.getStation();
         return Result.success(taskService.getTaskPage(pageNum, pageSize, taskName, taskStatus, station));

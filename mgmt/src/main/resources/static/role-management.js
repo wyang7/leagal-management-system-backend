@@ -139,6 +139,7 @@ function createRoleModal() {
                                     <option value="案件助理">案件助理</option>
                                     <option value="财务专员">财务专员</option>
                                     <option value="调解员">调解员</option>
+                                    <option value="临时调解员">临时调解员</option>
                                 </select>
                             </div>
                             <div class="form-group">
