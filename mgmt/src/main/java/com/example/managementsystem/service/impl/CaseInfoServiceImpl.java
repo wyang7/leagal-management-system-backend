@@ -160,7 +160,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     public Map<String, Object> getCasePage(CasePageRequest request) {
         if (request == null) { return Collections.emptyMap(); }
         Integer pageNum = request.getPageNum() == null || request.getPageNum() < 1 ? 1 : request.getPageNum();
-        Integer pageSize = request.getPageSize() == null || request.getPageSize() < 1 ? 10 : Math.min(request.getPageSize(), 100);
+        Integer pageSize = request.getPageSize() == null || request.getPageSize() < 1 ? 10 : Math.min(request.getPageSize(), 10000);
         int offset = (pageNum - 1) * pageSize;
         String caseName = request.getCaseName();
         String status = request.getStatus();
