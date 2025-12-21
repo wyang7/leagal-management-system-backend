@@ -20,13 +20,20 @@
         <if test="caseName != null and caseName != ''">
             AND case_name LIKE CONCAT(#{caseName}, '%')
         </if>
-        <if test="status != null and status != '' and status != '我的案件' and status != '我的待办'">
+        <!-- 多选状态优先，其次处理特殊标识，最后单状态 -->
+        <if test="statusList != null and statusList.size() > 0">
+            AND c.status IN
+            <foreach collection="statusList" item="st" open="(" separator="," close=")">
+                #{st}
+            </foreach>
+        </if>
+        <if test="(statusList == null or statusList.size() == 0) and status != null and status != '' and status != '我的案件' and status != '我的待办'">
             AND c.status = #{status}
         </if>
-        <if test="status != null and status != '' and status == '我的案件'">
+        <if test="(statusList == null or statusList.size() == 0) and status != null and status != '' and status == '我的案件'">
             AND c.status NOT IN ('退回' ,'调解失败')
         </if>
-        <if test="status != null and status != '' and status == '我的待办'">
+        <if test="(statusList == null or statusList.size() == 0) and status != null and status != '' and status == '我的待办'">
             AND c.status NOT IN ('退回' ,'调解失败','结案')
         </if>
         <if test="caseNumber != null and caseNumber != ''">
@@ -127,13 +134,20 @@
         <if test="caseName != null and caseName != ''">
             AND case_name LIKE CONCAT(#{caseName}, '%')
         </if>
-        <if test="status != null and status != '' and status != '我的案件' and status != '我的待办'">
+        <!-- 多选状态优先，其次特殊标识，最后单状态 -->
+        <if test="statusList != null and statusList.size() > 0">
+            AND c.status IN
+            <foreach collection="statusList" item="st" open="(" separator="," close=")">
+                #{st}
+            </foreach>
+        </if>
+        <if test="(statusList == null or statusList.size() == 0) and status != null and status != '' and status != '我的案件' and status != '我的待办'">
             AND c.status = #{status}
         </if>
-        <if test="status != null and status != '' and status == '我的案件'">
+        <if test="(statusList == null or statusList.size() == 0) and status != null and status != '' and status == '我的案件'">
             AND c.status NOT IN ('退回' ,'调解失败')
         </if>
-        <if test="status != null and status != '' and status == '我的待办'">
+        <if test="(statusList == null or statusList.size() == 0) and status != null and status != '' and status == '我的待办'">
             AND c.status NOT IN ('退回' ,'调解失败','结案')
         </if>
         <if test="caseNumber != null and caseNumber != ''">

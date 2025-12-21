@@ -477,12 +477,12 @@ public class CaseInfoController {
         String operatorName = currentUser.getUsername();
 
         // 校验状态是否为已领取（只能从已领取状态流转到反馈）
-        if (!"已领取".equals(caseInfo.getStatus())&& !"反馈".equals(caseInfo.getStatus())) {
+        if (!"已领取".equals(caseInfo.getStatus())&& !"反馈".equals(caseInfo.getStatus())&& !"延期".equals(caseInfo.getStatus())) {
             return Result.fail("只有已领取的案件可以提交反馈");
         }
         String beforeStatus = caseInfo.getStatus();
         // 更新案件信息
-        caseInfo.setStatus("反馈"); // 变更状态为反馈
+        caseInfo.setStatus("延期".equals(caseInfo.getStatus())?"延期":"反馈"); // 变更状态为反馈
         //修改反馈结构
         String finalPreFeedback = buildAccumulatedRemark(caseInfo.getPreFeedback(), preFeedback, operatorId);
         caseInfo.setPreFeedback(finalPreFeedback); // 存储反馈内容
@@ -894,6 +894,13 @@ public class CaseInfoController {
                 request.setReceiveTimeStart((String) params.get("receiveTimeStart"));
                 request.setReceiveTimeEnd((String) params.get("receiveTimeEnd"));
                 request.setStatus((String) params.get("status"));
+                // 支持多选状态导出
+                Object statusListObj = params.get("statusList");
+                if (statusListObj instanceof java.util.List<?>) {
+                    @SuppressWarnings("unche                  cked")
+                    java.util.List<String> statusList = (java.util.List<String>) statusListObj;
+                    request.setStatusList(statusList);
+                }
                 request.setStation((String) params.get("station"));
                 request.setKeyword((String) params.getOrDefault("keyword", null));
                 request.setPageNum(1);

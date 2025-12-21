@@ -56,6 +56,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 查询所有案件总数
      */
     int countAllCases(@Param("caseName") String caseName,@Param("status") String status,
+                      @Param("statusList") java.util.List<String> statusList,
                       @Param("caseNumber") String caseNumber,
                       @Param("plaintiff") String plaintiff,
                       @Param("defendant") String defendant,
@@ -93,6 +94,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      */
     List<CaseInfo> selectCasePage(@Param("offset") int offset, @Param("pageSize") int pageSize,
                                   @Param("caseName") String caseName,@Param("status") String status,
+                                  @Param("statusList") java.util.List<String> statusList,
                                   @Param("caseNumber") String caseNumber,
                                   @Param("plaintiff") String plaintiff,
                                   @Param("defendant") String defendant,

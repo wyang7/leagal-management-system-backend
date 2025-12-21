@@ -15,6 +15,16 @@ let currentFilterStatus = 'all';
 let currentSortField = '';
 let currentSortOrder = 'asc'; // 'asc' or 'desc'
 
+// 工具函数：从勾选框中读取选中的状态列表
+function getSelectedStatusesFromCheckboxes() {
+    const container = document.getElementById('statusCheckboxGroup');
+    if (!container) {
+        return [];
+    }
+    const checkedNodes = container.querySelectorAll('input.form-check-input:checked');
+    return Array.from(checkedNodes).map(function (el) { return el.value; });
+}
+
 function loadCaseManagementPage(station, status) {
     currentStation = station || '';
     currentFilterStatus = status || 'all';
@@ -47,6 +57,45 @@ function loadCaseManagementPage(station, status) {
                     </div>
                 </div>
                 <div id="advancedSearchContainer" class="row g-3 align-items-center mt-2" style="display: none;">
+                    <!-- 状态多选：使用勾选框，仅在顶部筛选为“全部”时生效 -->
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted d-block mb-1">案件状态多选</label>
+                        <div id="statusCheckboxGroup" class="border rounded p-2 bg-light">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" value="待领取" id="status_cb_pending">
+                                <label class="form-check-label small" for="status_cb_pending">待领取</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" value="已领取" id="status_cb_received">
+                                <label class="form-check-label small" for="status_cb_received">已领取</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" value="反馈" id="status_cb_feedback">
+                                <label class="form-check-label small" for="status_cb_feedback">反馈</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" value="延期" id="status_cb_delay">
+                                <label class="form-check-label small" for="status_cb_delay">延期</label>
+                            </div>
+                            <div class="form-check form-check-inline mt-1">
+                                <input class="form-check-input" type="checkbox" value="待结案" id="status_cb_wait_close">
+                                <label class="form-check-label small" for="status_cb_wait_close">待结案</label>
+                            </div>
+                            <div class="form-check form-check-inline mt-1">
+                                <input class="form-check-input" type="checkbox" value="退回" id="status_cb_return">
+                                <label class="form-check-label small" for="status_cb_return">退回</label>
+                            </div>
+                            <div class="form-check form-check-inline mt-1">
+                                <input class="form-check-input" type="checkbox" value="调解失败" id="status_cb_failed">
+                                <label class="form-check-label small" for="status_cb_failed">调解失败</label>
+                            </div>
+                            <div class="form-check form-check-inline mt-1">
+                                <input class="form-check-input" type="checkbox" value="结案" id="status_cb_closed">
+                                <label class="form-check-label small" for="status_cb_closed">结案</label>
+                            </div>
+                        </div>
+                        <div class="form-text small">仅当上方状态选择“全部”时，按勾选状态进行查询和导出</div>
+                    </div>
                     <!-- 驻点下拉 -->
                     <div class="col-md-3">
                         <div class="input-group">
@@ -530,6 +579,11 @@ async function loadCases(pageNum = 1, customPageSize = pageSize, station = '') {
         const receiveTimeStart = document.getElementById('receiveTimeStartInput').value.trim();
         const receiveTimeEnd = document.getElementById('receiveTimeEndInput').value.trim();
         const keyword = document.getElementById('keywordSearchInput').value.trim();
+        const statusList = [];
+        if (currentFilterStatus === 'all') {
+            // 从勾选框读取多选状态
+            getSelectedStatusesFromCheckboxes().forEach(v => statusList.push(v));
+        }
         const payload = {
             pageNum,
             pageSize: pageSize,
@@ -543,6 +597,7 @@ async function loadCases(pageNum = 1, customPageSize = pageSize, station = '') {
             receiveTimeEnd: receiveTimeEnd || undefined,
             keyword: keyword || undefined,
             status: currentFilterStatus !== 'all' ? currentFilterStatus : undefined,
+            statusList: statusList.length ? statusList : undefined,
             station: currentStationTemp || undefined,
             sortField: currentSortField || undefined,
             sortOrder: currentSortField ? currentSortOrder : undefined
@@ -552,6 +607,7 @@ async function loadCases(pageNum = 1, customPageSize = pageSize, station = '') {
         renderCaseTable(response.records);
         renderPagination({ total: response.total, pageNum: response.pageNum, pageSize: pageSize });
     } catch (error) {
+        console.log("error", error);
         document.getElementById('caseTableBody').innerHTML = `<tr><td colspan="14" class="text-center text-danger">加载案件失败</td></tr>`;
         document.getElementById('paginationContainer')?.remove();
     }
@@ -672,7 +728,7 @@ function renderPagination(pageInfo) {
     for (let i = startPage; i <= endPage; i++) {
         paginationHtml += `<li class="page-item ${i === pageNum ? 'active' : ''}"><a class="page-link" href="#" onclick="loadCases(${i}, ${currentPs})">${i}</a></li>`;
     }
-    // 添加最后一页按钮（当��前页不在后5页时）
+    // 添加最后一页按钮（当当前页不在后5页时）
     if (endPage < pages) {
         if (endPage < pages - 1) paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
         paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadCases(${pages}, ${currentPs})">${pages}</a></li>`;
@@ -1702,9 +1758,14 @@ async function exportCases() {
         params.caseIds = selectedCaseIds;
         if (typeof currentFilterStatus !== 'undefined' && currentFilterStatus && currentFilterStatus !== 'all') {
             params.status = currentFilterStatus;
+        } else {
+            const statusList = getSelectedStatusesFromCheckboxes();
+            if (statusList.length) {
+                params.statusList = statusList;
+            }
         }
     } else {
-        // 当前查询条件
+        const statusList = (currentFilterStatus === 'all') ? getSelectedStatusesFromCheckboxes() : [];
         params = {
             caseName: document.getElementById('caseSearchInput').value.trim(),
             caseNumber: document.getElementById('caseNumberSearchInput').value.trim(),
@@ -1715,6 +1776,7 @@ async function exportCases() {
             receiveTimeStart: document.getElementById('receiveTimeStartInput').value.trim(),
             receiveTimeEnd: document.getElementById('receiveTimeEndInput').value.trim(),
             status: currentFilterStatus !== 'all' ? currentFilterStatus : undefined,
+            statusList: statusList.length ? statusList : undefined,
             station: currentStation || undefined
         };
     }

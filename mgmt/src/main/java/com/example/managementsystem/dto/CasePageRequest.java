@@ -13,7 +13,11 @@ public class CasePageRequest {
 
     // 过滤条件
     private String caseName;      // 案由
-    private String status;        // 状态或特殊标识（我的案件/我的待办）
+    private String status;        // 单个状态或特殊标识（我的案件/我的待办）
+    /**
+     * 多选状态列表：当不为空时，优先按照该列表过滤（涵盖多个业务状态）
+     */
+    private java.util.List<String> statusList;
     private String caseNumber;    // 案号
     private String plaintiff;     // 原告
     private String defendant;     // 被告
@@ -31,4 +35,3 @@ public class CasePageRequest {
     private Boolean timeout;      // 是否查询即将超时案件
     private String keyword;       // 万能搜索关键字
 }
-
