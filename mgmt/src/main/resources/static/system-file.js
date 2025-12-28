@@ -107,9 +107,9 @@ function downloadSystemFile(id, secretLevel) {
         alert('机密级别的文件仅管理员可以下载');
         return;
     }
-    const baseUrl = 'http://localhost:8090/api';
+    // 使用相对路径，复用当前页面所在域名和端口，避免硬编码 localhost
     const link = document.createElement('a');
-    link.href = `${baseUrl}/systemFile/download/${id}?t=${Date.now()}`;
+    link.href = `/api/systemFile/download/${id}?t=${Date.now()}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -158,9 +158,9 @@ async function uploadSystemFiles() {
 }
 
 async function requestFileUpload(url, formData) {
-    const baseUrl = 'http://localhost:8090/api';
     try {
-        const resp = await fetch(baseUrl + url, {
+        // 与 common.js 的 request 一样，统一走当前域名 + /api 前缀
+        const resp = await fetch(`/api${url}`, {
             method: 'POST',
             body: formData,
             credentials: 'include'
