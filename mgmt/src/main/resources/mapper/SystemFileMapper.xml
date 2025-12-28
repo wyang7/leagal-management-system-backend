@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.managementsystem.mapper.SystemFileMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.managementsystem.entity.SystemFile">
+        <id column="id" property="id" />
+        <result column="file_name" property="fileName" />
+        <result column="file_type" property="fileType" />
+        <result column="secret_level" property="secretLevel" />
+        <result column="file_path" property="filePath" />
+        <result column="uploader" property="uploader" />
+        <result column="upload_time" property="uploadTime" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, file_name, file_type, secret_level, file_path, uploader, upload_time
+    </sql>
+
+    <insert id="insert" parameterType="com.example.managementsystem.entity.SystemFile" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO system_file
+        (file_name, file_type, secret_level, file_path, uploader, upload_time)
+        VALUES
+        (#{fileName}, #{fileType}, #{secretLevel}, #{filePath}, #{uploader}, #{uploadTime})
+    </insert>
+
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM system_file WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="long" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM system_file
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM system_file
+        ORDER BY upload_time DESC
+    </select>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(1) FROM system_file
+    </select>
+</mapper>
+
