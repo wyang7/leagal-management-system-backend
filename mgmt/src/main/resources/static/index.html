@@ -400,6 +400,7 @@
         // 所有登录用户都有“我的工作区”“我的案件”“领取案件”
         items.push({ key: 'workspace', text: '我的工作区', icon: 'fa-home', onClick: 'handleRootClick(\'workspace\', loadWorkspacePage)', cssClass: 'nav-link-root' });
         items.push({ key: 'my-cases', text: '我的案件', icon: 'fa-briefcase', onClick: 'handleRootClick(\'my-cases\', loadMyCasesPage)', cssClass: 'nav-link-root' });
+        items.push({ key: 'task-receive', text: '领取案件', icon: 'fa-inbox', onClick: 'handleRootClick(\'task-receive\', loadTaskReceivePage)', cssClass: 'nav-link-root' });
         // 新增：案件系统文件 TAB（所有角色可见）
         items.push({ key: 'system-files', text: '案件系统文件', icon: 'fa-folder', onClick: 'handleRootClick(\'system-files\', loadSystemFilePage)', cssClass: 'nav-link-root' });
 
