@@ -835,7 +835,7 @@ public class CaseInfoController {
                 // 其他驻点：按年份生成 yyyy-XXX 的纯数字序列，从 070 起
                 String maxReceipt = caseInfoService.getMaxReceiptNumberForOthersYear(yearPrefix);
                 String nextReceipt;
-                int baseStart = 70;
+                int baseStart = 001;
                 if (maxReceipt == null || !maxReceipt.startsWith(yearPrefix)) {
                     nextReceipt = String.format("%s%03d", yearPrefix, baseStart);
                 } else {
