@@ -395,7 +395,7 @@ public class CaseInfoController {
         Map<String, Object> resp = new HashMap<>();
         resp.put("case", caseInfo);
         String caseLocation = caseInfo.getCaseLocation();
-        Integer number = caseInfo.getPengheCaseNumber();
+        String number = caseInfo.getPengheCaseNumber();
         if (number != null) {
             if ("四季青".equals(caseLocation)) {
                 resp.put("label", "青枫案件号：");
@@ -705,27 +705,42 @@ public class CaseInfoController {
         if (("司法确认".equals(notes) || "其他".equals(notes) || "民初".equals(notes))
                 && caseInfo.getPengheCaseNumber() == null) {
             String caseLocation = caseInfo.getCaseLocation();
-            int nextNumber;
+            int currentYear = java.time.LocalDate.now().getYear();
+            String prefix = currentYear + "-"; // 例如 2026-
+            String nextNumberStr;
             if ("四季青".equals(caseLocation)) {
-                // 青枫号：仅统计四季青的最大号，从 03 开始
-                Integer maxQingfeng = caseInfoService.getMaxQingfengCaseNumber();
-                int baseStart = 3; // 03
-                if (maxQingfeng == null || maxQingfeng < baseStart) {
-                    nextNumber = baseStart;
+                // 青枫号：仅统计当前年份、四季青的最大号，从 001 开始
+                String maxQingfeng = caseInfoService.getMaxQingfengCaseNumberForYear(prefix);
+                if (maxQingfeng == null || !maxQingfeng.startsWith(prefix)) {
+                    nextNumberStr = prefix + "001";
                 } else {
-                    nextNumber = maxQingfeng + 1;
+                    String seqPart = maxQingfeng.substring(prefix.length());
+                    int seq;
+                    try {
+                        seq = Integer.parseInt(seqPart);
+                    } catch (NumberFormatException e) {
+                        // 历史或异常数据格式，视为无记录，从 001 开始
+                        seq = 0;
+                    }
+                    nextNumberStr = String.format("%s%03d", prefix, seq + 1);
                 }
             } else {
-                // 澎和号：仅统计非四季青的最大号，从 689 开始
-                Integer maxPengheOther = caseInfoService.getMaxPengheCaseNumberForOtherStations();
-                int baseStart = 689;
-                if (maxPengheOther == null || maxPengheOther < baseStart) {
-                    nextNumber = baseStart;
+                // 澎和号：仅统计当前年份、非四季青的最大号，从 001 开始
+                String maxPenghe = caseInfoService.getMaxPengheCaseNumberForYear(prefix);
+                if (maxPenghe == null || !maxPenghe.startsWith(prefix)) {
+                    nextNumberStr = prefix + "001";
                 } else {
-                    nextNumber = maxPengheOther + 1;
+                    String seqPart = maxPenghe.substring(prefix.length());
+                    int seq;
+                    try {
+                        seq = Integer.parseInt(seqPart);
+                    } catch (NumberFormatException e) {
+                        seq = 0;
+                    }
+                    nextNumberStr = String.format("%s%03d", prefix, seq + 1);
                 }
             }
-            caseInfo.setPengheCaseNumber(nextNumber);
+            caseInfo.setPengheCaseNumber(nextNumberStr);
         }
         // 构造扩展 DTO
         CaseCloseExtDTO ext = new CaseCloseExtDTO();

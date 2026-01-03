@@ -192,5 +192,5 @@ public class CaseInfo implements Serializable {
      * 澎和案件号（司法确认时生成）
      */
     @TableField("penghe_case_number")
-    private Integer pengheCaseNumber;
+    private String pengheCaseNumber;
 }

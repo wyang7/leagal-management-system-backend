@@ -151,4 +151,14 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     String selectMaxReceiptNumberForKaixuan();
 
     String selectMaxReceiptNumberForZhanongkou();
+
+    /**
+     * 根据年份前缀查询四季青青枫号最大值
+     */
+    String selectMaxQingfengCaseNumberForYear(@Param("yearPrefix") String yearPrefix);
+
+    /**
+     * 根据年份前缀查询非四季青澎和号最大值
+     */
+    String selectMaxPengheCaseNumberForYear(@Param("yearPrefix") String yearPrefix);
 }

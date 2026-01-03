@@ -390,4 +390,20 @@
         WHERE case_location = '闸弄口' AND receipt_number LIKE 'Z%'
     </select>
 
+    <!-- 按年份前缀查询四季青青枫号最大值，格式如 2026-001 -->
+    <select id="selectMaxQingfengCaseNumberForYear" resultType="java.lang.String">
+        SELECT MAX(penghe_case_number)
+        FROM case_info
+        WHERE case_location IN ('四季青')
+          AND penghe_case_number LIKE CONCAT(#{yearPrefix}, '%')
+    </select>
+
+    <!-- 按年份前缀查询非四季青澎和号最大值，格式如 2026-001 -->
+    <select id="selectMaxPengheCaseNumberForYear" resultType="java.lang.String">
+        SELECT MAX(penghe_case_number)
+        FROM case_info
+        WHERE (case_location IS NULL OR case_location NOT IN ('四季青'))
+          AND penghe_case_number LIKE CONCAT(#{yearPrefix}, '%')
+    </select>
+
 </mapper>

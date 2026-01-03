@@ -5,3 +5,5 @@ ALTER TABLE case_info MODIFY COLUMN receipt_number VARCHAR(16);
 ALTER TABLE management_system.case_info
     MODIFY COLUMN case_location ENUM('九堡','彭埠','笕桥','本部','四季青','闸弄口','凯旋街道')
     COMMENT '案件归属地';
+
+ALTER TABLE case_info MODIFY COLUMN penghe_case_number VARCHAR(16);

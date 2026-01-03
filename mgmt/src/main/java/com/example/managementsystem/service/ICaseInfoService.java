@@ -150,4 +150,14 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * 查询闸弄口最大收款单号（ZXX格式）
      */
     String getMaxReceiptNumberForZhanongkou();
+
+    /**
+     * 根据年份前缀查询最大青枫号
+     */
+    String getMaxQingfengCaseNumberForYear(String yearPrefix);
+
+    /**
+     * 根据年份前缀查询最大澎和号
+     */
+    String getMaxPengheCaseNumberForYear(String yearPrefix);
 }

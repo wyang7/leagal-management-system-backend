@@ -400,4 +400,14 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     public String getMaxReceiptNumberForZhanongkou() {
         return baseMapper.selectMaxReceiptNumberForZhanongkou();
     }
+
+    @Override
+    public String getMaxQingfengCaseNumberForYear(String yearPrefix) {
+        return baseMapper.selectMaxQingfengCaseNumberForYear(yearPrefix);
+    }
+
+    @Override
+    public String getMaxPengheCaseNumberForYear(String yearPrefix) {
+        return baseMapper.selectMaxPengheCaseNumberForYear(yearPrefix);
+    }
 }
