@@ -152,6 +152,26 @@ public interface ICaseInfoService extends IService<CaseInfo> {
     String getMaxReceiptNumberForZhanongkou();
 
     /**
+     * 根据年份前缀查询本部+四季青最大 S0XX 收款单号，例如 2026-S070
+     */
+    String getMaxReceiptNumberForBenbuYear(String yearPrefix);
+
+    /**
+     * 根据年份前缀查询凯旋街道最大 KXX 收款单号，例如 2026-K01
+     */
+    String getMaxReceiptNumberForKaixuanYear(String yearPrefix);
+
+    /**
+     * 根据年份前缀查询闸弄口最大 ZXX 收款单号，例如 2026-Z01
+     */
+    String getMaxReceiptNumberForZhanongkouYear(String yearPrefix);
+
+    /**
+     * 根据年份前缀查询其他驻点最大纯数字收款单号，例如 2026-070
+     */
+    String getMaxReceiptNumberForOthersYear(String yearPrefix);
+
+    /**
      * 根据年份前缀查询最大青枫号
      */
     String getMaxQingfengCaseNumberForYear(String yearPrefix);

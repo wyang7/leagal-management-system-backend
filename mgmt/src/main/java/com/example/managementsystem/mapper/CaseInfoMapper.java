@@ -161,4 +161,16 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 根据年份前缀查询非四季青澎和号最大值
      */
     String selectMaxPengheCaseNumberForYear(@Param("yearPrefix") String yearPrefix);
+
+    /** 根据年份前缀查询本部+四季青最大 S0XX 收款单号，例如 2026-S070 */
+    String selectMaxReceiptNumberForBenbuYear(@Param("yearPrefix") String yearPrefix);
+
+    /** 根据年份前缀查询凯旋街道最大 KXX 收款单号，例如 2026-K01 */
+    String selectMaxReceiptNumberForKaixuanYear(@Param("yearPrefix") String yearPrefix);
+
+    /** 根据年份前缀查询闸弄口最大 ZXX 收款单号，例如 2026-Z01 */
+    String selectMaxReceiptNumberForZhanongkouYear(@Param("yearPrefix") String yearPrefix);
+
+    /** 根据年份前缀查询其他驻点最大纯数字收款单号，例如 2026-070 */
+    String selectMaxReceiptNumberForOthersYear(@Param("yearPrefix") String yearPrefix);
 }

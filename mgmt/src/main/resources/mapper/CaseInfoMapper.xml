@@ -406,4 +406,33 @@
           AND penghe_case_number LIKE CONCAT(#{yearPrefix}, '%')
     </select>
 
+    <!-- 按年份前缀查询本部+四季青最大 S0XX 收款单号，例如 2026-S070 -->
+    <select id="selectMaxReceiptNumberForBenbuYear" resultType="java.lang.String">
+        SELECT MAX(receipt_number) FROM case_info
+        WHERE case_location IN ('本部','四季青')
+          AND receipt_number LIKE CONCAT(#{yearPrefix}, 'S0%')
+    </select>
+
+    <!-- 按年份前缀查询凯旋街道最大 KXX 收款单号，例如 2026-K01 -->
+    <select id="selectMaxReceiptNumberForKaixuanYear" resultType="java.lang.String">
+        SELECT MAX(receipt_number) FROM case_info
+        WHERE case_location = '凯旋街道'
+          AND receipt_number LIKE CONCAT(#{yearPrefix}, 'K%')
+    </select>
+
+    <!-- 按年份前缀查询闸弄口最大 ZXX 收款单号，例如 2026-Z01 -->
+    <select id="selectMaxReceiptNumberForZhanongkouYear" resultType="java.lang.String">
+        SELECT MAX(receipt_number) FROM case_info
+        WHERE case_location = '闸弄口'
+          AND receipt_number LIKE CONCAT(#{yearPrefix}, 'Z%')
+    </select>
+
+    <!-- 按年份前缀查询其他驻点最大纯数字收款单号，例如 2026-070 -->
+    <select id="selectMaxReceiptNumberForOthersYear" resultType="java.lang.String">
+        SELECT MAX(receipt_number) FROM case_info
+        WHERE (case_location IS NULL OR case_location NOT IN ('本部','四季青','凯旋街道','闸弄口'))
+          AND receipt_number LIKE CONCAT(#{yearPrefix}, '%')
+          AND SUBSTRING(receipt_number, LENGTH(#{yearPrefix}) + 1) REGEXP '^[0-9]+'
+    </select>
+
 </mapper>

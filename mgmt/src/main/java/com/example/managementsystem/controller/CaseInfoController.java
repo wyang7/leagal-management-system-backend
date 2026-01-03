@@ -771,51 +771,88 @@ public class CaseInfoController {
         // 自动生成收款单号（若为空，且总调解费>0）
         if (caseInfo.getReceiptNumber() == null && mediationFeeForReceipt != null && mediationFeeForReceipt.intValue() > 0) {
             String caseLocation = caseInfo.getCaseLocation();
+            int currentYear = java.time.LocalDate.now().getYear();
+            String yearPrefix = currentYear + "-";
             if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
-                // 本部 + 四季青：共用 S0XX 序列
-                String maxReceipt = caseInfoService.getMaxReceiptNumberForBenbu();
-                String nextReceipt = "S070";
-                if (maxReceipt != null && maxReceipt.startsWith("S0")) {
+                // 本部 + 四季青：按年份生成 yyyy-S0XX 序列
+                String maxReceipt = caseInfoService.getMaxReceiptNumberForBenbuYear(yearPrefix);
+                String nextReceipt;
+                if (maxReceipt == null || !maxReceipt.startsWith(yearPrefix + "S0")) {
+                    // 本年首次，从 S070 开始
+                    nextReceipt = yearPrefix + "S001";
+                } else {
+                    // 形如 2026-S071
+                    String body = maxReceipt.substring(yearPrefix.length()); // S071
+                    String numPart = body.substring(1); // 071
+                    int num;
                     try {
-                        int num = Integer.parseInt(maxReceipt.substring(2));
-                        nextReceipt = String.format("S0%02d", num + 1);
-                    } catch (NumberFormatException ignored) {}
+                        num = Integer.parseInt(numPart);
+                    } catch (NumberFormatException e) {
+                        num = 1;
+                    }
+                    nextReceipt = String.format("%sS%03d", yearPrefix, num + 1);
                 }
                 caseInfo.setReceiptNumber(nextReceipt);
             } else if ("凯旋街道".equals(caseLocation)) {
-                // 凯旋街道：K01,K02... 独立一套
-                String maxK = caseInfoService.getMaxReceiptNumberForKaixuan();
-                String nextK = "K01";
-                if (maxK != null && maxK.startsWith("K")) {
+                // 凯旋街道：按年份生成 yyyy-KXX 序列
+                String maxK = caseInfoService.getMaxReceiptNumberForKaixuanYear(yearPrefix);
+                String nextK;
+                if (maxK == null || !maxK.startsWith(yearPrefix + "K")) {
+                    nextK = yearPrefix + "K001";
+                } else {
+                    // 形如 2026-K01
+                    String body = maxK.substring(yearPrefix.length()); // K001
+                    String numPart = body.substring(1); // 001
+                    int num;
                     try {
-                        int num = Integer.parseInt(maxK.substring(1));
-                        nextK = String.format("K%02d", num + 1);
-                    } catch (NumberFormatException ignored) {}
+                        num = Integer.parseInt(numPart);
+                    } catch (NumberFormatException e) {
+                        num = 1;
+                    }
+                    nextK = String.format("%sK%03d", yearPrefix, num + 1);
                 }
                 caseInfo.setReceiptNumber(nextK);
             } else if ("闸弄口".equals(caseLocation)) {
-                // 闸弄口：Z01,Z02... 独立一套
-                String maxZ = caseInfoService.getMaxReceiptNumberForZhanongkou();
-                String nextZ = "Z01";
-                if (maxZ != null && maxZ.startsWith("Z")) {
+                // 闸弄口：按年份生成 yyyy-ZXX 序列
+                String maxZ = caseInfoService.getMaxReceiptNumberForZhanongkouYear(yearPrefix);
+                String nextZ;
+                if (maxZ == null || !maxZ.startsWith(yearPrefix + "Z")) {
+                    nextZ = yearPrefix + "Z001";
+                } else {
+                    // 形如 2026-Z01
+                    String body = maxZ.substring(yearPrefix.length()); // Z001
+                    String numPart = body.substring(1); // 001
+                    int num;
                     try {
-                        int num = Integer.parseInt(maxZ.substring(1));
-                        nextZ = String.format("Z%02d", num + 1);
-                    } catch (NumberFormatException ignored) {}
+                        num = Integer.parseInt(numPart);
+                    } catch (NumberFormatException e) {
+                        num = 1;
+                    }
+                    nextZ = String.format("%sZ%03d", yearPrefix, num + 1);
                 }
                 caseInfo.setReceiptNumber(nextZ);
             } else {
-                // 其他驻点：保持原有纯数字逻辑
-                Integer maxReceipt = caseInfoService.getMaxReceiptNumber();
-                Integer nextReceipt = (maxReceipt == null || maxReceipt < 70) ? 70 : maxReceipt + 1;
-                caseInfo.setReceiptNumber(String.valueOf(nextReceipt));
+                // 其他驻点：按年份生成 yyyy-XXX 的纯数字序列，从 070 起
+                String maxReceipt = caseInfoService.getMaxReceiptNumberForOthersYear(yearPrefix);
+                String nextReceipt;
+                int baseStart = 70;
+                if (maxReceipt == null || !maxReceipt.startsWith(yearPrefix)) {
+                    nextReceipt = String.format("%s%03d", yearPrefix, baseStart);
+                } else {
+                    String seqPart = maxReceipt.substring(yearPrefix.length()); // 如 070
+                    int seq;
+                    try {
+                        seq = Integer.parseInt(seqPart);
+                    } catch (NumberFormatException e) {
+                        seq = baseStart;
+                    }
+                    nextReceipt = String.format("%s%03d", yearPrefix, seq + 1);
+                }
+                caseInfo.setReceiptNumber(nextReceipt);
             }
         }
         ext.setPayer(payer);
-        ext.setInvoiced(invoiced);
-        if (Boolean.TRUE.equals(invoiced)) {
-            ext.setInvoiceInfo(invoiceInfo);
-        }
+        // 不再设置 ext.invoiced / ext.invoiceInfo，改由补充结案信息接口维护
         try {
             caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
         } catch (Exception e) {
