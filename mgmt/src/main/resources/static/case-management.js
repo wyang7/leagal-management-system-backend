@@ -1508,10 +1508,10 @@ async function deleteCase(caseId) {
  * @param {number} caseId 案件ID
  */
 function showReceiveCaseModal(caseId) {
-    // 先加载用户列表数据
+    // 先加载用户列表数据（保存在全局变量中，便于前端搜索过滤）
     loadUsersForReceiveDropdown();
 
-    // 创建领取案件模态框（antd风格）
+    // 创建领取案件模态框（antd风格），增加本地搜索框
     const modalHtml = `
     <div class="modal fade" id="receiveCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -1522,13 +1522,17 @@ function showReceiveCaseModal(caseId) {
                 </div>
                 <div class="modal-body" style="background:#fafcff;">
                     <input type="hidden" id="receiveCaseId" value="${caseId}">
+                    <div class="form-group mb-2">
+                        <label class="form-label">搜索用户（支持模糊匹配）</label>
+                        <input type="text" id="receiveUserSearch" class="form-control" placeholder="输入用户名关键字过滤下方列表" oninput="filterReceiveUserOptions()">
+                    </div>
                     <div class="form-group">
-                        <label for="receiveUserId">选择领取用户</label>
+                        <label for="receiveUserId" class="form-label">选择领取用户</label>
                         <select id="receiveUserId" class="form-select" required>
                             <option value="">加载用户中...</option>
                         </select>
                     </div>
-                    <p class="text-muted mt-2">请选择要领取此案件的用户，领取后案件状态将变为"已领取"</p>
+                    <p class="text-muted mt-2">搜索仅在前端本地对下拉列表做过滤，不会额外访问后端接口。</p>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                     <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
@@ -1554,42 +1558,22 @@ function showReceiveCaseModal(caseId) {
     });
 }
 
+// 全局缓存可领取用户列表，便于前端搜索过滤
+window.__receiveUserList = window.__receiveUserList || [];
+
 /**
  * 加载可领取案件的用户列表到下拉框
  */
 async function loadUsersForReceiveDropdown(isBatch=false) {
     try {
-        // 调用获取用户列表的接口（与案件包分配共用同一接口或专用接口）
         const users = await request('/user');
-        const userSelect = isBatch?document.getElementById('batchReceiveUserId')
-            :document.getElementById('receiveUserId');
-
-        if (!userSelect) return; // 防止DOM未加载完成的情况
-
-        // 清空现有选项
-        userSelect.innerHTML = '';
-
-        // 添加默认选项
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = '请选择领取用户';
-        userSelect.appendChild(defaultOption);
-
-        // 添加用户选项
-        if (users && users.length > 0) {
-            users.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.userId; // 提交时使用用户ID
-                option.textContent = user.username; // 显示用户名
-                userSelect.appendChild(option);
-            });
-        } else {
-            const noUserOption = document.createElement('option');
-            noUserOption.value = '';
-            noUserOption.textContent = '没有可用用户';
-            noUserOption.disabled = true;
-            userSelect.appendChild(noUserOption);
-        }
+        // 将用户列表缓存到全局变量，供搜索过滤使用
+        window.__receiveUserList = Array.isArray(users) ? users : [];
+        const userSelect = isBatch ? document.getElementById('batchReceiveUserId')
+                                   : document.getElementById('receiveUserId');
+        if (!userSelect) return;
+        // 初次渲染完整列表
+        renderReceiveUserOptions(userSelect, window.__receiveUserList);
     } catch (error) {
         console.error('加载领取用户列表失败:', error);
         const userSelect = document.getElementById('receiveUserId');
@@ -1599,6 +1583,47 @@ async function loadUsersForReceiveDropdown(isBatch=false) {
     }
 }
 
+// 渲染领取用户下拉选项（接受完整或过滤后的列表）
+function renderReceiveUserOptions(selectEl, users) {
+    if (!selectEl) return;
+    selectEl.innerHTML = '';
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = '请选择领取用户';
+    selectEl.appendChild(defaultOption);
+    if (users && users.length > 0) {
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.userId;
+            option.textContent = user.username;
+            selectEl.appendChild(option);
+        });
+    } else {
+        const noUserOption = document.createElement('option');
+        noUserOption.value = '';
+        noUserOption.textContent = '没有可用用户';
+        noUserOption.disabled = true;
+        selectEl.appendChild(noUserOption);
+    }
+}
+
+// 本地搜索过滤领取用户下拉框选项
+function filterReceiveUserOptions() {
+    const searchInput = document.getElementById('receiveUserSearch');
+    const selectEl = document.getElementById('receiveUserId');
+    if (!searchInput || !selectEl) return;
+    const keyword = searchInput.value.trim().toLowerCase();
+    const allUsers = window.__receiveUserList || [];
+    if (!keyword) {
+        // 关键字为空，恢复完整列表
+        renderReceiveUserOptions(selectEl, allUsers);
+        return;
+    }
+    const filtered = allUsers.filter(u =>
+        (u.username && u.username.toLowerCase().includes(keyword))
+    );
+    renderReceiveUserOptions(selectEl, filtered);
+}
 
 /**
  * 确认分派案件
