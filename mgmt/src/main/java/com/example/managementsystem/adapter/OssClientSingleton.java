@@ -8,11 +8,18 @@ import com.aliyun.oss.common.auth.CredentialsProviderFactory;
 import com.aliyun.oss.common.comm.SignVersion;
 import com.aliyun.oss.internal.OSSHeaders;
 import com.aliyun.oss.model.*;
+import org.springframework.util.StringUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.util.Map;
 
+/**
+ * @author wy
+ */
 public class OssClientSingleton {
     private OssClientSingleton() {}
 
@@ -58,12 +65,12 @@ public class OssClientSingleton {
         OSS ossClient = OssClientSingleton.getInstance();
 
         // 填写Bucket名称，例如examplebucket。
-        String bucketName = "examplebucket";
+        String bucketName = "peng-he-oa";
         // 填写不包含Bucket名称在内的Object完整路径，例如testfolder/exampleobject.txt。
         String objectKey = "testfolder/exampleobject.txt";
 
         try {
-            String filePath= "D:\\localpath\\examplefile.txt";
+            String filePath= "/Users/wy/Desktop/本部案件导入(4).xlsx";
             InputStream inputStream = new FileInputStream(filePath);
             // 创建PutObjectRequest对象。
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectKey, inputStream);

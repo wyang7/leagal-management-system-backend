@@ -1,5 +1,6 @@
 package com.example.managementsystem.controller;
 
+import com.example.managementsystem.adapter.OssFileStorageAdapter;
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.dto.UserSession;
 import com.example.managementsystem.entity.SystemFile;
@@ -90,24 +91,20 @@ public class SystemFileController {
             return Result.fail("系统文件数量已达上限10个，请先删除后再上传");
         }
 
-        // 统一使用 uploads/system 目录（uploadRoot 解析为绝对路径）
-        String relativeDir = "/uploads/system";
-        File rootDir = getUploadRootDir();
-        File dir = new File(rootDir, "system");
-        if (!dir.exists() && !dir.mkdirs()) {
-            return Result.fail("创建目录失败");
-        }
-
+        // 统一使用 OSS 存储，路径前缀为 system/
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String storedName = uuid + "." + lowerExt;
-        File dest = new File(dir, storedName);
-        file.transferTo(dest);
+        String ossObjectName = "system/" + storedName;
 
+        // 通过 OssFileStorageAdapter 上传到 OSS
+        OssFileStorageAdapter.upload(file.getInputStream(), ossObjectName);
+
+        // 数据库中只记录 OSS 中的对象名，方便下载时直接使用
         SystemFile systemFile = new SystemFile();
         systemFile.setFileName(originalName);
         systemFile.setFileType(fileType);
         systemFile.setSecretLevel(secretLevel);
-        systemFile.setFilePath(relativeDir + "/" + storedName);
+        systemFile.setFilePath(ossObjectName);
         systemFile.setUploader(currentUser.getUsername());
         systemFile.setUploadTime(new Timestamp(System.currentTimeMillis()));
 
@@ -131,14 +128,7 @@ public class SystemFileController {
         if (file == null) {
             return Result.fail("文件不存在");
         }
-        // 删除磁盘文件
-        if (file.getFilePath() != null) {
-            File rootDir = getUploadRootDir();
-            File diskFile = new File(new File(rootDir, "system"), new File(file.getFilePath()).getName());
-            if (diskFile.exists()) {
-                diskFile.delete();
-            }
-        }
+        // 这里只删除数据库记录，物理文件可选择保留或后续补充删除逻辑
         systemFileService.removeById(id);
         return Result.success(true);
     }
@@ -153,25 +143,22 @@ public class SystemFileController {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        String filePath = file.getFilePath();
-        File rootDir = getUploadRootDir();
-        File diskFile = new File(new File(rootDir, "system"), new File(filePath).getName());
-        if (!diskFile.exists()) {
+        String objectName = file.getFilePath();
+        if (objectName == null || objectName.trim().isEmpty()) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+
         response.setContentType("application/octet-stream");
         String encodedName = URLEncoder.encode(file.getFileName(), StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
         response.setHeader("Content-Disposition", "attachment; filename=" + encodedName);
 
-        try (FileInputStream fis = new FileInputStream(diskFile);
-             ServletOutputStream os = response.getOutputStream()) {
-            byte[] buffer = 1024 <= 8192 ? new byte[8192] : new byte[1024];
-            int len;
-            while ((len = fis.read(buffer)) != -1) {
-                os.write(buffer, 0, len);
-            }
-            os.flush();
+        // 直接从 OSS 读取并写入响应输出流
+        try {
+            OssFileStorageAdapter.download(objectName, response.getOutputStream());
+        } catch (RuntimeException e) {
+            response.reset();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 }
