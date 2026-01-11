@@ -45,6 +45,12 @@ public class OssFileStorageAdapter {
         if (objectName == null || objectName.trim().isEmpty()) {
             throw new IllegalArgumentException("objectName must not be blank");
         }
+        String env = System.getenv("env");
+        if (env != null && "prd".equals(env.trim())) {
+            objectName="prd/"+objectName;
+        }else {
+            objectName="dev/"+objectName;
+        }
         OSS ossClient = OssClientSingleton.getInstance();
         try {
             PutObjectRequest request = new PutObjectRequest(BUCKET_NAME, objectName, inputStream);
@@ -67,7 +73,12 @@ public class OssFileStorageAdapter {
         if (output == null) {
             throw new IllegalArgumentException("output must not be null");
         }
-
+        String env = System.getenv("env");
+        if (env != null && "prd".equals(env.trim())) {
+            objectName="prd/"+objectName;
+        }else {
+            objectName="dev/"+objectName;
+        }
         OSS ossClient = OssClientSingleton.getInstance();
         OSSObject ossObject = ossClient.getObject(new GetObjectRequest(BUCKET_NAME, objectName));
         try (InputStream in = ossObject.getObjectContent()) {
