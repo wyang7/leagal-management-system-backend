@@ -29,8 +29,16 @@ public class CaseCloseExtDTO {
 
     @Data
     public static class PaymentFlow {
-        /** 付款截图URL */
+        /** 付款截图URL（历史数据通常是 /uploads/payment/xxx，新数据可存 OSS objectName，例如 payment/xxx.png） */
         private String screenshotUrl;
+
+        /**
+         * 截图地址类型：
+         * - Oss：表示 screenshotUrl 存的是 OSS 的 objectName，需要走后端下载接口取内容
+         * - 空/其它：表示仍然是旧的本地资源路径，前端可直接访问
+         */
+        private String screenshotUrlType;
+
         /** 付款时间 (yyyy-MM-dd HH:mm:ss) */
         private String payTime;
         /** 付款金额 */

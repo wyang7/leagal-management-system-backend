@@ -1,8 +1,6 @@
 package com.example.managementsystem.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.managementsystem.adapter.OssFileStorageAdapter;
 import com.example.managementsystem.common.Result;
 import com.example.managementsystem.dto.UserSession;
 import com.example.managementsystem.entity.CaseInfo;
@@ -20,6 +18,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLConnection;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -949,7 +950,7 @@ public class CaseInfoController {
                 // 支持多选状态导出
                 Object statusListObj = params.get("statusList");
                 if (statusListObj instanceof java.util.List<?>) {
-                    @SuppressWarnings("unche                  cked")
+                    @SuppressWarnings("unchecked")
                     java.util.List<String> statusList = (java.util.List<String>) statusListObj;
                     request.setStatusList(statusList);
                 }
@@ -1236,7 +1237,11 @@ public class CaseInfoController {
     }
 
     /**
-     * 上传结案付款截图（仅 jpg/png），返回访问URL
+     * 上传结案付款截图（仅 jpg/png），返回可用于保存的 screenshotUrl。
+     *
+     * 说明：
+     * - 新逻辑：写入 OSS，返回 objectName（例如 payment/xxx.png）
+     * - 老逻辑：历史数据仍可能是 /uploads/payment/xxx（由 paymentFlows.screenshotUrlType 为空表示）
      */
     @PostMapping("/upload-payment-screenshot")
     public Result<String> uploadPaymentScreenshot(@RequestParam("file") MultipartFile file) {
@@ -1251,25 +1256,19 @@ public class CaseInfoController {
         if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
             return Result.fail("仅支持上传 jpg、jpeg 或 png 格式的图片");
         }
+
         try {
             String ext = lower.substring(lower.lastIndexOf('.'));
             String newName = java.util.UUID.randomUUID().toString().replace("-", "") + ext;
-            // 计算项目根目录的上一级目录，在其下创建 uploads/payment
-            String userDir = System.getProperty("user.dir");
-            java.io.File projectDir = new java.io.File(userDir); // leagal-management-system-backend
-            java.io.File parentDir = projectDir.getParentFile();
-            if (parentDir == null) {
-                parentDir = projectDir; // 兜底：万一没有上级目录，则仍落在当前项目目录
+            String objectName = "payment/" + newName;
+
+            // 上传到 OSS。这里 InputStream 由 MultipartFile 持有，上传完成后无需写磁盘。
+            try (InputStream in = file.getInputStream()) {
+                OssFileStorageAdapter.upload(in, objectName);
             }
-            java.io.File dir = new java.io.File(parentDir, "uploads/payment");
-            if (!dir.exists() && !dir.mkdirs()) {
-                return Result.fail("创建上传目录失败");
-            }
-            java.io.File dest = new java.io.File(dir, newName);
-            file.transferTo(dest);
-            // 前端访问路径仍然使用 /uploads/payment/xxx
-            String url = "/uploads/payment/" + newName;
-            return Result.success(url);
+
+            // 返回 objectName，前端在新增流水时配合 screenshotUrlType=Oss 走后端读取接口
+            return Result.success(objectName);
         } catch (Exception e) {
             log.error("上传付款截图失败", e);
             return Result.fail("上传失败，请稍后重试");
@@ -1277,7 +1276,40 @@ public class CaseInfoController {
     }
 
     /**
-     * 为待结案案件补充付款流水；只允许新增和删除，不允许修改
+     * 读取 OSS 中的付款截图内容。
+     * 前端发现 paymentFlows[x].screenshotUrlType == "Oss" 时，使用该接口获取图片内容。
+     */
+    @GetMapping("/payment-screenshot")
+    public void getPaymentScreenshot(@RequestParam("objectName") String objectName, HttpServletResponse response) throws IOException {
+        if (objectName == null || objectName.trim().isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        // 简单安全校验：只允许 payment/ 前缀
+        if (!objectName.startsWith("payment/")) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        // 根据文件扩展名设置 content-type
+        String contentType = URLConnection.guessContentTypeFromName(objectName);
+        if (contentType == null) {
+            contentType = "application/octet-stream";
+        }
+        response.setContentType(contentType);
+
+        try {
+            OssFileStorageAdapter.download(objectName, response.getOutputStream());
+        } catch (RuntimeException e) {
+            log.error("读取付款截图失败: {}", objectName, e);
+            response.reset();
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        }
+    }
+
+    /**
+     * 新增付款流水
+     * 支持新增、删除操作，返回操作结果。
      */
     @PostMapping("/payment-flows")
     public Result<?> updatePaymentFlows(@RequestBody Map<String, Object> params, HttpSession session) {
@@ -1293,6 +1325,7 @@ public class CaseInfoController {
         if (currentUser == null || currentUser.getUserId() == null) {
             return Result.fail("未登录或会话已过期，请重新登录");
         }
+
         // 解析现有 ext
         CaseCloseExtDTO ext = null;
         try {
@@ -1308,6 +1341,7 @@ public class CaseInfoController {
         if (ext.getPaymentFlows() == null) {
             ext.setPaymentFlows(new java.util.ArrayList<>());
         }
+
         String action = (String) params.getOrDefault("action", "add");
         if ("add".equals(action)) {
             // 新增一条流水：screenshotUrl, payTime, amount
@@ -1326,11 +1360,17 @@ public class CaseInfoController {
             if (amount.compareTo(java.math.BigDecimal.ZERO) < 0) {
                 return Result.fail("付款金额不能为负");
             }
+
             CaseCloseExtDTO.PaymentFlow flow = new CaseCloseExtDTO.PaymentFlow();
             flow.setScreenshotUrl(screenshotUrl);
+            // 新上传接口返回 oss objectName: payment/xxx.png
+            if (screenshotUrl.startsWith("payment/")) {
+                flow.setScreenshotUrlType("Oss");
+            }
             flow.setPayTime(payTime);
             flow.setAmount(amount);
             ext.getPaymentFlows().add(flow);
+
         } else if ("remove".equals(action)) {
             // 按索引删除一条流水
             Object idxObj = params.get("index");
@@ -1360,6 +1400,6 @@ public class CaseInfoController {
         }
         caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         boolean ok = caseInfoService.updateById(caseInfo);
-        return ok ? Result.success() : Result.fail("保存付款流水失败");
+        return ok ? Result.success(ext.getPaymentFlows()) : Result.fail("保存付款流水失败");
     }
 }

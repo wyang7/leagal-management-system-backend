@@ -209,8 +209,8 @@ async function showmyCaseDetailModal(caseId) {
         if(caseInfo.caseCloseExt){
             try{ const ext=JSON.parse(caseInfo.caseCloseExt); const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[]; const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00'; const flowsHtml = flows.length
   ? flows.map((f,idx)=>{
-        const rawUrl = f.screenshotUrl || '';
-        const imgSrc = rawUrl ? (rawUrl.startsWith('/api') ? rawUrl : '/api' + rawUrl) : '';
+        const imgSrc = buildPaymentScreenshotSrc(f);
+        const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
         return `<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
         <div class='flex-grow-1'>
             <div>序号：${idx+1}</div>
@@ -218,10 +218,10 @@ async function showmyCaseDetailModal(caseId) {
             <div>金额：${fmtAmount(f.amount)}</div>
         </div>
         <div class='ms-3'>
-            ${imgSrc? `<img src="${imgSrc}"
+            ${finalImgSrc? `<img src="${finalImgSrc}"
                               alt="付款截图${idx+1}"
                               class="payment-screenshot"
-                              data-url="${imgSrc}"
+                              data-url="${finalImgSrc}"
                               style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
                       : '<span class="text-muted">无截图</span>'}
         </div>
@@ -686,8 +686,8 @@ async function loadPaymentFlows(caseId) {
         }
         const fmtAmt = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
         listEl.innerHTML = flows.map((f,idx)=>{
-            const rawUrl = f.screenshotUrl || '';
-            const imgSrc = rawUrl ? (rawUrl.startsWith('/api') ? rawUrl : '/api' + rawUrl) : '';
+            const imgSrc = buildPaymentScreenshotSrc(f);
+            const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
             return `
     <div class="list-group-item d-flex justify-content-between align-items-center">
         <div>
@@ -696,10 +696,10 @@ async function loadPaymentFlows(caseId) {
             <div>金额：${fmtAmt(f.amount)}</div>
         </div>
         <div class="d-flex align-items-center gap-2">
-            ${imgSrc? `<img src="${imgSrc}"
+            ${finalImgSrc? `<img src="${finalImgSrc}"
                               alt="付款截图${idx+1}"
                               class="payment-screenshot"
-                              data-url="${imgSrc}"
+                              data-url="${finalImgSrc}"
                               style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
                       : '<span class="text-muted">无截图</span>'}
             <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlow(${idx})">删除</button>
@@ -1326,3 +1326,15 @@ async function submitMyReturnCase() {
     }
 }
 
+// 付款流水：根据 screenshotUrlType 决定图片展示地址
+function buildPaymentScreenshotSrc(flow) {
+    if (!flow || !flow.screenshotUrl) return '';
+
+    // 新：OSS 存储，screenshotUrl 存的是 objectName，例如 payment/xxx.png
+    if (flow.screenshotUrlType === 'Oss') {
+        return `/api/case/payment-screenshot?objectName=${encodeURIComponent(flow.screenshotUrl)}`;
+    }
+
+    // 旧：本地静态路径，直接访问
+    return flow.screenshotUrl;
+}
