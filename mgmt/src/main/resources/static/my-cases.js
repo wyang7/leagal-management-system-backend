@@ -749,6 +749,9 @@ async function submitNewPaymentFlow() {
         if (!uploadResp.ok || uploadJson.code !== 200) {
             throw new Error(uploadJson.msg || '上传失败');
         }
+
+        alert('上传成功');
+
         const screenshotUrl = uploadJson.data;
         await request('/case/payment-flows', 'POST', {
             caseId,
@@ -757,6 +760,16 @@ async function submitNewPaymentFlow() {
             payTime,
             amount: amountRaw
         });
+
+        // 关闭当前上传浮窗
+        try {
+            const modalEl = document.getElementById('paymentFlowsModal');
+            const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+            if (modal) modal.hide();
+        } catch (e) {
+            // ignore
+        }
+
         fileInput.value = '';
         payTimeInput.value = '';
         amountInput.value = '';

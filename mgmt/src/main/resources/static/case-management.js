@@ -2233,29 +2233,41 @@ async function submitNewPaymentFlowMgmt() {
         if (!uploadResp.ok || uploadJson.code !== 200) {
             throw new Error(uploadJson.msg || '上传失败');
         }
-        const screenshotUrl = uploadJson.data; // payment/xxx.png
 
-        // 2) 新增流水（后端会自动写 screenshotUrlType = Oss）
-        await request('/case/payment-flows', 'POST', {
-            caseId,
-            action: 'add',
-            screenshotUrl,
-            payTime,
-            amount: amountRaw
-        });
+        alert('上传成功');
 
-        // 3) 刷新
-        if (fileInput) fileInput.value = '';
-        if (payTimeInput) payTimeInput.value = '';
-        if (amountInput) amountInput.value = '';
-        loadPaymentFlowsMgmt(caseId);
+         const screenshotUrl = uploadJson.data; // payment/xxx.png
 
-    } catch (e) {
-        if (errEl) {
-            errEl.textContent = '保存付款流水失败：' + (e.message || '未知错误');
-            errEl.style.display = 'block';
+         // 2) 新增流水（后端会自动写 screenshotUrlType = Oss）
+         await request('/case/payment-flows', 'POST', {
+             caseId,
+             action: 'add',
+             screenshotUrl,
+             payTime,
+             amount: amountRaw
+         });
+
+        // 3) 关闭当前上传浮窗
+        try {
+            const modalEl = document.getElementById('paymentFlowsModal');
+            const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+            if (modal) modal.hide();
+        } catch (e) {
+            // ignore
         }
-    }
+
+        // 4) 刷新
+         if (fileInput) fileInput.value = '';
+         if (payTimeInput) payTimeInput.value = '';
+         if (amountInput) amountInput.value = '';
+         loadPaymentFlowsMgmt(caseId);
+
+     } catch (e) {
+         if (errEl) {
+             errEl.textContent = '保存付款流水失败：' + (e.message || '未知错误');
+             errEl.style.display = 'block';
+         }
+     }
 }
 
 async function removePaymentFlowMgmt(index) {
