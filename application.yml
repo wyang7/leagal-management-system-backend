@@ -24,6 +24,4 @@ server:
   servlet:
     context-path: /api
     session:
-      timeout: 3600s # 会话超时时间1小时
-
-
+      timeout: 7200s # 会话超时时间1小时

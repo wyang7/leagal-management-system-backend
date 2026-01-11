@@ -739,6 +739,12 @@ async function submitNewPaymentFlow() {
         return;
     }
     try {
+        // 关闭当前上传浮窗
+        const modalEl = document.getElementById('paymentFlowsModal');
+        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (modal) modal.hide();
+
+
         const formData = new FormData();
         formData.append('file', file);
         const uploadResp = await fetch('/api/case/upload-payment-screenshot', {
@@ -760,15 +766,6 @@ async function submitNewPaymentFlow() {
             payTime,
             amount: amountRaw
         });
-
-        // 关闭当前上传浮窗
-        try {
-            const modalEl = document.getElementById('paymentFlowsModal');
-            const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
-            if (modal) modal.hide();
-        } catch (e) {
-            // ignore
-        }
 
         fileInput.value = '';
         payTimeInput.value = '';

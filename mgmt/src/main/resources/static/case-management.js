@@ -2225,7 +2225,12 @@ async function submitNewPaymentFlowMgmt() {
     }
 
     try {
-        // 1) 上传截图到 OSS
+        // 1) 关闭当前上传浮窗
+        const modalEl = document.getElementById('paymentFlowsModal');
+        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (modal) modal.hide();
+
+        // 2) 上传截图到 OSS
         const formData = new FormData();
         formData.append('file', file);
         const uploadResp = await fetch('/api/case/upload-payment-screenshot', { method: 'POST', body: formData });
@@ -2238,7 +2243,7 @@ async function submitNewPaymentFlowMgmt() {
 
          const screenshotUrl = uploadJson.data; // payment/xxx.png
 
-         // 2) 新增流水（后端会自动写 screenshotUrlType = Oss）
+         // 3) 新增流水（后端会自动写 screenshotUrlType = Oss）
          await request('/case/payment-flows', 'POST', {
              caseId,
              action: 'add',
@@ -2246,15 +2251,6 @@ async function submitNewPaymentFlowMgmt() {
              payTime,
              amount: amountRaw
          });
-
-        // 3) 关闭当前上传浮窗
-        try {
-            const modalEl = document.getElementById('paymentFlowsModal');
-            const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
-            if (modal) modal.hide();
-        } catch (e) {
-            // ignore
-        }
 
         // 4) 刷新
          if (fileInput) fileInput.value = '';
