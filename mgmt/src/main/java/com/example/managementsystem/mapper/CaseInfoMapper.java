@@ -173,4 +173,14 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
 
     /** 根据年份前缀查询其他驻点最大纯数字收款单号，例如 2026-070 */
     String selectMaxReceiptNumberForOthersYear(@Param("yearPrefix") String yearPrefix);
+
+    /**
+     * 根据年份前缀查询最大人调号（格式：yyyy彭人NNN）
+     */
+    String selectMaxMediateCaseNumberForYear(@Param("yearPrefix") String yearPrefix);
+
+    /**
+     * 根据年份前缀查询最大人调号并加行锁（用于生成序列的并发安全）
+     */
+    String selectMaxMediateCaseNumberForYearForUpdate(@Param("yearPrefix") String yearPrefix);
 }

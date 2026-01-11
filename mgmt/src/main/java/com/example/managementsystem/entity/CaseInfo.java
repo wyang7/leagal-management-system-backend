@@ -193,4 +193,10 @@ public class CaseInfo implements Serializable {
      */
     @TableField("penghe_case_number")
     private String pengheCaseNumber;
+
+    /**
+     * 人调号（提交结案审核/结案时生成，格式：yyyy彭人NNN）
+     */
+    @TableField("mediate_case_number")
+    private String mediateCaseNumber;
 }

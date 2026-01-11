@@ -180,4 +180,14 @@ public interface ICaseInfoService extends IService<CaseInfo> {
      * 根据年份前缀查询最大澎和号
      */
     String getMaxPengheCaseNumberForYear(String yearPrefix);
+
+    /**
+     * 根据年份前缀查询最大人调号（格式：yyyy彭人NNN）
+     */
+    String getMaxMediateCaseNumberForYear(String yearPrefix);
+
+    /**
+     * 根据年份前缀查询最大人调号并加行锁（用于并发安全生成序列）
+     */
+    String getMaxMediateCaseNumberForYearForUpdate(String yearPrefix);
 }

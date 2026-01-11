@@ -247,7 +247,8 @@ async function showmyCaseDetailModal(caseId) {
         const settlementNumbersHtml = `<div class='row g-2 mb-3'>
             <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfoResponse.number!=null?caseInfoResponse.number:'-'}</div>
             <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
-        </div>`;
+            <div class='col-md-6'><span class='text-muted'>人调号：</span>${caseInfo.mediateCaseNumber!=null?caseInfo.mediateCaseNumber:'-'}</div>
+         </div>`;
         const modalContainer = document.getElementById('myCaseDetailModalContainer');
         const formatDate = (dateStr) => !dateStr?'-':(/\d{4}-\d{2}-\d{2}/.test(dateStr)? dateStr : new Date(dateStr).toLocaleString());
         // 历史渲染带图标
@@ -876,6 +877,14 @@ async function showCompleteCaseModal(caseId) {
                             <label class="form-label">开票信息 <span class="text-danger">*</span></label>
                             <textarea id="invoiceInfo" rows="3" class="form-control" placeholder="请输入开票抬头 / 税号 / 地址等信息"></textarea>
                         </div>
+                        <div class="form-group mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isMediateCase">
+                                <label class="form-check-label" for="isMediateCase">
+                                    是否是人调案件（系统将自动生成人调号）
+                                </label>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
@@ -973,6 +982,8 @@ async function submitCaseCompletion() {
         invoiceInfo = document.getElementById('invoiceInfo').value.trim();
         if(!invoiceInfo){ alert('选择开票为“是”时需填写开票信息'); return; }
     }
+    const isMediateCase = !!document.getElementById('isMediateCase')?.checked;
+
     const caseId = document.getElementById('completeCaseId').value;
     const payload = {
         caseId,
@@ -984,7 +995,8 @@ async function submitCaseCompletion() {
         defendantMediationFee: payer === '原被告' ? dMediationRaw : undefined,
         payer,
         invoiced,
-        invoiceInfo: invoiceInfo || undefined
+        invoiceInfo: invoiceInfo || undefined,
+        isMediateCase
     };
     try {
         await request('/case/complete-with-notes','POST', payload);

@@ -87,8 +87,8 @@ public class SystemFileController {
         }
 
         int total = systemFileService.countAll();
-        if (total >= 10) {
-            return Result.fail("系统文件数量已达上限10个，请先删除后再上传");
+        if (total >= 100) {
+            return Result.fail("系统文件数量已达上限100个，请先删除后再上传");
         }
 
         // 统一使用 OSS 存储，路径前缀为 system/

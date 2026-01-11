@@ -78,6 +78,7 @@
             OR c.case_number LIKE CONCAT('%', #{keyword}, '%')
             OR CAST(c.receipt_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
             OR CAST(c.penghe_case_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+            OR CAST(c.mediate_case_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
             OR a.username LIKE CONCAT('%', #{keyword}, '%')
             OR u.username LIKE CONCAT('%', #{keyword}, '%')
             )
@@ -192,6 +193,7 @@
                 OR c.case_number LIKE CONCAT('%', #{keyword}, '%')
                 OR CAST(c.receipt_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
                 OR CAST(c.penghe_case_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+                OR CAST(c.mediate_case_number AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
                 OR a.username LIKE CONCAT('%', #{keyword}, '%')
                 OR u.username LIKE CONCAT('%', #{keyword}, '%')
             )
@@ -433,6 +435,21 @@
         WHERE (case_location IS NULL OR case_location NOT IN ('本部','四季青','凯旋街道','闸弄口'))
           AND receipt_number LIKE CONCAT(#{yearPrefix}, '%')
           AND SUBSTRING(receipt_number, LENGTH(#{yearPrefix}) + 1) REGEXP '^[0-9]+'
+    </select>
+
+    <!-- 按年份前缀查询最大人调号，格式如 2026彭人003 -->
+    <select id="selectMaxMediateCaseNumberForYear" resultType="java.lang.String">
+        SELECT MAX(mediate_case_number)
+        FROM case_info
+        WHERE mediate_case_number LIKE CONCAT(#{yearPrefix}, '%')
+    </select>
+
+    <!-- 按年份前缀查询最大人调号并加行锁（并发安全生成序列） -->
+    <select id="selectMaxMediateCaseNumberForYearForUpdate" resultType="java.lang.String">
+        SELECT MAX(mediate_case_number)
+        FROM case_info
+        WHERE mediate_case_number LIKE CONCAT(#{yearPrefix}, '%')
+        FOR UPDATE
     </select>
 
 </mapper>

@@ -24,7 +24,6 @@ import java.net.URLConnection;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -34,6 +33,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.example.managementsystem.dto.CasePageRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.managementsystem.dto.CaseCloseExtDTO;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <p>
@@ -647,10 +647,43 @@ public class CaseInfoController {
      * 更新案件状态
      */
     @PostMapping("/update-status")
+    @Transactional
     public Result<?> updateCaseStatus(@RequestBody Map<String, Object> params, HttpSession session) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String status = params.get("status").toString();
         String remark = params.getOrDefault("remark", "").toString();
+        Boolean isMediateCase = params.get("isMediateCase") == null ? null : Boolean.valueOf(params.get("isMediateCase").toString());
+
+        // 若要结案 + 勾选人调案件，则先生成/写入人调号
+        if ("结案".equals(status)) {
+            CaseInfo caseInfo = caseInfoService.getById(caseId);
+            if (caseInfo == null) {
+                return Result.fail("案件不存在");
+            }
+            boolean shouldGenerateMediateNumber = (caseInfo.getMediateCaseNumber() != null && !caseInfo.getMediateCaseNumber().isEmpty())
+                || Boolean.TRUE.equals(isMediateCase);
+            if (shouldGenerateMediateNumber && (caseInfo.getMediateCaseNumber() == null || caseInfo.getMediateCaseNumber().isEmpty())) {
+                int currentYear = java.time.LocalDate.now().getYear();
+                String yearPrefix = String.valueOf(currentYear);
+                String maxMediate = caseInfoService.getMaxMediateCaseNumberForYearForUpdate(yearPrefix);
+
+                int baseStart = 3;
+                int nextSeq = baseStart;
+                if (maxMediate != null && maxMediate.startsWith(yearPrefix + "彭人")) {
+                    String seqPart = maxMediate.substring((yearPrefix + "彭人").length());
+                    try {
+                        nextSeq = Integer.parseInt(seqPart) + 1;
+                    } catch (NumberFormatException ignored) {
+                        nextSeq = baseStart;
+                    }
+                }
+                String nextMediate = String.format("%s彭人%03d", yearPrefix, nextSeq);
+                caseInfo.setMediateCaseNumber(nextMediate);
+                caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                caseInfoService.updateById(caseInfo);
+            }
+        }
+
         boolean success = caseInfoService.updateCaseStatus(caseId, status);
         // 写入案件操作历史
         if (success && "结案".equals(status)) {
@@ -674,9 +707,11 @@ public class CaseInfoController {
      * 完成案件（包含完成情况）
      */
     @PostMapping("/complete-with-notes")
+    @Transactional
     public Result<?> completeCaseWithNotes(@RequestBody Map<String, Object> params, HttpSession session) {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String notes = params.get("notes").toString();
+        Boolean isMediateCase = params.get("isMediateCase") == null ? null : Boolean.valueOf(params.get("isMediateCase").toString());
         // 扩展字段提取
         String signDate = (String) params.getOrDefault("signDate", null);
         Object adjustedAmountObj = params.get("adjustedAmount");
@@ -684,8 +719,7 @@ public class CaseInfoController {
         Object plaintiffMediationFeeObj = params.get("plaintiffMediationFee");
         Object defendantMediationFeeObj = params.get("defendantMediationFee");
         String payer = (String) params.getOrDefault("payer", null);
-        Boolean invoiced = params.get("invoiced") == null ? null : Boolean.valueOf(params.get("invoiced").toString());
-        String invoiceInfo = (String) params.getOrDefault("invoiceInfo", null);
+        // invoiced / invoiceInfo 当前端仍会传，但后端不再在此处维护，避免未使用变量
         CaseInfo caseInfo = caseInfoService.getById(caseId);
         if (caseInfo == null) {
             return Result.fail("案件不存在");
@@ -700,6 +734,29 @@ public class CaseInfoController {
         String before = caseInfo.getStatus();
         if (!("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before))) {
             return Result.fail("当前状态不允许提交结案审核");
+        }
+
+        // 人调号：若已有则视为勾选；否则由勾选触发生成
+        boolean shouldGenerateMediateNumber = (caseInfo.getMediateCaseNumber() != null && !caseInfo.getMediateCaseNumber().isEmpty())
+            || Boolean.TRUE.equals(isMediateCase);
+        if (shouldGenerateMediateNumber && (caseInfo.getMediateCaseNumber() == null || caseInfo.getMediateCaseNumber().isEmpty())) {
+            int currentYear = java.time.LocalDate.now().getYear();
+            String yearPrefix = String.valueOf(currentYear);
+            String maxMediate = caseInfoService.getMaxMediateCaseNumberForYearForUpdate(yearPrefix);
+
+            // 规则：2026彭人003 起
+            int baseStart = 3;
+            int nextSeq = baseStart;
+            if (maxMediate != null && maxMediate.startsWith(yearPrefix + "彭人")) {
+                String seqPart = maxMediate.substring((yearPrefix + "彭人").length());
+                try {
+                    nextSeq = Integer.parseInt(seqPart) + 1;
+                } catch (NumberFormatException ignored) {
+                    nextSeq = baseStart;
+                }
+            }
+            String nextMediate = String.format("%s彭人%03d", yearPrefix, nextSeq);
+            caseInfo.setMediateCaseNumber(nextMediate);
         }
 
         // 自动生成青枫号/澎和号（仅司法确认/其他/民初且为空），两套序列互相独立

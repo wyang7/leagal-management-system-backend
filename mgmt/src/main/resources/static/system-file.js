@@ -17,6 +17,7 @@ function loadSystemFilePage() {
                             <select id="systemFileType" class="form-select ant-select" style="width:180px;">
                                 <option value="委托材料">委托材料</option>
                                 <option value="案件材料模板">案件材料模板</option>
+                                <option value="其他">其他</option>
                             </select>
                         </div>
                         <div class="d-flex align-items-center gap-1">
@@ -34,7 +35,7 @@ function loadSystemFilePage() {
                     <span class="text-muted" style="font-size:14px;">仅管理员可以上传和删除文件，所有人均可下载。</span>`}
                 </div>
                 <div class="alert alert-info py-2 mb-3" style="font-size:13px;">
-                    支持上传 pdf / doc / docx 文件，单个文件大小不超过 10MB，总数量最多 10 个。
+                    支持上传 pdf / doc / docx 文件，单个文件大小不超过 10MB，总数量最多 100 个。
                 </div>
                 <div class="table-responsive">
                     <table class="ant-table table table-hover table-bordered" style="border-radius:6px;overflow:hidden;">

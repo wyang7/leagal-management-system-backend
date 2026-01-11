@@ -10,7 +10,7 @@ import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,7 +42,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     // 替换原有查询所有案件的方法
     @Override
     public List<CaseInfo> list() {
-        return baseMapper.selectCasesWithUsername(); // 使用关联查询
+        /* 使用关联查询 */
+        return baseMapper.selectCasesWithUsername();
     }
 
     @Override
@@ -52,7 +53,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
     @Override
     public List<CaseInfo> getCasesByStatus(String status) {
-        return baseMapper.selectCasesByStatusWithUsername(status); // 使用关联查询
+        /* 使用关联查询 */
+        return baseMapper.selectCasesByStatusWithUsername(status);
     }
 
     @Override
@@ -159,8 +161,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public Map<String, Object> getCasePage(CasePageRequest request) {
         if (request == null) { return Collections.emptyMap(); }
-        Integer pageNum = request.getPageNum() == null || request.getPageNum() < 1 ? 1 : request.getPageNum();
-        Integer pageSize = request.getPageSize() == null || request.getPageSize() < 1 ? 10 : Math.min(request.getPageSize(), 10000);
+        int pageNum = request.getPageNum() == null || request.getPageNum() < 1 ? 1 : request.getPageNum();
+        int pageSize = request.getPageSize() == null || request.getPageSize() < 1 ? 10 : Math.min(request.getPageSize(), 10000);
         int offset = (pageNum - 1) * pageSize;
         String caseName = request.getCaseName();
         String status = request.getStatus();
@@ -279,7 +281,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         String currentStatus = caseInfo.getStatus();
         if (!"已领取".equals(currentStatus) && !"待结案".equals(currentStatus) && !"反馈".equals(currentStatus)
                  && !"退回".equals(currentStatus)) {
-            return false;  // 不允许从当前状态转为失败
+            /* 不允许从当前状态转为失败 */
+            return false;
         }
         // 3. 更新案件状态和字段
         int rows = baseMapper.updateCompleteStatus(
@@ -322,7 +325,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         caseInfo.setReturnCourtTime(returnCourtTime);
         QueryWrapper<CaseInfo> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("case_id", caseIds)
-            .in("status", Arrays.asList("待结案", "调解失败", "结案")); // 只允许待结案和失败状态批量写入
+            /* 只允许待结案和失败状态批量写入 */
+            .in("status", Arrays.asList("待结案", "调解失败", "结案"));
         return baseMapper.update(caseInfo, queryWrapper);
     }
 
@@ -429,5 +433,16 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
     @Override
     public String getMaxReceiptNumberForOthersYear(String yearPrefix) {
         return baseMapper.selectMaxReceiptNumberForOthersYear(yearPrefix);
+    }
+
+    @Override
+    public String getMaxMediateCaseNumberForYear(String yearPrefix) {
+        return baseMapper.selectMaxMediateCaseNumberForYear(yearPrefix);
+    }
+
+    @Override
+    @Transactional
+    public String getMaxMediateCaseNumberForYearForUpdate(String yearPrefix) {
+        return baseMapper.selectMaxMediateCaseNumberForYearForUpdate(yearPrefix);
     }
 }
