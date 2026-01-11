@@ -217,6 +217,8 @@ function loadCaseManagementPage(station, status) {
     createBatchAssignModal();
     // 创建批量退回法院时间模态框
     createBatchReturnCourtTimeModal();
+    // 创建付款流水模态框容器
+    createPaymentFlowsModalContainer();
     // 加载案件列表（默认第一页，状态为全部）
     if (status && status !== 'all') {
         filterCases(status, 1, pageSize);
@@ -466,8 +468,8 @@ async function showCaseDetailModal(caseId) {
         if(caseInfo.caseCloseExt){
           try{ const ext=JSON.parse(caseInfo.caseCloseExt); const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[]; const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00'; const flowsHtml = flows.length
   ? flows.map((f,idx)=>{
-        const rawUrl = f.screenshotUrl || '';
-        const imgSrc = rawUrl ? (rawUrl.startsWith('/api') ? rawUrl : '/api' + rawUrl) : '';
+        const imgSrc = buildPaymentScreenshotSrc(f);
+        const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
         return `<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
         <div class='flex-grow-1'>
           <div>序号：${idx+1}</div>
@@ -475,10 +477,10 @@ async function showCaseDetailModal(caseId) {
           <div>金额：${fmtAmount(f.amount)}</div>
         </div>
         <div class='ms-3'>
-          ${imgSrc ? `<img src="${imgSrc}"
+          ${finalImgSrc ? `<img src="${finalImgSrc}"
                             alt="付款截图${idx+1}"
                             class="payment-screenshot"
-                            data-url="${imgSrc}"
+                            data-url="${finalImgSrc}"
                             style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
                     : '<span class="text-muted">无截图</span>'}
         </div>
@@ -1229,7 +1231,7 @@ async function loadTasksForCaseForm() {
  */
 function createCaseModal(taskOptions, assistantOptions) {
     const modalContainer = document.getElementById('caseModalContainer');
-    
+
     if (!document.getElementById('caseModal')) {
         const modalHtml = `
         <!-- 案件表单模态框 -->
@@ -1314,7 +1316,7 @@ function createCaseModal(taskOptions, assistantOptions) {
             </div>
         </div>
         `;
-        
+
         modalContainer.innerHTML = modalHtml;
     } else {
         // 更新任务下拉框
@@ -1347,12 +1349,12 @@ async function showAddCaseModal() {
     const assistantOptions = await loadCaseAssistants();
     createCaseModal(taskOptions, assistantOptions);
     await loadCaseAssistants();
-    
+
     // 重置表单
     document.getElementById('caseForm').reset();
     document.getElementById('caseId').value = '';
     document.getElementById('caseModalTitle').textContent = '新增案件';
-    
+
     // 显示模态框
     const caseModal = new bootstrap.Modal(document.getElementById('caseModal'));
     caseModal.show();
@@ -1378,7 +1380,7 @@ async function showEditCaseModal(caseId) {
             courtReceiveDate = caseInfo.courtReceiveTime.split(' ')[0];
             // 分割后得到 "2025-09-19"，符合 input[type=date] 要求
         }
-        
+
         // 填充表单数据
         document.getElementById('caseAssistantId').value = safeCaseInfo.assistantId ?? '';
         document.getElementById('caseId').value = safeCaseInfo.caseId ?? '';
@@ -1392,7 +1394,7 @@ async function showEditCaseModal(caseId) {
         document.getElementById('caseStatus').value = safeCaseInfo.status ?? '';
         document.getElementById('caseTaskId').value = caseInfo.taskId || '';
         document.getElementById('caseModalTitle').textContent = '编辑案件';
-        
+
         // 显示模态框
         const caseModal = new bootstrap.Modal(document.getElementById('caseModal'));
         caseModal.show();
@@ -1418,7 +1420,7 @@ async function saveCase() {
     const taskId = document.getElementById('caseTaskId').value;
     const caseAssistantId = document.getElementById('caseAssistantId').value;
     const status = document.getElementById('caseStatus').value;
-    
+
     // 简单验证
     if (!plaintiffName) {
         alert('请输入原告');
@@ -1436,12 +1438,12 @@ async function saveCase() {
         alert('请输入归属地');
         return;
     }
-    
+
  if (!caseName) {
         alert('请输入案由');
         return;
     }
-    
+
     if (!status) {
         alert('请选择案件状态');
         return;
@@ -1470,14 +1472,14 @@ async function saveCase() {
             // 新增案件
             await request('/case', 'POST', caseData);
         }
-        
+
         // 关闭模态框
         const caseModal = bootstrap.Modal.getInstance(document.getElementById('caseModal'));
         caseModal.hide();
-        
+
         // 重新加载案件列表
         loadCases();
-        
+
         alert(caseId ? '案件更新成功' : '案件新增成功');
     } catch (error) {
         // 错误处理已在request函数中完成
@@ -1492,7 +1494,7 @@ async function deleteCase(caseId) {
     if (!confirm('确定要删除这个案件吗？')) {
         return;
     }
-    
+
     try {
         await request(`/case/${caseId}`, 'DELETE');
         // 重新加载案件列表
@@ -1631,22 +1633,22 @@ function filterReceiveUserOptions() {
 async function confirmAssignCase() {
     const caseId = document.getElementById('receiveCaseId').value;
     const userId = document.getElementById('receiveUserId').value.trim();
-    
+
     if (!userId || isNaN(userId)) {
         alert('请输入有效的用户ID');
         return;
     }
-    
+
     try {
         await request('/case/assign', 'POST', {
             caseId: parseInt(caseId),
             userId: parseInt(userId)
         });
-        
+
         // 关闭模态框
         const receiveModal = bootstrap.Modal.getInstance(document.getElementById('receiveCaseModal'));
         receiveModal.hide();
-        
+
         // 重新加载案件列表
         loadCases();
         alert('案件分派成功');
@@ -1664,13 +1666,13 @@ async function completeCase(caseId) {
     if (!confirm('确定要标记这个案件为待结案吗？')) {
         return;
     }
-    
+
     try {
         await request('/case/update-status', 'POST', {
             caseId: caseId,
             status: '待结案'
         });
-        
+
         // 重新加载案件列表
         loadCases();
         alert('案件已标记为待结案');
@@ -2069,3 +2071,243 @@ function afterPageInitOrFilter() {
     updateBatchCloseCaseBtnVisibility();
 }
 
+// ===== 付款流水（补充结案信息）— OSS 兼容实现 =====
+
+function buildPaymentScreenshotSrc(flow) {
+    if (!flow || !flow.screenshotUrl) return '';
+    // 新：OSS 存储
+    if (flow.screenshotUrlType === 'Oss') {
+        return `/api/case/payment-screenshot?objectName=${encodeURIComponent(flow.screenshotUrl)}`;
+    }
+    // 旧：本地直连
+    return flow.screenshotUrl;
+}
+
+function createPaymentFlowsModalContainer() {
+    if (!document.getElementById('paymentFlowsModalContainer')) {
+        const container = document.createElement('div');
+        container.id = 'paymentFlowsModalContainer';
+        document.body.appendChild(container);
+    }
+}
+
+function showPaymentFlowsModal(caseId) {
+    createPaymentFlowsModalContainer();
+    const container = document.getElementById('paymentFlowsModalContainer');
+    container.innerHTML = `
+    <div class="modal fade" id="paymentFlowsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                    <h5 class="modal-title"><i class="fa fa-credit-card text-primary me-2"></i>补充结案信息 - 付款流水</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:#fafcff;">
+                    <input type="hidden" id="paymentFlowsCaseId" value="${caseId}">
+                    <div class="mb-3">
+                        <label class="form-label">已有付款流水</label>
+                        <div id="paymentFlowsList" class="list-group small"></div>
+                    </div>
+                    <hr/>
+                    <div class="mb-2 fw-bold">新增付款流水</div>
+                    <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 时间 + 金额），只能新增和删除，不允许修改。</div>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">付款截图 (jpg/jpeg/png)</label>
+                            <input type="file" id="paymentScreenshotFile" accept="image/png,image/jpeg" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">付款时间</label>
+                            <input type="datetime-local" id="paymentTimeInput" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">付款金额 (元)</label>
+                            <input type="number" step="0.01" id="paymentAmountInput" class="form-control" />
+                        </div>
+                        <div class="col-md-1 d-grid">
+                            <button type="button" class="btn btn-primary" onclick="submitNewPaymentFlowMgmt()">添加</button>
+                        </div>
+                    </div>
+                    <div class="text-danger mt-2" id="paymentFlowsError" style="display:none;"></div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    const modal = new bootstrap.Modal(document.getElementById('paymentFlowsModal'));
+    modal.show();
+    loadPaymentFlowsMgmt(caseId);
+}
+
+async function loadPaymentFlowsMgmt(caseId) {
+    const listEl = document.getElementById('paymentFlowsList');
+    const errEl = document.getElementById('paymentFlowsError');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="text-muted">加载中...</div>';
+    if (errEl) errEl.style.display = 'none';
+
+    try {
+        const caseInfoResp = await request(`/case/detail/${caseId}`);
+        const caseInfo = caseInfoResp && caseInfoResp.case ? caseInfoResp.case : caseInfoResp;
+        if (!caseInfo || !caseInfo.caseCloseExt) {
+            listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
+            return;
+        }
+        let ext;
+        try { ext = JSON.parse(caseInfo.caseCloseExt); } catch(e) { ext = null; }
+        const flows = (ext && Array.isArray(ext.paymentFlows)) ? ext.paymentFlows : [];
+        if (!flows.length) {
+            listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
+            return;
+        }
+        const fmtAmt = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
+
+        listEl.innerHTML = flows.map((f, idx) => {
+            const imgSrc = buildPaymentScreenshotSrc(f);
+            // 兼容：旧的静态路径需要加 /api
+            const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
+            return `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <div>序号：${idx+1}</div>
+                    <div>时间：${f.payTime||'-'}</div>
+                    <div>金额：${fmtAmt(f.amount)}</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    ${finalImgSrc ? `<img src="${finalImgSrc}" alt="付款截图${idx+1}" class="payment-screenshot" data-url="${finalImgSrc}" style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">` : '<span class="text-muted">无截图</span>'}
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlowMgmt(${idx})">删除</button>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        console.error(e);
+        listEl.innerHTML = '<div class="text-danger">加载付款流水失败</div>';
+    }
+}
+
+async function submitNewPaymentFlowMgmt() {
+    const caseId = document.getElementById('paymentFlowsCaseId').value;
+    const fileInput = document.getElementById('paymentScreenshotFile');
+    const payTimeInput = document.getElementById('paymentTimeInput');
+    const amountInput = document.getElementById('paymentAmountInput');
+    const errEl = document.getElementById('paymentFlowsError');
+    if (errEl) errEl.style.display = 'none';
+
+    const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+    const payTime = payTimeInput ? payTimeInput.value.trim() : '';
+    const amountRaw = amountInput ? amountInput.value.trim() : '';
+
+    if (!file || !payTime || !amountRaw) {
+        if (errEl) {
+            errEl.textContent = '付款截图、付款时间和付款金额为必填项';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    const lower = (file.name || '').toLowerCase();
+    if (!lower.endsWith('.jpg') && !lower.endsWith('.jpeg') && !lower.endsWith('.png')) {
+        if (errEl) {
+            errEl.textContent = '仅支持 jpg 或 png 格式的图片';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+    if (isNaN(amountRaw) || Number(amountRaw) < 0) {
+        if (errEl) {
+            errEl.textContent = '付款金额格式不正确或为负';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    try {
+        // 1) 上传截图到 OSS
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadResp = await fetch('/api/case/upload-payment-screenshot', { method: 'POST', body: formData });
+        const uploadJson = await uploadResp.json();
+        if (!uploadResp.ok || uploadJson.code !== 200) {
+            throw new Error(uploadJson.msg || '上传失败');
+        }
+        const screenshotUrl = uploadJson.data; // payment/xxx.png
+
+        // 2) 新增流水（后端会自动写 screenshotUrlType = Oss）
+        await request('/case/payment-flows', 'POST', {
+            caseId,
+            action: 'add',
+            screenshotUrl,
+            payTime,
+            amount: amountRaw
+        });
+
+        // 3) 刷新
+        if (fileInput) fileInput.value = '';
+        if (payTimeInput) payTimeInput.value = '';
+        if (amountInput) amountInput.value = '';
+        loadPaymentFlowsMgmt(caseId);
+
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = '保存付款流水失败：' + (e.message || '未知错误');
+            errEl.style.display = 'block';
+        }
+    }
+}
+
+async function removePaymentFlowMgmt(index) {
+    const caseId = document.getElementById('paymentFlowsCaseId').value;
+    const errEl = document.getElementById('paymentFlowsError');
+    if (errEl) errEl.style.display = 'none';
+    if (!confirm('确定要删除该条付款流水吗？')) return;
+
+    try {
+        await request('/case/payment-flows', 'POST', { caseId, action: 'remove', index });
+        loadPaymentFlowsMgmt(caseId);
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = '删除付款流水失败';
+            errEl.style.display = 'block';
+        }
+    }
+}
+
+// 图片预览：复用全局 showImagePreview（如不存在则创建）
+if (typeof showImagePreview === 'undefined') {
+    function showImagePreview(url) {
+        let container = document.getElementById('imagePreviewModalContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'imagePreviewModalContainer';
+            document.body.appendChild(container);
+        }
+        container.innerHTML = `
+        <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
+                <div class="modal-content" style="background:rgba(0,0,0,0.85);border:none;">
+                    <div class="modal-header border-0">
+                        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body d-flex justify-content-center align-items-center p-2">
+                        <img src="${url}" alt="预览" style="max-width:100%;max-height:80vh;border-radius:4px;">
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        new bootstrap.Modal(document.getElementById('imagePreviewModal')).show();
+    }
+}
+
+if (!window.__caseMgmtImagePreviewBound) {
+    window.__caseMgmtImagePreviewBound = true;
+    document.addEventListener('click', function (e) {
+        const target = e.target;
+        if (target && target.classList && target.classList.contains('payment-screenshot')) {
+            const url = target.getAttribute('data-url');
+            if (url) showImagePreview(url);
+        }
+    });
+}
