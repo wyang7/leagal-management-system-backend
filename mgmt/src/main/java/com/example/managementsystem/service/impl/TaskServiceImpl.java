@@ -85,13 +85,13 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 
         if (!isAssign) {
             int count = caseInfoMapper.countActiveByUserId(userId);
-            if (count > 8) {
+            if (count > 12) {
                 return false;
             }
-            int countReceive = caseInfoMapper.countActiveReceiveByUserId(userId,"self_receive");
-            if (countReceive > 3) {
-                return false;
-            }
+//            int countReceive = caseInfoMapper.countActiveReceiveByUserId(userId,"self_receive");
+//            if (countReceive > 3) {
+//                return false;
+//            }
             int countTask = baseMapper.countTasksReceivedByUser(userId, LocalDate.now());
             if (countTask > 0) {
                 return false;

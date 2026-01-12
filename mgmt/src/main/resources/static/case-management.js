@@ -525,6 +525,7 @@ async function showCaseDetailModal(caseId) {
         const settlementNumbersHtml = `<div class='row g-2 mb-3'>
           <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfoResponse.number!=null?caseInfoResponse.number:'-'}</div>
           <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
+          <div class='col-md-6'><span class='text-muted'>人调号：</span>${caseInfo.mediateCaseNumber!=null?caseInfo.mediateCaseNumber:'-'}</div>
         </div>`;
         // 基本详情移除：案件ID、澎和案件号、收款单号
         const basicHtml = `<div class='row g-2'>
