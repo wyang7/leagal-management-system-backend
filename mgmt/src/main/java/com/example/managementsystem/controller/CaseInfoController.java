@@ -1459,4 +1459,67 @@ public class CaseInfoController {
         boolean ok = caseInfoService.updateById(caseInfo);
         return ok ? Result.success(ext.getPaymentFlows()) : Result.fail("保存付款流水失败");
     }
+
+    /**
+     * 从案件结案扩展信息中删除一条付款流水（给案件详情页使用）
+     */
+    @PostMapping("/payment-flows/delete")
+    public Result<?> deletePaymentFlow(@RequestBody Map<String, Object> params, HttpSession session) {
+        Object caseIdObj = params.get("caseId");
+        Object idxObj = params.get("index");
+        if (caseIdObj == null || idxObj == null) {
+            return Result.fail("缺少参数 caseId 或 index");
+        }
+
+        Long caseId;
+        int idx;
+        try {
+            caseId = Long.parseLong(caseIdObj.toString());
+            idx = Integer.parseInt(idxObj.toString());
+        } catch (NumberFormatException e) {
+            return Result.fail("参数格式错误");
+        }
+
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+        // 这里沿用 payment-flows 的逻辑：仅待结案可维护流水
+        if (!"待结案".equals(caseInfo.getStatus())) {
+            return Result.fail("仅待结案状态的案件可以删除付款流水");
+        }
+
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+
+        // 解析现有 ext
+        CaseCloseExtDTO ext = null;
+        try {
+            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
+                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+            }
+        } catch (Exception e) {
+            log.error("解析结案扩展信息失败", e);
+        }
+        if (ext == null || ext.getPaymentFlows() == null) {
+            return Result.fail("暂无付款流水可删除");
+        }
+
+        if (idx < 0 || idx >= ext.getPaymentFlows().size()) {
+            return Result.fail("付款流水索引超出范围");
+        }
+        ext.getPaymentFlows().remove(idx);
+
+        try {
+            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
+        } catch (Exception e) {
+            log.error("序列化结案扩展信息失败", e);
+            return Result.fail("保存失败");
+        }
+        caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        boolean ok = caseInfoService.updateById(caseInfo);
+        return ok ? Result.success(ext.getPaymentFlows()) : Result.fail("删除付款流水失败");
+    }
 }

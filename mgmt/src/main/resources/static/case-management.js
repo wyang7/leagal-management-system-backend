@@ -466,27 +466,38 @@ async function showCaseDetailModal(caseId) {
         };
         let extHtml='';
         if(caseInfo.caseCloseExt){
-          try{ const ext=JSON.parse(caseInfo.caseCloseExt); const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[]; const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00'; const flowsHtml = flows.length
-  ? flows.map((f,idx)=>{
-        const imgSrc = buildPaymentScreenshotSrc(f);
-        const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
-        return `<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
-        <div class='flex-grow-1'>
-          <div>序号：${idx+1}</div>
-          <div>时间：${f.payTime||'-'}</div>
-          <div>金额：${fmtAmount(f.amount)}</div>
-        </div>
-        <div class='ms-3'>
-          ${finalImgSrc ? `<img src="${finalImgSrc}"
-                            alt="付款截图${idx+1}"
-                            class="payment-screenshot"
-                            data-url="${finalImgSrc}"
-                            style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
-                    : '<span class="text-muted">无截图</span>'}
-        </div>
-    </div>`;
-    }).join('')
-  : '<div class="text-muted">暂无付款流水</div>'; extHtml=`<div class='row g-2'>
+          try{
+            const ext=JSON.parse(caseInfo.caseCloseExt);
+            const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[];
+            const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00';
+
+            const flowsHtml = flows.length
+              ? flows.map((f,idx)=>{
+                    const imgSrc = buildPaymentScreenshotSrc(f);
+                    const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
+                    return `<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
+                        <div class='flex-grow-1'>
+                          <div><span class='text-muted'>序号：</span>${idx+1}</div>
+                          <div><span class='text-muted'>时间：</span>${f.payTime||'-'}</div>
+                          <div><span class='text-muted'>金额：</span>${fmtAmount(f.amount)}</div>
+                          <div class='mt-2'>
+                            <button type='button' class='btn btn-sm btn-outline-danger' 
+                                    onclick='deletePaymentFlowFromDetail(${caseId}, ${idx})'>删除</button>
+                          </div>
+                        </div>
+                        <div class='ms-3'>
+                          ${finalImgSrc ? `<img src="${finalImgSrc}"
+                                            alt="付款截图${idx+1}"
+                                            class="payment-screenshot"
+                                            data-url="${finalImgSrc}"
+                                            style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
+                                    : '<span class="text-muted">无截图</span>'}
+                        </div>
+                    </div>`;
+                }).join('')
+              : '<div class="text-muted">暂无付款流水</div>';
+
+            extHtml=`<div class='row g-2'>
               <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?fmtAmount(ext.adjustedAmount):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
@@ -497,7 +508,10 @@ async function showCaseDetailModal(caseId) {
               ${ext.invoiced?`<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
               <div class='col-12 mt-2'><span class='text-muted fw-bold'>案件付款流水：</span></div>
               <div class='col-12'>${flowsHtml}</div>
-          </div>`;}catch(e){extHtml='<div class="text-danger">结案扩展信息解析失败</div>'}
+          </div>`;
+          }catch(e){
+            extHtml='<div class="text-danger">结案扩展信息解析失败</div>'
+          }
         } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
         // 历史
         let historyHtml='';
@@ -548,6 +562,38 @@ async function showCaseDetailModal(caseId) {
     } catch (error) {
         console.error('获取案件详情失败:', error);
         alert('获取案件详情失败');
+    }
+}
+
+/**
+ * 从案件详情弹窗中删除某一条付款流水
+ */
+async function deletePaymentFlowFromDetail(caseId, index) {
+    if (!confirm('确定要删除该条付款流水吗？')) return;
+    try {
+        await request('/case/payment-flows/delete', 'POST', { caseId, index });
+        // 删除成功后：关闭付款流水浮窗
+        const modalEl = document.getElementById('paymentFlowsModal');
+        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (modal) {
+            modal.hide();
+        }
+
+        // 防御性：清理所有残留的 Bootstrap 遮罩和 body 状态，避免整页保持灰色
+        document.querySelectorAll('.modal-backdrop').forEach(function (el) {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+
+        // 清理付款流水模态容器 DOM，避免重复 id 残留
+        const container = document.getElementById('paymentFlowsModalContainer');
+        if (container) container.innerHTML = '';
+
+    } catch (e) {
+        alert('删除付款流水失败：' + (e.message || '未知错误'));
     }
 }
 
@@ -1848,7 +1894,7 @@ function showCloseCaseModal(caseId) {
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmCloseCase()" style="border-radius:4px;">确认结案</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmBatchCloseCase()" style="border-radius:4px;">确认结案</button>
                 </div>
             </div>
         </div>
@@ -2275,7 +2321,27 @@ async function removePaymentFlowMgmt(index) {
 
     try {
         await request('/case/payment-flows', 'POST', { caseId, action: 'remove', index });
-        loadPaymentFlowsMgmt(caseId);
+
+        // 删除成功后：关闭付款流水浮窗
+        const modalEl = document.getElementById('paymentFlowsModal');
+        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (modal) {
+            modal.hide();
+        }
+
+        // 防御性：清理所有残留的 Bootstrap 遮罩和 body 状态，避免整页保持灰色
+        document.querySelectorAll('.modal-backdrop').forEach(function (el) {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+
+        // 清理付款流水模态容器 DOM，避免重复 id 残留
+        const container = document.getElementById('paymentFlowsModalContainer');
+        if (container) container.innerHTML = '';
+
     } catch (e) {
         if (errEl) {
             errEl.textContent = '删除付款流水失败';
