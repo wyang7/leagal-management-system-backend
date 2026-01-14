@@ -1894,7 +1894,7 @@ function showCloseCaseModal(caseId) {
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmBatchCloseCase()" style="border-radius:4px;">确认结案</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmCloseCase()" style="border-radius:4px;">确认结案</button>
                 </div>
             </div>
         </div>
