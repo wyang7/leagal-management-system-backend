@@ -588,14 +588,14 @@ function renderMyCaseTable(cases) {
                       案件操作
                     </button>
                     <ul class="dropdown-menu" style="display:none;">
-                      ${(caseInfo.status === '已领取' || caseInfo.status === '反馈') ? `
+                      ${(caseInfo.status === '已领取' || caseInfo.status === '反馈' || caseInfo.status === '延期') ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})"><i class="fa fa-comment"></i> 反馈</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})"><i class="fa fa-clock-o"></i> 延期</a></li>
                       ` : ''}
                       ${(caseInfo.status === '待结案') ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId}, true)"><i class="fa fa-credit-card"></i> 补充结案信息</a></li>
                       ` : ''}
-                      ${(caseInfo.status !== '待结案') ? `
+                      ${(caseInfo.status !== '结案') ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 提交结案审核</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
                       ` : ''}

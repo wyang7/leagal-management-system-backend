@@ -451,7 +451,7 @@ public class CaseInfoController {
             );
             return Result.success();
         } else {
-            return Result.fail("退回案件失败，案件状态不是已领取");
+            return Result.fail("退回案件失败，案件状态非法");
         }
     }
 

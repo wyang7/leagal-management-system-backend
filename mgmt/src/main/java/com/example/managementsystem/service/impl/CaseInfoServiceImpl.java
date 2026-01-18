@@ -126,7 +126,8 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
 
         // 验证状态是否为已领取
         if ((!"已领取".equals(caseInfo.getStatus()))&&(!"延期".equals(caseInfo.getStatus()))
-                &&(!"反馈".equals(caseInfo.getStatus()))) {
+                &&(!"反馈".equals(caseInfo.getStatus()))
+                &&(!"待结案".equals(caseInfo.getStatus()))) {
             return false;
         }
         // 更新为退回状态
