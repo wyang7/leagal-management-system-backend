@@ -97,7 +97,7 @@
     <!-- 根据用户ID查询生效的案件 -->
     <select id="countActiveByUserId" resultType="int">
         SELECT COUNT(*) FROM case_info
-        WHERE status in ('已领取' ,'反馈' ,'延期')
+        WHERE status in ('已领取' ,'反馈' ,'延期' ,'待结案')
         <if test="userId != null and userId != ''">
             AND user_id = #{userId}
         </if>
