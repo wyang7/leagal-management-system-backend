@@ -1353,6 +1353,24 @@ function createCaseModal(taskOptions, assistantOptions) {
                                     <option value="待结案">待结案</option>
                                 </select>
                             </div>
+                           <!-- 结案信息：调解费 / 支付方 / 是否开票（存储在 case_close_ext 中） -->
+                           <div class="form-group">
+                               <label for="mediationFee">调解费（元，可选）</label>
+                               <input type="number" id="mediationFee" class="form-control" step="0.01" min="0" placeholder="请输入调解费，总额，精确到小数点后两位">
+                           </div>
+                           <div class="form-group">
+                               <label for="payer">支付方（可选）</label>
+                               <select id="payer" class="form-control">
+                                   <option value="">请选择支付方</option>
+                                   <option value="原告">原告</option>
+                                   <option value="被告">被告</option>
+                                   <option value="原被告">原被告</option>
+                               </select>
+                           </div>
+                           <div class="form-group form-check">
+                               <input type="checkbox" class="form-check-input" id="invoiced">
+                               <label class="form-check-label" for="invoiced">是否开票</label>
+                           </div>
                         </form>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
@@ -1442,6 +1460,42 @@ async function showEditCaseModal(caseId) {
         document.getElementById('caseTaskId').value = caseInfo.taskId || '';
         document.getElementById('caseModalTitle').textContent = '编辑案件';
 
+       // 解析结案扩展信息 caseCloseExt（JSON 字符串），用于回显调解费/支付方/是否开票
+       try {
+           if (safeCaseInfo.caseCloseExt) {
+               const ext = JSON.parse(safeCaseInfo.caseCloseExt);
+               if (ext) {
+                   if (typeof ext.mediationFee !== 'undefined' && ext.mediationFee !== null) {
+                       // mediationFee 可能是字符串或数字
+                       document.getElementById('mediationFee').value = ext.mediationFee;
+                   } else {
+                       document.getElementById('mediationFee').value = '';
+                   }
+                   if (ext.payer) {
+                       document.getElementById('payer').value = ext.payer;
+                   } else {
+                       document.getElementById('payer').value = '';
+                   }
+                   if (typeof ext.invoiced !== 'undefined' && ext.invoiced !== null) {
+                       document.getElementById('invoiced').checked = !!ext.invoiced;
+                   } else {
+                       document.getElementById('invoiced').checked = false;
+                   }
+               }
+           } else {
+               // 没有扩展信息时清空表单
+               document.getElementById('mediationFee').value = '';
+               document.getElementById('payer').value = '';
+               document.getElementById('invoiced').checked = false;
+           }
+       } catch (e) {
+           console.error('解析结案扩展信息失败:', e);
+           // 解析失败时，保证字段为空
+           document.getElementById('mediationFee').value = '';
+           document.getElementById('payer').value = '';
+           document.getElementById('invoiced').checked = false;
+       }
+
         // 显示模态框
         const caseModal = new bootstrap.Modal(document.getElementById('caseModal'));
         caseModal.show();
@@ -1467,6 +1521,14 @@ async function saveCase() {
     const taskId = document.getElementById('caseTaskId').value;
     const caseAssistantId = document.getElementById('caseAssistantId').value;
     const status = document.getElementById('caseStatus').value;
+
+   // 结案扩展字段：调解费 / 支付方 / 是否开票（全部为可选）
+   const mediationFeeInput = document.getElementById('mediationFee');
+   const payerSelect = document.getElementById('payer');
+   const invoicedCheckbox = document.getElementById('invoiced');
+   const mediationFeeStr = mediationFeeInput ? mediationFeeInput.value.trim() : '';
+   const payer = payerSelect ? payerSelect.value : '';
+   const invoiced = invoicedCheckbox ? invoicedCheckbox.checked : false;
 
     // 简单验证
     if (!plaintiffName) {
@@ -1506,6 +1568,25 @@ async function saveCase() {
         defendantName: defendantName,
         assistantId: caseAssistantId
     };
+    // 将结案扩展信息打包到 caseData.caseCloseExtJson，由后端负责与原有 JSON 合并
+    const extPayload = {};
+    if (mediationFeeStr) {
+        const feeNum = Number(mediationFeeStr);
+        if (Number.isNaN(feeNum) || feeNum < 0) {
+            alert('调解费请输入非负数字');
+            return;
+        }
+        extPayload.mediationFee = feeNum;
+    }
+    if (payer) {
+        extPayload.payer = payer;
+    }
+    // 始终传递 invoiced，方便后端同步更新
+    extPayload.invoiced = invoiced;
+    // 仅当有任一字段需要更新时，才附加该属性
+    if (Object.keys(extPayload).length > 0) {
+        caseData.caseCloseExtJson = JSON.stringify(extPayload);
+    }
     // 可选字段
     if (taskId) {
         caseData.taskId = parseInt(taskId);

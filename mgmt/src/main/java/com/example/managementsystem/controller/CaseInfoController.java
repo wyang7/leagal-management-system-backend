@@ -368,7 +368,118 @@ public class CaseInfoController {
      * 更新案件
      */
     @PutMapping
-    public Result<?> updateCase(@RequestBody CaseInfo caseInfo) {
+    public Result<?> updateCase(@RequestBody Map<String, Object> body) {
+
+        // 先根据 caseId 查询原始案件
+        Object caseIdObj2 = body.get("caseId");
+        if (caseIdObj2 == null) {
+            return Result.fail("缺少案件ID");
+        }
+        Long caseId;
+        try {
+            caseId = Long.parseLong(caseIdObj2.toString());
+        } catch (NumberFormatException e) {
+            return Result.fail("案件ID格式错误");
+        }
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+
+        // 覆盖基础字段
+        if (body.containsKey("caseNumber")) {
+            caseInfo.setCaseNumber((String) body.get("caseNumber"));
+        }
+        if (body.containsKey("caseName")) {
+            caseInfo.setCaseName((String) body.get("caseName"));
+        }
+        if (body.containsKey("amount")) {
+            Object v = body.get("amount");
+            if (v == null || "".equals(v)) {
+                caseInfo.setAmount(null);
+            } else {
+                try { caseInfo.setAmount(new BigDecimal(v.toString())); } catch (NumberFormatException ignored) {}
+            }
+        }
+        if (body.containsKey("status")) {
+            caseInfo.setStatus((String) body.get("status"));
+        }
+        if (body.containsKey("caseLocation")) {
+            caseInfo.setCaseLocation((String) body.get("caseLocation"));
+        }
+        if (body.containsKey("courtReceiveTime")) {
+            caseInfo.setCourtReceiveTime((String) body.get("courtReceiveTime"));
+        }
+        if (body.containsKey("plaintiffName")) {
+            caseInfo.setPlaintiffName((String) body.get("plaintiffName"));
+        }
+        if (body.containsKey("defendantName")) {
+            caseInfo.setDefendantName((String) body.get("defendantName"));
+        }
+        if (body.containsKey("assistantId")) {
+            Object v = body.get("assistantId");
+            if (v == null || "".equals(v)) {
+                caseInfo.setAssistantId(null);
+            } else {
+                try { caseInfo.setAssistantId(Long.parseLong(v.toString())); } catch (NumberFormatException ignored) {}
+            }
+        }
+        if (body.containsKey("taskId")) {
+            Object v = body.get("taskId");
+            if (v == null || "".equals(v)) {
+                caseInfo.setTaskId(null);
+            } else {
+                try { caseInfo.setTaskId(Long.parseLong(v.toString())); } catch (NumberFormatException ignored) {}
+            }
+        }
+
+        // 合并结案扩展信息（调解费/支付方/是否开票）
+        Object extJsonObj2 = body.get("caseCloseExtJson");
+        if (extJsonObj2 != null) {
+            try {
+                String extJsonStr = extJsonObj2.toString();
+                if (!extJsonStr.isEmpty()) {
+                    CaseCloseExtDTO ext = null;
+                    try {
+                        if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
+                            ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+                        }
+                    } catch (Exception ignored) {}
+                    if (ext == null) {
+                        ext = new CaseCloseExtDTO();
+                    }
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> extPatch = objectMapper.readValue(extJsonStr, Map.class);
+                    if (extPatch != null) {
+                        if (extPatch.containsKey("mediationFee")) {
+                            Object v = extPatch.get("mediationFee");
+                            if (v == null || "".equals(v)) {
+                                ext.setMediationFee(null);
+                            } else {
+                                try { ext.setMediationFee(new BigDecimal(v.toString())); } catch (NumberFormatException ignored) {}
+                            }
+                        }
+                        if (extPatch.containsKey("payer")) {
+                            Object v = extPatch.get("payer");
+                            ext.setPayer(v == null ? null : v.toString());
+                        }
+                        if (extPatch.containsKey("invoiced")) {
+                            Object v = extPatch.get("invoiced");
+                            if (v == null) {
+                                ext.setInvoiced(null);
+                            } else if (v instanceof Boolean) {
+                                ext.setInvoiced((Boolean) v);
+                            } else {
+                                ext.setInvoiced(Boolean.parseBoolean(v.toString()));
+                            }
+                        }
+                    }
+                    caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
+                }
+            } catch (Exception e) {
+                log.error("解析/合并结案扩展信息失败", e);
+            }
+        }
 
         boolean success = caseInfoService.updateById(caseInfo);
         return success ? Result.success() : Result.fail("更新案件失败");
