@@ -315,7 +315,7 @@
             #{status}
         </foreach>
         <if test="taskId != null and taskId != ''">
-            OR (status='已领取' AND task_id=#{taskId})
+            OR (task_id=#{taskId})
         </if>
         )
         <if test="caseName != null and caseName != ''">
@@ -333,7 +333,7 @@
                 </otherwise>
             </choose>
         </if>
-        ORDER BY case_id DESC
+        ORDER BY created_time DESC
     </select>
 
     <!-- 更新案件为调解失败状态 -->

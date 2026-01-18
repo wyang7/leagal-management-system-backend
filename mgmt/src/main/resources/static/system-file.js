@@ -15,9 +15,11 @@ function loadSystemFilePage() {
                         <div class="d-flex align-items-center gap-1">
                             <span class="text-muted" style="min-width:60px;text-align:right;">文件类型</span>
                             <select id="systemFileType" class="form-select ant-select" style="width:180px;">
-                                <option value="委托材料">委托材料</option>
-                                <option value="案件材料模板">案件材料模板</option>
-                                <option value="其他">其他</option>
+                                <option value="九堡法庭模版">九堡法庭模版</option>
+                                <option value="笕桥法庭模版">笕桥法庭模版</option>
+                                <option value="法院本部模版">法院本部模版</option>
+                                <option value="综治中心模版">综治中心模版</option>
+                                <option value="通用">通用</option>
                             </select>
                         </div>
                         <div class="d-flex align-items-center gap-1">

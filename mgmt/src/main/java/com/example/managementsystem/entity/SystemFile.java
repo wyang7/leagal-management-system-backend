@@ -13,7 +13,7 @@ public class SystemFile implements Serializable {
     /** 文件名（原始文件名） */
     private String fileName;
 
-    /** 文件类型：委托材料、案件材料模板 */
+    /** 文件类型：九堡法庭模版、笕桥法庭模版、法院本部模版、综治中心模版 */
     private String fileType;
 
     /** 保密等级 */
