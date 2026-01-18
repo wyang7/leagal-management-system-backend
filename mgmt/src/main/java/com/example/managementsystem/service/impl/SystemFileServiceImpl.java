@@ -38,5 +38,9 @@ public class SystemFileServiceImpl implements ISystemFileService {
     public int countAll() {
         return systemFileMapper.countAll();
     }
-}
 
+    @Override
+    public boolean updateTypeAndSecret(Long id, String fileType, String secretLevel) {
+        return systemFileMapper.updateTypeAndSecret(id, fileType, secretLevel) > 0;
+    }
+}

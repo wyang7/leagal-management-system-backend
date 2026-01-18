@@ -58,6 +58,42 @@ function loadSystemFilePage() {
                 </div>
             </div>
         </div>
+
+        <!-- 编辑系统文件信息的模态框 -->
+        <div class="modal fade" id="systemFileEditModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">编辑系统文件信息</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editSystemFileId" />
+                        <div class="mb-3">
+                            <label class="form-label">文件类型</label>
+                            <select id="editSystemFileType" class="form-select">
+                                <option value="九堡法庭模版">九堡法庭模版</option>
+                                <option value="笕桥法庭模版">笕桥法庭模版</option>
+                                <option value="法院本部模版">法院本部模版</option>
+                                <option value="综治中心模版">综治中心模版</option>
+                                <option value="通用">通用</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">保密等级</label>
+                            <select id="editSystemFileSecret" class="form-select">
+                                <option value="内部">内部公开</option>
+                                <option value="机密">机密</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="saveSystemFileEdit()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
     loadSystemFileList();
 }
@@ -74,7 +110,6 @@ async function loadSystemFileList() {
         let html = '';
         list.forEach(item => {
             const uploadTime = item.uploadTime ? new Date(item.uploadTime).toLocaleString() : '';
-            // 根据保密等级和当前用户角色决定是否允许下载
             const secret = item.secretLevel || '';
             const isSecret = secret.indexOf('机密') !== -1;
             const canDownload = !isSecret || isAdmin;
@@ -90,6 +125,9 @@ async function loadSystemFileList() {
                             <i class="fa fa-download"></i> 下载
                         </button>
                         ${isAdmin ? `
+                        <button class="ant-btn ant-btn-default btn btn-sm ms-1" onclick="editSystemFile(${item.id}, '${(item.fileType || '').replace(/'/g, "\\'")}', '${secret.replace(/'/g, "\\'")}')">
+                            <i class="fa fa-edit"></i> 编辑
+                        </button>
                         <button class="ant-btn ant-btn-danger btn btn-sm ms-1" onclick="deleteSystemFile(${item.id})">
                             <i class="fa fa-trash"></i> 删除
                         </button>` : ''}
@@ -110,7 +148,6 @@ function downloadSystemFile(id, secretLevel) {
         alert('机密级别的文件仅管理员可以下载');
         return;
     }
-    // 使用相对路径，复用当前页面所在域名和端口，避免硬编码 localhost
     const link = document.createElement('a');
     link.href = `/api/systemFile/download/${id}?t=${Date.now()}`;
     document.body.appendChild(link);
@@ -152,7 +189,6 @@ async function uploadSystemFiles() {
         try {
             await requestFileUpload('/systemFile/upload', formData);
         } catch (e) {
-            // requestFileUpload 已经提示
             break;
         }
     }
@@ -162,7 +198,6 @@ async function uploadSystemFiles() {
 
 async function requestFileUpload(url, formData) {
     try {
-        // 与 common.js 的 request 一样，统一走当前域名 + /api 前缀
         const resp = await fetch(`/api${url}`, {
             method: 'POST',
             body: formData,
@@ -190,6 +225,55 @@ async function deleteSystemFile(id) {
         await request(`/systemFile/${id}`, 'DELETE');
         loadSystemFileList();
     } catch (e) {
-        // 已在 request 中提示
+    }
+}
+
+// 打开编辑模态框
+function editSystemFile(id, fileType, secretLevel) {
+    const idInput = document.getElementById('editSystemFileId');
+    const typeSelect = document.getElementById('editSystemFileType');
+    const secretSelect = document.getElementById('editSystemFileSecret');
+    if (!idInput || !typeSelect || !secretSelect) {
+        return;
+    }
+    idInput.value = id;
+    typeSelect.value = fileType || '';
+    secretSelect.value = secretLevel || '';
+
+    if (typeof bootstrap !== 'undefined') {
+        const modalEl = document.getElementById('systemFileEditModal');
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    } else {
+        alert('当前页面不支持弹窗编辑');
+    }
+}
+
+// 保存编辑结果
+async function saveSystemFileEdit() {
+    const id = document.getElementById('editSystemFileId').value;
+    const fileType = document.getElementById('editSystemFileType').value;
+    const secretLevel = document.getElementById('editSystemFileSecret').value;
+    if (!id) {
+        alert('未找到文件ID');
+        return;
+    }
+    if (!fileType) {
+        alert('请选择文件类型');
+        return;
+    }
+    if (!secretLevel) {
+        alert('请选择保密等级');
+        return;
+    }
+    try {
+        await request(`/systemFile/${id}`, 'PUT', { fileType, secretLevel });
+        if (typeof bootstrap !== 'undefined') {
+            const modalEl = document.getElementById('systemFileEditModal');
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.hide();
+        }
+        loadSystemFileList();
+    } catch (e) {
     }
 }

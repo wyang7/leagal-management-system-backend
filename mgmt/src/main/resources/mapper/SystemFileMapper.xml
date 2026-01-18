@@ -44,5 +44,11 @@
     <select id="countAll" resultType="int">
         SELECT COUNT(1) FROM system_file
     </select>
-</mapper>
 
+    <update id="updateTypeAndSecret">
+        UPDATE system_file
+        SET file_type = #{fileType},
+            secret_level = #{secretLevel}
+        WHERE id = #{id}
+    </update>
+</mapper>

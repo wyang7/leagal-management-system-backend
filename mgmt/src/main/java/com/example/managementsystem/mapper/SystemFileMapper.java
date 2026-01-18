@@ -18,5 +18,8 @@ public interface SystemFileMapper {
     List<SystemFile> selectAll();
 
     int countAll();
-}
 
+    int updateTypeAndSecret(@Param("id") Long id,
+                            @Param("fileType") String fileType,
+                            @Param("secretLevel") String secretLevel);
+}

@@ -15,5 +15,6 @@ public interface ISystemFileService {
     boolean removeById(Long id);
 
     int countAll();
-}
 
+    boolean updateTypeAndSecret(Long id, String fileType, String secretLevel);
+}

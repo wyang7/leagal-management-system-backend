@@ -11,11 +11,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -160,5 +158,38 @@ public class SystemFileController {
             response.reset();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * 更新系统文件信息：仅管理员角色可用
+     */
+    @PutMapping("/{id}")
+    public Result<?> update(@PathVariable Long id,
+                            @RequestBody SystemFile updateReq,
+                            HttpSession session) {
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return Result.fail("未登录");
+        }
+        if (currentUser.getRoleType() == null || !currentUser.getRoleType().contains("管理员")) {
+            return Result.fail("无权限，仅管理员可以编辑文件信息");
+        }
+        SystemFile exist = systemFileService.getById(id);
+        if (exist == null) {
+            return Result.fail("文件不存在");
+        }
+        String fileType = updateReq.getFileType();
+        String secretLevel = updateReq.getSecretLevel();
+        if (fileType == null || fileType.trim().isEmpty()) {
+            return Result.fail("文件类型不能为空");
+        }
+        if (secretLevel == null || secretLevel.trim().isEmpty()) {
+            return Result.fail("保密等级不能为空");
+        }
+        boolean ok = systemFileService.updateTypeAndSecret(id, fileType, secretLevel);
+        if (!ok) {
+            return Result.fail("更新失败");
+        }
+        return Result.success(true);
     }
 }
