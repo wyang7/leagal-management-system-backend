@@ -183,4 +183,9 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 根据年份前缀查询最大人调号并加行锁（用于生成序列的并发安全）
      */
     String selectMaxMediateCaseNumberForYearForUpdate(@Param("yearPrefix") String yearPrefix);
+
+    /**
+     * 根据任务ID列表查询案件，联表任务和用户信息，用于案件包导出
+     */
+    List<CaseInfo> selectByTaskIdsWithTaskInfo(@org.apache.ibatis.annotations.Param("taskIds") List<Long> taskIds);
 }

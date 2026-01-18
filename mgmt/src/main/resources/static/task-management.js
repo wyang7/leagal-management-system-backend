@@ -25,6 +25,9 @@ function loadTaskManagementPage() {
                         <button class="ant-btn ant-btn-primary" onclick="batchPublishTasks()">
                             <i class="fa fa-paper-plane"></i> 批量发布
                         </button>
+                        <button class="ant-btn" onclick="exportSelectedTaskCases()">
+                            <i class="fa fa-download"></i> 导出选中案件包
+                        </button>
                         <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddTaskModal()">
                             <i class="fa fa-plus"></i> 新增案件包
                         </button>
@@ -225,283 +228,6 @@ async function batchPublishTasks() {
             alert('批量发布失败: ' + (error.message || '未知错误'));
         }
     }
-}
-
-/**
- * 创建任务表单模态框
- */
-function createTaskModal() {
-    const modalContainer = document.getElementById('taskModalContainer');
-    if (!document.getElementById('taskModal')) {
-        const modalHtml = `
-        <div class="modal fade" id="taskModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
-                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                        <h5 class="modal-title" id="taskModalTitle"><i class="fa fa-briefcase text-primary me-2"></i>新增案件包</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" style="background:#fafcff;">
-                        <form id="taskForm">
-                            <input type="hidden" id="taskId">
-                            <div class="form-group mb-2">
-                                <label for="taskName">任务名</label>
-                                <input type="text" id="taskName" class="form-control" required>
-                            </div>
-                            <div class="form-group mb-2">
-                                <label for="taskStation">案件包归属地</label>
-                                <select id="taskStation" class="form-control" required>
-                                    <option value="">请选择归属地</option>
-                                    <option value="九堡彭埠">九堡彭埠</option>
-                                    <option value="本部">本部</option>
-                                    <option value="四季青">四季青</option>
-                                    <option value="笕桥">笕桥</option>
-                                    <option value="凯旋街道">凯旋街道</option>
-                                    <option value="闸弄口">闸弄口</option>
-                                    <option value="总部">总部</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                        <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
-                        <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="saveTask()" style="border-radius:4px;">保存</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
-        modalContainer.innerHTML = modalHtml;
-    }
-}
-
-/**
- * 显示新增案件包模态框
- */
-function showAddTaskModal() {
-    createTaskModal();
-    
-    // 重置表单
-    document.getElementById('taskForm').reset();
-    document.getElementById('taskId').value = '';
-    document.getElementById('taskModalTitle').textContent = '新增案件包';
-    
-    // 显示模态框
-    const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
-    taskModal.show();
-}
-
-/**
- * 显示编辑任务模态框
- * @param {number} taskId 任务ID
- */
-async function showEditTaskModal(taskId) {
-    createTaskModal();
-    
-    try {
-        const task = await request(`/task/${taskId}`);
-        
-        // 填充表单数据
-        document.getElementById('taskId').value = task.taskId;
-        document.getElementById('taskName').value = task.taskName;
-        document.getElementById('taskStation').value = task.station || '';
-        document.getElementById('taskModalTitle').textContent = '编辑任务';
-        
-        // 显示模态框
-        const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
-        taskModal.show();
-    } catch (error) {
-        // 错误处理已在request函数中完成
-    }
-}
-/**
- * 显示分派案件包给用户的模态框
- */
-function showAssignTaskToUserModal(taskId) {
-    const modalContainer = document.getElementById('taskModalContainer');
-
-    // 先加载用户列表数据
-    loadUsersForDropdown();
-
-    const modalHtml = `
-    <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
-                <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                    <h5 class="modal-title">分派案件包给用户</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="assignTaskForm">
-                        <input type="hidden" id="assignTaskId" value="${taskId}">
-                        <div class="form-group">
-                            <label for="assignUserId">选择用户</label>
-                            <select id="assignUserId" class="form-select" required>
-                                <option value="">加载用户中...</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmAssignTask()">确认分派</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-
-    modalContainer.innerHTML = modalHtml;
-    const assignModal = new bootstrap.Modal(document.getElementById('assignTaskModal'));
-    assignModal.show();
-}
-
-/**
- * 加载用户列表到下拉框
- */
-async function loadUsersForDropdown() {
-    try {
-        // 假设后端提供获取用户列表的接口
-        const users = await request('/user');
-        const userSelect = document.getElementById('assignUserId');
-
-        // 清空现有选项
-        userSelect.innerHTML = '';
-
-        // 添加默认选项
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = '请选择用户';
-        userSelect.appendChild(defaultOption);
-
-        // 添加用户选项
-        if (users && users.length > 0) {
-            users.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.userId; // 提交时使用用户ID
-                option.textContent = user.username; // 显示用户名
-                userSelect.appendChild(option);
-            });
-        } else {
-            const noUserOption = document.createElement('option');
-            noUserOption.value = '';
-            noUserOption.textContent = '没有可用用户';
-            noUserOption.disabled = true;
-            userSelect.appendChild(noUserOption);
-        }
-    } catch (error) {
-        console.error('加载用户列表失败:', error);
-        const userSelect = document.getElementById('assignUserId');
-        userSelect.innerHTML = '<option value="">加载用户失败</option>';
-    }
-}
-
-
-/**
- * 确认分派案件包
- */
-async function confirmAssignTask() {
-    const taskId = document.getElementById('assignTaskId').value;
-    const userId = document.getElementById('assignUserId').value.trim();
-
-    if (!userId) {
-        alert('请输入用户ID');
-        return;
-    }
-
-    try {
-        await request('/task/assign', 'POST', {
-            taskId: taskId,
-            userId: userId
-        });
-
-        // 关闭模态框并刷新列表
-        const assignModal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
-        assignModal.hide();
-        loadTasks(currentTaskPage, taskPageSize);
-        alert('案件包分派成功');
-    } catch (error) {
-        alert('分派失败：' + (error.message || '未知错误'));
-    }
-}
-
-// 添加分页渲染函数
-function renderTaskPagination(pageInfo) {
-    const { total, pageNum, pageSize } = pageInfo;
-    const totalPages = Math.ceil(total / pageSize);
-    const container = document.getElementById('taskPaginationContainer');
-    if (!container) return;
-
-    // 只有一页时，展示简要信息和页大小选择器
-    if (totalPages <= 1) {
-        container.innerHTML = `
-            <div class="d-flex align-items-center gap-3 mt-2 text-secondary">
-                <div>共 ${total} 条记录</div>
-                ${buildTaskPageSizeSelector()}
-            </div>
-        `;
-        bindTaskPageSizeChange();
-        return;
-    }
-
-    // 计算页码范围
-    let startPage = Math.max(1, pageNum - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
-    if (endPage - startPage < 4) {
-        startPage = Math.max(1, endPage - 4);
-    }
-
-    let html = `
-    <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-2 text-secondary">
-        <div>共 ${total} 条记录，当前第 ${pageNum}/${totalPages} 页</div>
-        ${buildTaskPageSizeSelector()}
-    </div>
-    <nav aria-label="任务分页">
-        <ul class="pagination mb-0">
-            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadTasks(${pageNum - 1}, ${pageSize})" aria-label="上一页"><span aria-hidden="true">&laquo;</span></a>
-            </li>`;
-
-    if (startPage > 1) {
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadTasks(1, ${pageSize})">1</a></li>`;
-        if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        html += `<li class="page-item ${i === pageNum ? 'active' : ''}"><a class="page-link" href="#" onclick="loadTasks(${i}, ${pageSize})">${i}</a></li>`;
-    }
-
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadTasks(${totalPages}, ${pageSize})">${totalPages}</a></li>`;
-    }
-
-    html += `<li class="page-item ${pageNum === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadTasks(${pageNum + 1}, ${pageSize})" aria-label="下一页"><span aria-hidden="true">&raquo;</span></a></li></ul></nav>`;
-
-    container.innerHTML = html;
-    bindTaskPageSizeChange();
-}
-
-function buildTaskPageSizeSelector() {
-    const options = [10, 20, 50, 100];
-    return `<div class="d-flex align-items-center gap-1">
-        <label for="taskPageSizeSelect" class="form-label mb-0 small text-muted">每页</label>
-        <select id="taskPageSizeSelect" class="form-select form-select-sm" style="width:auto;">
-            ${options.map(o => `<option value='${o}' ${o === taskPageSize ? 'selected' : ''}>${o}</option>`).join('')}
-        </select>
-        <span class="small text-muted">条</span>
-    </div>`;
-}
-
-function bindTaskPageSizeChange() {
-    const sel = document.getElementById('taskPageSizeSelect');
-    if (!sel) return;
-    sel.onchange = function() {
-        const val = parseInt(this.value, 10) || 10;
-        taskPageSize = val;
-        const taskName = document.getElementById('taskSearchInput')?.value.trim() || '';
-        loadTasks(1, taskPageSize, taskName);
-    };
 }
 
 /**
@@ -1223,3 +949,39 @@ async function submitBatchCreateTask() {
 let currentTaskPage = 1;
 let taskPageSize = 10; // 默认每页10条
 
+/**
+ * 导出选中的案件包对应的案件
+ */
+function exportSelectedTaskCases() {
+    const checkedBoxes = document.querySelectorAll('input[name="taskCheckbox"]:checked');
+    if (checkedBoxes.length === 0) {
+        alert('请选择要导出的案件包');
+        return;
+    }
+    const taskIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10));
+    const payload = { taskIds: taskIds };
+    const baseUrl = 'http://localhost:8090/api';
+    const url = baseUrl + '/task/export-cases';
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error('导出失败');
+        }
+        return response.blob();
+    }).then(blob => {
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = '案件包案件导出.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+    }).catch(err => {
+        alert(err.message || '导出失败');
+    });
+}

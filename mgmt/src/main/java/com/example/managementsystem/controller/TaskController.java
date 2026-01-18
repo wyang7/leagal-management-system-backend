@@ -220,4 +220,54 @@ public class TaskController {
             return Result.fail("批量创建失败：" + e.getMessage());
         }
     }
+
+    /**
+     * 导出选中的案件包对应的案件（打平为按案件维度的列表）
+     */
+    @PostMapping("/export-cases")
+    public void exportTaskCases(@RequestBody Map<String, Object> params, javax.servlet.http.HttpServletResponse response) {
+        try {
+            Object idsObj = params.get("taskIds");
+            if (!(idsObj instanceof java.util.List)) {
+                response.setStatus(400);
+                return;
+            }
+            @SuppressWarnings("unchecked")
+            java.util.List<Integer> intIds = (java.util.List<Integer>) idsObj;
+            java.util.List<Long> taskIds = intIds.stream().map(Integer::longValue).collect(java.util.stream.Collectors.toList());
+            if (taskIds.isEmpty()) {
+                response.setStatus(400);
+                return;
+            }
+            java.util.List<com.example.managementsystem.entity.CaseInfo> cases = taskService.getCasesByTaskIds(taskIds);
+            String[] headers = {"案件包名(任务名)", "案件包归属", "领取人", "领取时间", "关联案件号"};
+            org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("案件包案件导出");
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+            int rowIdx = 1;
+            for (com.example.managementsystem.entity.CaseInfo c : cases) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowIdx++);
+                int col = 0;
+                row.createCell(col++).setCellValue(c.getTaskName() == null ? "" : c.getTaskName());
+                row.createCell(col++).setCellValue(c.getCaseLocation() == null ? "" : c.getCaseLocation());
+                row.createCell(col++).setCellValue(c.getUsername() == null ? "" : c.getUsername());
+                row.createCell(col++).setCellValue(c.getReceiveTime() == null ? "" : c.getReceiveTime().toString());
+                row.createCell(col++).setCellValue(c.getCaseNumber() == null ? "" : c.getCaseNumber());
+            }
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            String filename = "案件包案件导出_" + java.time.LocalDate.now() + ".xlsx";
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(filename, "UTF-8"));
+            workbook.write(response.getOutputStream());
+            response.flushBuffer();
+            workbook.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

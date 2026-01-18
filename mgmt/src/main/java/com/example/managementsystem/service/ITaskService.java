@@ -37,4 +37,9 @@ public interface ITaskService extends IService<Task> {
      * 批量发布案件包（将状态从待发布改为待领取）
      */
     boolean publishTasks(List<Long> taskIds);
+
+    /**
+     * 根据多个任务ID获取其下所有案件，用于导出
+     */
+    java.util.List<com.example.managementsystem.entity.CaseInfo> getCasesByTaskIds(java.util.List<Long> taskIds);
 }

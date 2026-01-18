@@ -85,7 +85,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 
         if (!isAssign) {
             int count = caseInfoMapper.countActiveByUserId(userId);
-            if (count > 12) {
+            if (count > 20) {
                 return false;
             }
 //            int countReceive = caseInfoMapper.countActiveReceiveByUserId(userId,"self_receive");
@@ -201,5 +201,13 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 
         // 执行批量更新
         return update(updateTask, queryWrapper);
+    }
+
+    @Override
+    public java.util.List<CaseInfo> getCasesByTaskIds(java.util.List<Long> taskIds) {
+        if (taskIds == null || taskIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return caseInfoMapper.selectByTaskIdsWithTaskInfo(taskIds);
     }
 }

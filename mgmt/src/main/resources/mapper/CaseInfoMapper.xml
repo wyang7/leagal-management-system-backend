@@ -252,6 +252,25 @@
         WHERE case_name LIKE CONCAT(#{caseName}, '%')  order by case_id DESC
     </select>
 
+    <!-- 通过任务ID列表查询案件，联表 task 和 user 以便导出案件包信息 -->
+    <select id="selectByTaskIdsWithTaskInfo" resultType="com.example.managementsystem.entity.CaseInfo">
+        SELECT
+            c.*,
+            t.task_name AS taskName,
+            t.station    AS station,
+            u.username   AS username
+        FROM
+            case_info c
+                LEFT JOIN task t ON c.task_id = t.task_id
+                LEFT JOIN user u ON t.owner_id = u.user_id
+        WHERE
+            c.task_id IN
+            <foreach collection="taskIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        ORDER BY c.task_id, c.case_id
+    </select>
+
     <!-- 关联查询案件列表（包含处理人用户名） -->
     <select id="selectCasesWithUsername" resultType="com.example.managementsystem.entity.CaseInfo">
         SELECT
