@@ -155,7 +155,7 @@ function renderTaskTable(tasks) {
 
         html += `
         <tr>
-            <td><input type="checkbox" name="taskCheckbox" value="${task.taskId}" ${task.status !== '待发布' ? 'disabled' : ''}></td>
+            <td><input type="checkbox" name="taskCheckbox" value="${task.taskId}"></td>
             <td>${task.taskId}</td>
             <td>${task.taskName}</td>
             <td>${task.station || '-'}</td>
