@@ -1418,6 +1418,13 @@ async function showAddCaseModal() {
     // 重置表单
     document.getElementById('caseForm').reset();
     document.getElementById('caseId').value = '';
+    // 明确重置结案扩展字段，避免沿用上一次编辑时的值
+    const mediationFeeEl = document.getElementById('mediationFee');
+    const payerEl = document.getElementById('payer');
+    const invoicedEl = document.getElementById('invoiced');
+    if (mediationFeeEl) mediationFeeEl.value = '';
+    if (payerEl) payerEl.value = '';
+    if (invoicedEl) invoicedEl.checked = false;
     document.getElementById('caseModalTitle').textContent = '新增案件';
 
     // 显示模态框
@@ -1438,6 +1445,12 @@ async function showEditCaseModal(caseId) {
         const assistantOptions = await loadCaseAssistants();
         createCaseModal(taskOptions,assistantOptions);
         await loadCaseAssistants();
+
+        // 每次编辑前，先整体重置表单，包含结案扩展字段，避免残留上一次案件的数据
+        const formEl = document.getElementById('caseForm');
+        if (formEl) {
+            formEl.reset();
+        }
 
         let courtReceiveDate = '';
         if (caseInfo.courtReceiveTime) {
@@ -1462,6 +1475,14 @@ async function showEditCaseModal(caseId) {
 
        // 解析结案扩展信息 caseCloseExt（JSON 字符串），用于回显调解费/支付方/是否开票
        try {
+           // 先保证这几个字段在解析前是干净的
+           const mediationFeeEl2 = document.getElementById('mediationFee');
+           const payerEl2 = document.getElementById('payer');
+           const invoicedEl2 = document.getElementById('invoiced');
+           if (mediationFeeEl2) mediationFeeEl2.value = '';
+           if (payerEl2) payerEl2.value = '';
+           if (invoicedEl2) invoicedEl2.checked = false;
+
            if (safeCaseInfo.caseCloseExt) {
                const ext = JSON.parse(safeCaseInfo.caseCloseExt);
                if (ext) {
