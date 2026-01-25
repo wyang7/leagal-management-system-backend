@@ -841,10 +841,12 @@ public class CaseInfoController {
         }
         Long operatorId = currentUser.getUserId();
         String operatorName = currentUser.getUsername();
-        // 状态校验：仅已领取/反馈/延期可以提交结案审核
+        // 状态校验：已领取/反馈/延期 可提交结案审核；结案状态允许补充结案信息
         String before = caseInfo.getStatus();
-        if (!("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before))) {
-            return Result.fail("当前状态不允许提交结案审核");
+        boolean isSubmitForReview = ("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before));
+        boolean isSupplementAfterClosed = "结案".equals(before);
+        if (!(isSubmitForReview || isSupplementAfterClosed)) {
+            return Result.fail("当前状态不允许提交/补充结案信息");
         }
 
         // 人调号：若已有则视为勾选；否则由勾选触发生成
@@ -1028,16 +1030,26 @@ public class CaseInfoController {
             return Result.fail("结案扩展信息序列化失败");
         }
         // 更新状态与完成情况
-        caseInfo.setStatus("待结案");
+        if (isSubmitForReview) {
+            // 正常流程：提交结案审核 -> 待结案
+            caseInfo.setStatus("待结案");
+        } else {
+            // 已结案补录：保持结案状态不变
+            caseInfo.setStatus("结案");
+        }
         String finalNotes = buildAccumulatedRemark(caseInfo.getCompletionNotes(), notes, operatorId);
         caseInfo.setCompletionNotes(finalNotes);
         caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         boolean success = caseInfoService.updateById(caseInfo);
         if (success) {
-            caseFlowHistoryService.saveHistory(caseId, operatorId, operatorName, "提交结案审核", before, "待结案", notes);
+            if (isSubmitForReview) {
+                caseFlowHistoryService.saveHistory(caseId, operatorId, operatorName, "提交结案审核", before, "待结案", notes);
+            } else {
+                caseFlowHistoryService.saveHistory(caseId, operatorId, operatorName, "补充结案信息", before, "结案", notes);
+            }
             return Result.success();
         } else {
-            return Result.fail("提交结案审核失败");
+            return Result.fail(isSubmitForReview ? "提交结案审核失败" : "补充结案信息失败");
         }
     }
 
@@ -1486,8 +1498,9 @@ public class CaseInfoController {
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
-        if (!"待结案".equals(caseInfo.getStatus())) {
-            return Result.fail("仅待结案状态的案件可以补充付款流水");
+        // 待结案/结案 均允许补充付款流水（结案后补录不改变案件状态）
+        if (!("待结案".equals(caseInfo.getStatus()) || "结案".equals(caseInfo.getStatus()))) {
+            return Result.fail("仅待结案或结案状态的案件可以补充付款流水");
         }
         UserSession currentUser = (UserSession) session.getAttribute("currentUser");
         if (currentUser == null || currentUser.getUserId() == null) {
@@ -1595,9 +1608,9 @@ public class CaseInfoController {
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
-        // 这里沿用 payment-flows 的逻辑：仅待结案可维护流水
-        if (!"待结案".equals(caseInfo.getStatus())) {
-            return Result.fail("仅待结案状态的案件可以删除付款流水");
+        // 这里沿用 payment-flows 的逻辑：待结案/结案 可维护流水
+        if (!("待结案".equals(caseInfo.getStatus()) || "结案".equals(caseInfo.getStatus()))) {
+            return Result.fail("仅待结案或结案状态的案件可以删除付款流水");
         }
 
         UserSession currentUser = (UserSession) session.getAttribute("currentUser");
