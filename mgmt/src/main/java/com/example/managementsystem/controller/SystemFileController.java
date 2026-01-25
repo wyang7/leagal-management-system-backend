@@ -50,8 +50,15 @@ public class SystemFileController {
     }
 
     @GetMapping
-    public Result<List<SystemFile>> listAll() {
-        return Result.success(systemFileService.listAll());
+    public Result<List<SystemFile>> listAll(
+            @RequestParam(value = "fileType", required = false) String fileType,
+            @RequestParam(value = "secretLevel", required = false) String secretLevel,
+            @RequestParam(value = "fileNameKeyword", required = false) String fileNameKeyword) {
+        boolean hasFilter = (StringUtils.hasText(fileType) || StringUtils.hasText(secretLevel) || StringUtils.hasText(fileNameKeyword));
+        if (!hasFilter) {
+            return Result.success(systemFileService.listAll());
+        }
+        return Result.success(systemFileService.listByFilters(fileType, secretLevel, fileNameKeyword));
     }
 
     /**

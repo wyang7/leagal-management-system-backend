@@ -20,6 +20,11 @@ public class SystemFileServiceImpl implements ISystemFileService {
     }
 
     @Override
+    public List<SystemFile> listByFilters(String fileType, String secretLevel, String fileNameKeyword) {
+        return systemFileMapper.selectByFilters(fileType, secretLevel, fileNameKeyword);
+    }
+
+    @Override
     public SystemFile getById(Long id) {
         return systemFileMapper.selectById(id);
     }

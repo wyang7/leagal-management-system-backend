@@ -51,4 +51,22 @@
             secret_level = #{secretLevel}
         WHERE id = #{id}
     </update>
+
+    <select id="selectByFilters" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM system_file
+        <where>
+            <if test="fileType != null and fileType != ''">
+                AND file_type = #{fileType}
+            </if>
+            <if test="secretLevel != null and secretLevel != ''">
+                AND secret_level = #{secretLevel}
+            </if>
+            <if test="fileNameKeyword != null and fileNameKeyword != ''">
+                AND file_name LIKE CONCAT('%', #{fileNameKeyword}, '%')
+            </if>
+        </where>
+        ORDER BY upload_time DESC
+    </select>
 </mapper>

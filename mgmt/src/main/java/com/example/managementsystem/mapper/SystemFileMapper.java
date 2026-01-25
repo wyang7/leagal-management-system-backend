@@ -17,6 +17,13 @@ public interface SystemFileMapper {
 
     List<SystemFile> selectAll();
 
+    /**
+     * 按条件查询系统文件（均为可选条件）
+     */
+    List<SystemFile> selectByFilters(@Param("fileType") String fileType,
+                                     @Param("secretLevel") String secretLevel,
+                                     @Param("fileNameKeyword") String fileNameKeyword);
+
     int countAll();
 
     int updateTypeAndSecret(@Param("id") Long id,

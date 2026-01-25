@@ -8,6 +8,11 @@ public interface ISystemFileService {
 
     List<SystemFile> listAll();
 
+    /**
+     * 按条件查询系统文件（均为可选条件）
+     */
+    List<SystemFile> listByFilters(String fileType, String secretLevel, String fileNameKeyword);
+
     SystemFile getById(Long id);
 
     boolean save(SystemFile file);

@@ -36,6 +36,36 @@ function loadSystemFilePage() {
                     </div>` : `
                     <span class="text-muted" style="font-size:14px;">仅管理员可以上传和删除文件，所有人均可下载。</span>`}
                 </div>
+
+                <!-- 查询筛选区（所有人可用） -->
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="text-muted" style="min-width:60px;text-align:right;">筛选类型</span>
+                        <select id="filterSystemFileType" class="form-select ant-select" style="width:180px;">
+                            <option value="">全部</option>
+                            <option value="九堡法庭模版">九堡法庭模版</option>
+                            <option value="笕桥法庭模版">笕桥法庭模版</option>
+                            <option value="法院本部模版">法院本部模版</option>
+                            <option value="综治中心模版">综治中心模版</option>
+                            <option value="通用">通用</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="text-muted" style="min-width:60px;text-align:right;">筛选保密</span>
+                        <select id="filterSystemFileSecret" class="form-select ant-select" style="width:160px;">
+                            <option value="">全部</option>
+                            <option value="内部">内部公开</option>
+                            <option value="机密">机密</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="text-muted" style="min-width:60px;text-align:right;">文件名</span>
+                        <input id="filterSystemFileName" class="form-control" style="width:260px;" placeholder="输入文件名关键字">
+                    </div>
+                    <button class="ant-btn ant-btn-primary" onclick="loadSystemFileList()"><i class="fa fa-search"></i> 查询</button>
+                    <button class="ant-btn" onclick="resetSystemFileFilters()"><i class="fa fa-refresh"></i> 重置</button>
+                </div>
+
                 <div class="alert alert-info py-2 mb-3" style="font-size:13px;">
                     支持上传 pdf / doc / docx / ppt / pptx 文件，单个文件大小不超过 10MB，总数量最多 100 个。
                 </div>
@@ -98,9 +128,30 @@ function loadSystemFilePage() {
     loadSystemFileList();
 }
 
+function resetSystemFileFilters() {
+    const typeEl = document.getElementById('filterSystemFileType');
+    const secretEl = document.getElementById('filterSystemFileSecret');
+    const nameEl = document.getElementById('filterSystemFileName');
+    if (typeEl) typeEl.value = '';
+    if (secretEl) secretEl.value = '';
+    if (nameEl) nameEl.value = '';
+    loadSystemFileList();
+}
+
 async function loadSystemFileList() {
     try {
-        const list = await request('/systemFile');
+        const type = document.getElementById('filterSystemFileType')?.value || '';
+        const secret = document.getElementById('filterSystemFileSecret')?.value || '';
+        const keyword = (document.getElementById('filterSystemFileName')?.value || '').trim();
+
+        const qs = new URLSearchParams();
+        if (type) qs.append('fileType', type);
+        if (secret) qs.append('secretLevel', secret);
+        if (keyword) qs.append('fileNameKeyword', keyword);
+
+        const url = qs.toString() ? `/systemFile?${qs.toString()}` : '/systemFile';
+        const list = await request(url);
+
         const tbody = document.getElementById('systemFileTableBody');
         const isAdmin = App && App.user && App.user.roleType && App.user.roleType.indexOf('管理员') !== -1;
         if (!list || list.length === 0) {
@@ -110,22 +161,22 @@ async function loadSystemFileList() {
         let html = '';
         list.forEach(item => {
             const uploadTime = item.uploadTime ? new Date(item.uploadTime).toLocaleString() : '';
-            const secret = item.secretLevel || '';
-            const isSecret = secret.indexOf('机密') !== -1;
+            const secretLevel = item.secretLevel || '';
+            const isSecret = secretLevel.indexOf('机密') !== -1;
             const canDownload = !isSecret || isAdmin;
             html += `
                 <tr>
                     <td>${item.fileName || ''}</td>
                     <td>${item.fileType || ''}</td>
-                    <td>${secret}</td>
+                    <td>${secretLevel}</td>
                     <td>${item.uploader || ''}</td>
                     <td>${uploadTime}</td>
                     <td>
-                        <button class="ant-btn ant-btn-primary btn btn-sm" ${canDownload ? `onclick="downloadSystemFile(${item.id}, '${secret.replace(/'/g, "\\'")}')"` : 'disabled title="机密文件仅管理员可下载"'}>
+                        <button class="ant-btn ant-btn-primary btn btn-sm" ${canDownload ? `onclick="downloadSystemFile(${item.id}, '${secretLevel.replace(/'/g, "\\'")}')"` : 'disabled title="机密文件仅管理员可下载"'}>
                             <i class="fa fa-download"></i> 下载
                         </button>
                         ${isAdmin ? `
-                        <button class="ant-btn ant-btn-default btn btn-sm ms-1" onclick="editSystemFile(${item.id}, '${(item.fileType || '').replace(/'/g, "\\'")}', '${secret.replace(/'/g, "\\'")}')">
+                        <button class="ant-btn ant-btn-default btn btn-sm ms-1" onclick="editSystemFile(${item.id}, '${(item.fileType || '').replace(/'/g, "\\'")}', '${secretLevel.replace(/'/g, "\\'")}')">
                             <i class="fa fa-edit"></i> 编辑
                         </button>
                         <button class="ant-btn ant-btn-danger btn btn-sm ms-1" onclick="deleteSystemFile(${item.id})">
