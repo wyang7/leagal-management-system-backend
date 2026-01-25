@@ -146,17 +146,24 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
      */
     @Override
     public Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize
-            ,String taskName,String taskStatus,String station) {
+            ,String taskName,String taskStatus,List<String> stations) {
         int offset = (pageNum - 1) * pageSize;
 
-        // 查询总条数
-        int total = baseMapper.countAllTasks(taskName, taskStatus,station);
+        // 总部管理员：stations 为空 -> 不做驻点过滤
+        boolean filterByStations = stations != null && !stations.isEmpty();
 
-        // 查询当前页数据
-        List<Task> records = baseMapper.selectTaskPage(offset, pageSize,taskName, taskStatus,station);
+        int total;
+        List<Task> records;
+        if (filterByStations) {
+            total = baseMapper.countAllTasksByStations(taskName, taskStatus, stations);
+            records = baseMapper.selectTaskPageByStations(offset, pageSize, taskName, taskStatus, stations);
+        } else {
+            // 兼容旧逻辑：传 null 不过滤
+            total = baseMapper.countAllTasks(taskName, taskStatus, null);
+            records = baseMapper.selectTaskPage(offset, pageSize, taskName, taskStatus, null);
+        }
 
         if (CollectionUtils.isNotEmpty(records)) {
-            // 为每个任务设置关联的案件数量
             for (Task task : records) {
                 int caseCount = caseInfoMapper.countByTaskId(task.getTaskId());
                 task.setCaseCount(caseCount);
@@ -167,13 +174,11 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
             }
         }
 
-        // 封装分页结果
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);
         result.put("records", records);
         result.put("pageNum", pageNum);
         result.put("pageSize", pageSize);
-
         return result;
     }
 

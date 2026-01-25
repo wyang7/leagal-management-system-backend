@@ -63,4 +63,52 @@
         LIMIT #{offset}, #{pageSize}
     </select>
 
+    <!-- 多驻点：查询任务总数 -->
+    <select id="countAllTasksByStations" resultType="int">
+        SELECT COUNT(*) FROM task
+        WHERE 1=1
+        <if test="taskName != null and taskName != ''">
+            AND task_name LIKE CONCAT('%', #{taskName}, '%')
+        </if>
+        <if test="taskStatus != null and taskStatus != ''">
+            AND status = #{taskStatus}
+        </if>
+        <if test="stations != null and stations.size > 0">
+            AND (
+                station IN
+                <foreach collection="stations" item="st" open="(" separator="," close=")">
+                    #{st}
+                </foreach>
+                <if test="stations.contains('九堡彭埠')">
+                    OR station IN ('九堡', '彭埠', '九堡彭埠')
+                </if>
+            )
+        </if>
+    </select>
+
+    <!-- 多驻点：分页查询任务 -->
+    <select id="selectTaskPageByStations" resultType="com.example.managementsystem.entity.Task">
+        SELECT * FROM task
+        WHERE 1=1
+        <if test="taskName != null and taskName != ''">
+            AND task_name LIKE CONCAT('%', #{taskName}, '%')
+        </if>
+        <if test="taskStatus != null and taskStatus != ''">
+            AND status = #{taskStatus}
+        </if>
+        <if test="stations != null and stations.size > 0">
+            AND (
+                station IN
+                <foreach collection="stations" item="st" open="(" separator="," close=")">
+                    #{st}
+                </foreach>
+                <if test="stations.contains('九堡彭埠')">
+                    OR station IN ('九堡', '彭埠', '九堡彭埠')
+                </if>
+            )
+        </if>
+        ORDER BY created_time DESC ,task_id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
 </mapper>

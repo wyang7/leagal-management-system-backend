@@ -64,6 +64,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                       @Param("receiveTimeEnd") String receiveTimeEnd,
                       @Param("assistantId") Long assistantId,
                       @Param("userId") Long userId,
+                      @Param("taskId") Long taskId,
                       @Param("station") String station,
                       @Param("keyword") String keyword);
 
@@ -102,6 +103,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                                   @Param("receiveTimeEnd") String receiveTimeEnd,
                                   @Param("assistantId") Long assistantId,
                                   @Param("userId") Long userId,
+                                  @Param("taskId") Long taskId,
                                   @Param("station") String station,
                                   @Param("sortField") String sortField,
                                   @Param("sortOrder") String sortOrder,

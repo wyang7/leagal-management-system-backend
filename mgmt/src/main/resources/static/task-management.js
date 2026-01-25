@@ -1,9 +1,22 @@
 /**
+ * 案件包管理权限：总部管理员可写，其它管理员只读
+ */
+function isHeadquartersAdminUser() {
+    const u = (App.user) ? App.user : null;
+    if (!u) return false;
+    const isAdmin = u.roleType && u.roleType.indexOf('管理员') !== -1;
+    if (!isAdmin) return false;
+    const stations = (u.station || '').split(',').map(s => s.trim()).filter(Boolean);
+    return stations.includes('总部');
+}
+
+/**
  * 加载案件包页面
  */
 function loadTaskManagementPage() {
     setActiveNav('案件包');
     const mainContent = document.getElementById('mainContent');
+    const canWrite = isHeadquartersAdminUser();
     mainContent.innerHTML = `
         <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
             <div class="ant-card-body">
@@ -21,12 +34,14 @@ function loadTaskManagementPage() {
                             <i class="fa fa-search me-1"></i> 查询
                         </button>
                     </div>
-                    <div class="col-md-4 d-flex justify-content-end align-items-end gap-2">
-                        <button class="ant-btn ant-btn-primary" onclick="batchPublishTasks()">
-                            <i class="fa fa-paper-plane"></i> 批量发布
-                        </button>
+                    <div class="col-md-4 d-flex justify-content-end align-items-end gap-2" id="taskMgmtTopActions">
+                        <!-- 导出：管理员均可（总部/非总部都可导出自己可见的数据） -->
                         <button class="ant-btn" onclick="exportSelectedTaskCases()">
                             <i class="fa fa-download"></i> 导出选中案件包
+                        </button>
+                        ${canWrite ? `
+                        <button class="ant-btn ant-btn-primary" onclick="batchPublishTasks()">
+                            <i class="fa fa-paper-plane"></i> 批量发布
                         </button>
                         <button class="ant-btn ant-btn-success" style="background:#52c41a;border-color:#52c41a;color:#fff;" onclick="showAddTaskModal()">
                             <i class="fa fa-plus"></i> 新增案件包
@@ -34,6 +49,9 @@ function loadTaskManagementPage() {
                         <button class="ant-btn ant-btn-info" onclick="showBatchCreateTaskModal()">
                             <i class="fa fa-clone"></i> 批量创建案件包
                         </button>
+                        ` : `
+                        <span class="text-muted" style="font-size:13px;">只读：仅总部管理员可新增/编辑/分派/关联/删除/发布</span>
+                        `}
                     </div>
                 </div>
             </div>
@@ -135,6 +153,7 @@ async function loadTasks(pageNum = 1, pageSizeParam = taskPageSize, taskName = '
  */
 function renderTaskTable(tasks) {
     const tableBody = document.getElementById('taskTableBody');
+    const canWrite = isHeadquartersAdminUser();
 
     if (!tasks || tasks.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="9" class="text-center">没有找到任务数据</td></tr>`;
@@ -153,17 +172,13 @@ function renderTaskTable(tasks) {
             statusClass = 'text-info';
         }
 
-        html += `
-        <tr>
-            <td><input type="checkbox" name="taskCheckbox" value="${task.taskId}"></td>
-            <td>${task.taskId}</td>
-            <td>${task.taskName}</td>
-            <td>${task.station || '-'}</td>
-            <td>${task.receiveTime ? new Date(task.receiveTime).toLocaleString() : '-'}</td>
-            <td>${task.caseCount || 0}</td>
-            <td><span class="${statusClass}">${task.status}</span></td>
-            <td>${task.ownerName || '-'}</td>
-            <td>
+        const viewBtn = `
+            <button class="ant-btn ant-btn-default btn btn-sm btn-light" onclick="showTaskCasesModal(${task.taskId})">
+                <i class="fa fa-eye"></i> 查看案件
+            </button>
+        `;
+
+        const writeBtns = canWrite ? `
                 <button class="ant-btn ant-btn-primary btn btn-sm btn-primary" onclick="showEditTaskModal(${task.taskId})">
                     <i class="fa fa-edit"></i> 编辑
                 </button>
@@ -181,6 +196,21 @@ function renderTaskTable(tasks) {
                     <i class="fa fa-paper-plane"></i> 发布
                 </button>
                 ` : ''}
+        ` : '';
+
+        html += `
+        <tr>
+            <td><input type="checkbox" name="taskCheckbox" value="${task.taskId}"></td>
+            <td>${task.taskId}</td>
+            <td>${task.taskName}</td>
+            <td>${task.station || '-'}</td>
+            <td>${task.receiveTime ? new Date(task.receiveTime).toLocaleString() : '-'}</td>
+            <td>${task.caseCount || 0}</td>
+            <td><span class="${statusClass}">${task.status}</span></td>
+            <td>${task.ownerName || '-'}</td>
+            <td>
+                ${viewBtn}
+                ${writeBtns}
             </td>
         </tr>
         `;
@@ -188,7 +218,6 @@ function renderTaskTable(tasks) {
 
     tableBody.innerHTML = html;
 }
-
 
 /**
  * 单个发布案件包
@@ -958,7 +987,13 @@ function exportSelectedTaskCases() {
         alert('请选择要导出的案件包');
         return;
     }
-    const taskIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10));
+    // 仅导出当前界面可勾选到的 taskId（后端会基于驻点权限再次校验）
+    const taskIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10)).filter(n => !isNaN(n));
+    if (!taskIds.length) {
+        alert('请选择要导出的案件包');
+        return;
+    }
+
     const payload = { taskIds: taskIds };
     const baseUrl = 'http://localhost:8090/api';
     const url = baseUrl + '/task/export-cases';
@@ -969,6 +1004,12 @@ function exportSelectedTaskCases() {
         body: JSON.stringify(payload)
     }).then(response => {
         if (!response.ok) {
+            if (response.status === 403) {
+                throw new Error('无权限导出：仅允许导出自己驻点可见的案件包');
+            }
+            if (response.status === 401) {
+                throw new Error('登录已过期，请重新登录');
+            }
             throw new Error('导出失败');
         }
         return response.blob();
@@ -984,4 +1025,71 @@ function exportSelectedTaskCases() {
     }).catch(err => {
         alert(err.message || '导出失败');
     });
+}
+
+/**
+ * 查看案件包下的案件（只读）
+ */
+async function showTaskCasesModal(taskId) {
+    try {
+        // 复用 caseInfo 的查询接口：按 taskId 拉取尽可能多的案件
+        const resp = await request('/case/page', 'POST', { taskId: taskId, pageNum: 1, pageSize: 200 });
+        const records = (resp && resp.records) ? resp.records : [];
+
+        const modalId = 'taskCasesViewModal';
+        let modalEl = document.getElementById(modalId);
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.id = modalId;
+            modalEl.className = 'modal fade';
+            modalEl.tabIndex = -1;
+            modalEl.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">案件包关联案件</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="white-space:nowrap;">案件ID</th>
+                                            <th style="white-space:nowrap;">案件号</th>
+                                            <th style="white-space:nowrap;">驻点</th>
+                                            <th style="white-space:nowrap;">状态</th>
+                                            <th style="white-space:nowrap;">处理人</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="taskCasesViewBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalEl);
+        }
+
+        const body = modalEl.querySelector('#taskCasesViewBody');
+        if (!records.length) {
+            body.innerHTML = `<tr><td colspan="5" class="text-center text-muted">暂无关联案件</td></tr>`;
+        } else {
+            body.innerHTML = records.map(c => `
+                <tr>
+                    <td>${c.caseId ?? ''}</td>
+                    <td>${c.caseNumber ?? ''}</td>
+                    <td>${c.caseLocation ?? ''}</td>
+                    <td>${c.status ?? ''}</td>
+                    <td>${c.username ?? ''}</td>
+                </tr>
+            `).join('');
+        }
+
+        const bsModal = new bootstrap.Modal(modalEl);
+        bsModal.show();
+    } catch (e) {
+        alert('加载关联案件失败：' + (e.message || '未知错误'));
+    }
 }

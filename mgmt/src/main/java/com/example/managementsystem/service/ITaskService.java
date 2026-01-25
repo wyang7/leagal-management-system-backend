@@ -30,8 +30,11 @@ public interface ITaskService extends IService<Task> {
     // 新增方法：领取案件包
     boolean receiveTask(Long taskId, Long userId, Long operateId, boolean isAssign);
 
-    // 新增方法：获取案件包及状态信息
-    Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName,String taskStatus,String station);
+    /**
+     * 分页查询案件包列表（包含状态）
+     * @param stations 允许查看的驻点列表；总部管理员传 null 或空表示不过滤
+     */
+    Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName,String taskStatus,List<String> stations);
 
     /**
      * 批量发布案件包（将状态从待发布改为待领取）
