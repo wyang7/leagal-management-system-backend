@@ -50,6 +50,24 @@ public class TaskController {
     }
 
     /**
+     * 判断当前用户是否为“总部管理员”：1）station 列表中包含“总部”
+     */
+    private boolean isHeadquarters(UserSession currentUser) {
+        if (currentUser == null) {
+            return false;
+        }
+        String stationStr = currentUser.getStation();
+        if (!StringUtils.hasText(stationStr)) {
+            return false;
+        }
+        List<String> stations = Arrays.stream(stationStr.split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toList());
+        return stations.contains("总部");
+    }
+
+    /**
      * 判断当前用户是否为“总部管理员”：1）roleType 包含“管理员”；2）station 列表中包含“总部”
      */
     private boolean isHeadquartersAdmin(UserSession currentUser) {
@@ -209,7 +227,7 @@ public class TaskController {
             return Result.success(result);
         }
 
-        boolean hqAdmin = isHeadquartersAdmin(currentUser);
+        boolean hqAdmin = isHeadquarters(currentUser);
         List<String> userStations = resolveUserStations(currentUser);
         return Result.success(taskService.getTaskPage(pageNum, pageSize, taskName, taskStatus,
                 hqAdmin ? null : userStations));
@@ -318,7 +336,7 @@ public class TaskController {
                 return;
             }
 
-            boolean hqAdmin = isHeadquartersAdmin(currentUser);
+            boolean hqAdmin = isHeadquarters(currentUser);
             if (!hqAdmin) {
                 // 非总部管理员：只能导出自己驻点范围内的案件包
                 java.util.Set<String> allowedStations = new java.util.HashSet<>(resolveUserStations(currentUser));
