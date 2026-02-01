@@ -33,6 +33,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.example.managementsystem.dto.CasePageRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.managementsystem.dto.CaseCloseExtDTO;
+import com.example.managementsystem.entity.CaseCloseExt;
+import com.example.managementsystem.mapper.CaseCloseExtMapper;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -60,6 +62,9 @@ public class CaseInfoController {
 
     @Autowired
     private IRoleService roleService;
+
+    @Autowired
+    private CaseCloseExtMapper caseCloseExtMapper;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -480,6 +485,9 @@ public class CaseInfoController {
                 log.error("解析/合并结案扩展信息失败", e);
             }
         }
+
+        // 双写到新表（读取仍走旧字段）
+        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
 
         boolean success = caseInfoService.updateById(caseInfo);
         return success ? Result.success() : Result.fail("更新案件失败");
@@ -1029,6 +1037,10 @@ public class CaseInfoController {
         } catch (Exception e) {
             return Result.fail("结案扩展信息序列化失败");
         }
+
+        // 双写到新表（读取仍走旧字段）
+        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
+
         // 更新状态与完成情况
         if (isSubmitForReview) {
             // 正常流程：提交结案审核 -> 待结案
@@ -1579,6 +1591,10 @@ public class CaseInfoController {
             log.error("序列化结案扩展信息失败", e);
             return Result.fail("保存付款流水失败");
         }
+
+        // 双写到新表（读取仍走旧字段）
+        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
+
         caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         boolean ok = caseInfoService.updateById(caseInfo);
         return ok ? Result.success(ext.getPaymentFlows()) : Result.fail("保存付款流水失败");
@@ -1642,8 +1658,70 @@ public class CaseInfoController {
             log.error("序列化结案扩展信息失败", e);
             return Result.fail("保存失败");
         }
+
+        // 双写到新表（读取仍走旧字段）
+        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
+
         caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         boolean ok = caseInfoService.updateById(caseInfo);
         return ok ? Result.success(ext.getPaymentFlows()) : Result.fail("删除付款流水失败");
     }
+
+    /**
+     * 双写：将 case_info.case_close_ext 的 JSON 同步写入新表 case_close_ext。
+     *
+     * 说明：
+     * - 当前阶段只做写入一致性校验，因此读取仍走旧字段。
+     * - 这里尽量收口，所有更新 caseCloseExt 的流程都走这里。
+     * - 若 JSON 解析失败或写新表失败，不阻断主流程（避免影响线上业务）。
+     */
+    private void syncCaseCloseExtToNewTable(Long caseId, String caseCloseExtJson) {
+        if (caseId == null) {
+            return;
+        }
+        if (caseCloseExtJson == null || caseCloseExtJson.trim().isEmpty()) {
+            return;
+        }
+        CaseCloseExtDTO dto;
+        try {
+            dto = objectMapper.readValue(caseCloseExtJson, CaseCloseExtDTO.class);
+        } catch (Exception e) {
+            log.error("双写 case_close_ext 解析 JSON 失败, caseId={}", caseId, e);
+            return;
+        }
+
+        try {
+            CaseCloseExt row = caseCloseExtMapper.selectByCaseId(caseId);
+            boolean isInsert = (row == null);
+            if (row == null) {
+                row = new CaseCloseExt();
+                row.setCaseId(caseId);
+                row.setCreatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+            row.setSignDate(dto.getSignDate());
+            row.setAdjustedAmount(dto.getAdjustedAmount());
+            row.setMediationFee(dto.getMediationFee());
+            row.setPlaintiffMediationFee(dto.getPlaintiffMediationFee());
+            row.setDefendantMediationFee(dto.getDefendantMediationFee());
+            row.setPayer(dto.getPayer());
+            row.setInvoiced(dto.getInvoiced());
+            row.setInvoiceInfo(dto.getInvoiceInfo());
+            try {
+                row.setPaymentFlows(dto.getPaymentFlows() == null ? null : objectMapper.writeValueAsString(dto.getPaymentFlows()));
+            } catch (Exception e) {
+                log.error("双写 case_close_ext 序列化 paymentFlows 失败, caseId={}", caseId, e);
+                row.setPaymentFlows(null);
+            }
+            row.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+            if (isInsert) {
+                caseCloseExtMapper.insert(row);
+            } else {
+                caseCloseExtMapper.updateById(row);
+            }
+        } catch (Exception e) {
+            log.error("双写 case_close_ext 写入失败, caseId={}", caseId, e);
+        }
+    }
+
 }
