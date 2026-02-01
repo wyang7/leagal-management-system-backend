@@ -842,7 +842,7 @@ public class CaseInfoController {
         String operatorName = currentUser.getUsername();
         // 状态校验：已领取/反馈/延期 可提交结案审核；结案状态允许补充结案信息
         String before = caseInfo.getStatus();
-        boolean isSubmitForReview = ("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before));
+        boolean isSubmitForReview = ("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before) || "待结案".equals(before));
         boolean isSupplementAfterClosed = "结案".equals(before);
         if (!(isSubmitForReview || isSupplementAfterClosed)) {
             return Result.fail("当前状态不允许提交/补充结案信息");
