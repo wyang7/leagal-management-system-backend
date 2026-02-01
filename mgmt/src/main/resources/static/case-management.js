@@ -497,6 +497,11 @@ async function showCaseDetailModal(caseId) {
                 }).join('')
               : '<div class="text-muted">暂无付款流水</div>';
 
+            const invoicePdf = ext.invoicePdf;
+            const invoicePdfHtml = invoicePdf
+              ? `<a href="/api/case/invoice-pdf?objectName=${encodeURIComponent(invoicePdf)}" target="_blank" rel="noopener">点击查看/下载发票PDF</a>`
+              : `<span class='text-muted'>暂无发票</span>`;
+
             extHtml=`<div class='row g-2'>
               <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
               <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?fmtAmount(ext.adjustedAmount):'-'}</div>
@@ -504,10 +509,13 @@ async function showCaseDetailModal(caseId) {
               <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?fmtAmount(ext.mediationFee):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>原告调解费：</span>${ext.plaintiffMediationFee!=null?fmtAmount(ext.plaintiffMediationFee):'-'}</div>
               <div class='col-md-6'><span class='text-muted'>被告调解费：</span>${ext.defendantMediationFee!=null?fmtAmount(ext.defendantMediationFee):'-'}</div>
-              <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced?'是':'否'}</div>
-              ${ext.invoiced?`<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
+              <div class='col-md-6'><span class='text-muted'>开票状态：</span>${ext.invoiceStatus||'暂未申请开票'}</div>
+              <div class='col-md-6'><span class='text-muted'>是否已付款：</span>${(typeof ext.paid==='boolean')?(ext.paid?'是':'否'):'-'}</div>
+              <div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'-').replace(/\n/g,'<br>')}</div>
               <div class='col-12 mt-2'><span class='text-muted fw-bold'>案件付款流水：</span></div>
               <div class='col-12'>${flowsHtml}</div>
+              <div class='col-12 mt-2'><span class='text-muted fw-bold'>发票信息：</span></div>
+              <div class='col-12'>${invoicePdfHtml}</div>
           </div>`;
           }catch(e){
             extHtml='<div class="text-danger">结案扩展信息解析失败</div>'
@@ -788,7 +796,7 @@ function renderPagination(pageInfo) {
     bindPageSizeChange();
 }
 
-// 构建每页条数选择器 HTML
+// ��建每页条数选择器 HTML
 function buildPageSizeSelector() {
     const options = [10, 20, 50, 100];
     return `<div class="d-flex align-items-center gap-1">
@@ -1325,7 +1333,7 @@ function createCaseModal(taskOptions, assistantOptions) {
                             <div class="form-group">
                                 <label for="plaintiffName">原告</label>
                                 <input type="text" id="plaintiffName" class="form-control" required placeholder="请输入原告名称">
-                            </div>
+                                                       </div>
                             <div class="form-group">
                                 <label for="defendantName">被告</label>
                                 <input type="text" id="defendantName" class="form-control" required placeholder="请输入被告名称">
@@ -1353,7 +1361,7 @@ function createCaseModal(taskOptions, assistantOptions) {
                                     <option value="待结案">待结案</option>
                                 </select>
                             </div>
-                           <!-- 结案信息：调解费 / 支付方 / 是否开票（存储在 case_close_ext 中） -->
+                           <!-- 结案信息：调解费 / 支付方（存储在 case_close_ext 中） -->
                            <div class="form-group">
                                <label for="mediationFee">调解费（元，可选）</label>
                                <input type="number" id="mediationFee" class="form-control" step="0.01" min="0" placeholder="请输入调解费，总额，精确到小数点后两位">
@@ -1366,10 +1374,6 @@ function createCaseModal(taskOptions, assistantOptions) {
                                    <option value="被告">被告</option>
                                    <option value="原被告">原被告</option>
                                </select>
-                           </div>
-                           <div class="form-group form-check">
-                               <input type="checkbox" class="form-check-input" id="invoiced">
-                               <label class="form-check-label" for="invoiced">是否开票</label>
                            </div>
                         </form>
                     </div>
@@ -1421,10 +1425,8 @@ async function showAddCaseModal() {
     // 明确重置结案扩展字段，避免沿用上一次编辑时的值
     const mediationFeeEl = document.getElementById('mediationFee');
     const payerEl = document.getElementById('payer');
-    const invoicedEl = document.getElementById('invoiced');
     if (mediationFeeEl) mediationFeeEl.value = '';
     if (payerEl) payerEl.value = '';
-    if (invoicedEl) invoicedEl.checked = false;
     document.getElementById('caseModalTitle').textContent = '新增案件';
 
     // 显示模态框
@@ -1473,15 +1475,13 @@ async function showEditCaseModal(caseId) {
         document.getElementById('caseTaskId').value = caseInfo.taskId || '';
         document.getElementById('caseModalTitle').textContent = '编辑案件';
 
-       // 解析结案扩展信息 caseCloseExt（JSON 字符串），用于回显调解费/支付方/是否开票
+       // 解析结案扩展信息 caseCloseExt（JSON 字符串），用于回显调解费/支付方
        try {
            // 先保证这几个字段在解析前是干净的
            const mediationFeeEl2 = document.getElementById('mediationFee');
            const payerEl2 = document.getElementById('payer');
-           const invoicedEl2 = document.getElementById('invoiced');
            if (mediationFeeEl2) mediationFeeEl2.value = '';
            if (payerEl2) payerEl2.value = '';
-           if (invoicedEl2) invoicedEl2.checked = false;
 
            if (safeCaseInfo.caseCloseExt) {
                const ext = JSON.parse(safeCaseInfo.caseCloseExt);
@@ -1497,24 +1497,17 @@ async function showEditCaseModal(caseId) {
                    } else {
                        document.getElementById('payer').value = '';
                    }
-                   if (typeof ext.invoiced !== 'undefined' && ext.invoiced !== null) {
-                       document.getElementById('invoiced').checked = !!ext.invoiced;
-                   } else {
-                       document.getElementById('invoiced').checked = false;
-                   }
                }
            } else {
                // 没有扩展信息时清空表单
                document.getElementById('mediationFee').value = '';
                document.getElementById('payer').value = '';
-               document.getElementById('invoiced').checked = false;
            }
        } catch (e) {
            console.error('解析结案扩展信息失败:', e);
            // 解析失败时，保证字段为空
            document.getElementById('mediationFee').value = '';
            document.getElementById('payer').value = '';
-           document.getElementById('invoiced').checked = false;
        }
 
         // 显示模态框
@@ -1543,13 +1536,11 @@ async function saveCase() {
     const caseAssistantId = document.getElementById('caseAssistantId').value;
     const status = document.getElementById('caseStatus').value;
 
-   // 结案扩展字段：调解费 / 支付方 / 是否开票（全部为可选）
+   // 结案扩展字段：调解费 / 支付方（全部为可选）
    const mediationFeeInput = document.getElementById('mediationFee');
    const payerSelect = document.getElementById('payer');
-   const invoicedCheckbox = document.getElementById('invoiced');
    const mediationFeeStr = mediationFeeInput ? mediationFeeInput.value.trim() : '';
    const payer = payerSelect ? payerSelect.value : '';
-   const invoiced = invoicedCheckbox ? invoicedCheckbox.checked : false;
 
     // 简单验证
     if (!plaintiffName) {
@@ -1602,8 +1593,6 @@ async function saveCase() {
     if (payer) {
         extPayload.payer = payer;
     }
-    // 始终传递 invoiced，方便后端同步更新
-    extPayload.invoiced = invoiced;
     // 仅当有任一字段需要更新时，才附加该属性
     if (Object.keys(extPayload).length > 0) {
         caseData.caseCloseExtJson = JSON.stringify(extPayload);

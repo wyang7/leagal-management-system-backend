@@ -295,6 +295,16 @@
         .station-pies-row .dashboard-item { flex:0 0 320px; } /* 固定宽度防止挤压 */
         .threshold-legend { position:absolute; top:8px; right:12px; font-size:12px; color:#666; }
         .clickable { cursor:pointer; }
+
+        /* 财务管理二级菜单：缩进 + 更小字号，体现二级层级 */
+        .sidebar .nav-link-finance {
+            padding-left: 30px;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .sidebar .nav-link-finance i {
+            font-size: 10px;
+        }
     </style>
 </head>
 <body>
@@ -337,6 +347,7 @@
 <script src="user-management.js"></script>
 <script src="role-management.js"></script>
 <script src="case-management.js"></script>
+<script src="invoice-management.js"></script>
 <script src="task-management.js"></script>
 <script src="task-receive.js"></script>
 <script src="my-cases.js"></script>
@@ -384,6 +395,8 @@
 
         const isAdmin = roleType.indexOf('管理员') !== -1;
         const isMediator = roleType.indexOf('调解员') !== -1;
+        const isFinance = roleType.indexOf('财务专员') !== -1;
+        const canSeeFinanceMenu = isAdmin || isFinance;
 
         // 所有可枚举驻点
         const ALL_STATIONS = ['九堡彭埠', '本部', '四季青', '凯旋街道', '闸弄口', '笕桥'];
@@ -429,6 +442,14 @@
             items.push({ key: 'task-mgmt', text: '案件包管理', icon: 'fa-tasks', onClick: 'handleRootClick(\'task-mgmt\', loadTaskManagementPage)', cssClass: 'nav-link-root' });
         }
 
+        // 财务管理：只对“财务专员/管理员”可见，并且放在菜单最后
+        if (canSeeFinanceMenu) {
+            // 换个和“案件管理”不同的图标（money/credit-card 更符合财务语义）
+            items.push({ key: 'finance-mgmt-root', text: '财务管理', icon: 'fa-credit-card', cssClass: 'nav-link nav-link-root disabled', isFolder: true, isFinanceFolder: true });
+            // 开票管理（二级菜单：缩进 + 小字号）
+            items.push({ key: 'invoice-mgmt', text: '开票管理', icon: 'fa-circle-o', onClick: 'handleRootClick(\'invoice-mgmt\', loadInvoiceManagementPage)', cssClass: 'nav-link-station', isFinanceChild: true });
+        }
+
         items.forEach((item, index) => {
             const li = document.createElement('li');
             li.className = 'nav-item';
@@ -446,7 +467,13 @@
                         <i class="fa ${item.icon} me-2"></i>${item.text}
                     </a>
                 `;
-            } else {
+            } else if (item.isFinanceChild) {
+                li.innerHTML = `
+                    <a href="javascript:void(0);" class="nav-link nav-link-finance" data-key="${item.key}" onclick="${item.onClick}">
+                        <i class="fa ${item.icon} me-2"></i>${item.text}
+                    </a>
+                `;
+             } else {
                 li.innerHTML = `
                     <a href="javascript:void(0);" class="nav-link nav-link-root" data-key="${item.key}" onclick="${item.onClick}">
                         <i class="fa ${item.icon} me-2"></i>${item.text}

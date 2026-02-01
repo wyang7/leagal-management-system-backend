@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.managementsystem.mapper.InvoiceManagementMapper">
+
+    <sql id="InvoiceKeywordWhere">
+        <if test="keyword != null and keyword != ''">
+            AND (
+                ci.case_number LIKE CONCAT('%', #{keyword}, '%')
+                OR ci.case_name LIKE CONCAT('%', #{keyword}, '%')
+                OR ci.plaintiff_name LIKE CONCAT('%', #{keyword}, '%')
+                OR ci.defendant_name LIKE CONCAT('%', #{keyword}, '%')
+                OR uu.username LIKE CONCAT('%', #{keyword}, '%')
+                OR au.username LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+    </sql>
+
+    <select id="countInvoiceCases" resultType="int">
+        SELECT COUNT(1)
+        FROM case_close_ext cce
+        INNER JOIN case_info ci ON ci.case_id = cce.case_id
+        LEFT JOIN user uu ON ci.user_id = uu.user_id
+        LEFT JOIN user au ON ci.assistant_id = au.user_id
+        WHERE cce.invoice_status = #{invoiceStatus}
+        <include refid="InvoiceKeywordWhere"/>
+    </select>
+
+    <select id="selectInvoiceCases" resultType="com.example.managementsystem.dto.InvoiceCaseDTO">
+        SELECT
+            ci.case_id AS caseId,
+            ci.case_number AS caseNumber,
+            ci.case_name AS caseName,
+            ci.amount AS amount,
+            ci.case_location AS caseLocation,
+            ci.plaintiff_name AS plaintiffName,
+            ci.defendant_name AS defendantName,
+            au.username AS assistantName,
+            cce.updated_time AS applyInvoiceTime,
+            cce.invoice_status AS invoiceStatus,
+            uu.username AS username
+        FROM case_close_ext cce
+        INNER JOIN case_info ci ON ci.case_id = cce.case_id
+        LEFT JOIN user uu ON ci.user_id = uu.user_id
+        LEFT JOIN user au ON ci.assistant_id = au.user_id
+        WHERE cce.invoice_status = #{invoiceStatus}
+        <include refid="InvoiceKeywordWhere"/>
+        ORDER BY cce.updated_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>

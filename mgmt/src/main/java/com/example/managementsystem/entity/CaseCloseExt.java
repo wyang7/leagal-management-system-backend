@@ -45,6 +45,14 @@ public class CaseCloseExt {
     @TableField("payer")
     private String payer;
 
+    /** 开票状态：暂未申请开票/待开票/已开票 */
+    @TableField("invoice_status")
+    private String invoiceStatus;
+
+    /** 是否已付款 */
+    @TableField("paid")
+    private Boolean paid;
+
     /** 是否开票 */
     @TableField("invoiced")
     private Boolean invoiced;
@@ -57,10 +65,13 @@ public class CaseCloseExt {
     @TableField("payment_flows")
     private String paymentFlows;
 
+    /** 发票PDF(OSS objectName) */
+    @TableField("invoice_pdf")
+    private String invoicePdf;
+
     @TableField("created_time")
     private String createdTime;
 
     @TableField("updated_time")
     private String updatedTime;
 }
-

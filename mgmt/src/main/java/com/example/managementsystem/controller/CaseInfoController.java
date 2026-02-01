@@ -468,16 +468,7 @@ public class CaseInfoController {
                             Object v = extPatch.get("payer");
                             ext.setPayer(v == null ? null : v.toString());
                         }
-                        if (extPatch.containsKey("invoiced")) {
-                            Object v = extPatch.get("invoiced");
-                            if (v == null) {
-                                ext.setInvoiced(null);
-                            } else if (v instanceof Boolean) {
-                                ext.setInvoiced((Boolean) v);
-                            } else {
-                                ext.setInvoiced(Boolean.parseBoolean(v.toString()));
-                            }
-                        }
+                        // 开票相关字段不再在“提交结案审核/修改结案信息”中维护，统一走独立的申请开票接口。
                     }
                     caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
                 }
@@ -1668,59 +1659,161 @@ public class CaseInfoController {
     }
 
     /**
-     * 双写：将 case_info.case_close_ext 的 JSON 同步写入新表 case_close_ext。
+     * 申请开票（独立入口）：仅待结案状态允许。
      *
-     * 说明：
-     * - 当前阶段只做写入一致性校验，因此读取仍走旧字段。
-     * - 这里尽量收口，所有更新 caseCloseExt 的流程都走这里。
-     * - 若 JSON 解析失败或写新表失败，不阻断主流程（避免影响线上业务）。
+     * 维护字段：
+     * - invoiceStatus：暂未申请开票 / 待开票 / 已开票
+     * - paid：是否已付款
+     * - invoiceInfo：开票信息
+     *
+     * 付款流水(paymentFlows) 请复用 /case/payment-flows 与 /case/payment-flows/delete 维护。
+     */
+    @PostMapping("/apply-invoice")
+    @Transactional
+    public Result<?> applyInvoice(@RequestBody Map<String, Object> params, HttpSession session) {
+        Object caseIdObj = params.get("caseId");
+        if (caseIdObj == null) {
+            return Result.fail("缺少案件ID");
+        }
+        Long caseId;
+        try {
+            caseId = Long.parseLong(caseIdObj.toString());
+        } catch (NumberFormatException e) {
+            return Result.fail("案件ID格式错误");
+        }
+
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+        if (!"待结案".equals(caseInfo.getStatus())) {
+            return Result.fail("仅待结案状态的案件可以申请开票");
+        }
+
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+
+        // 新流程：申请开票不允许前端指定状态。
+        // 业务规则：只能在“暂未申请开票”（或未设置）时发起申请，发起后自动流转为“待开票”。
+        CaseCloseExtDTO ext = null;
+        try {
+            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
+                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+            }
+        } catch (Exception e) {
+            log.error("解析结案扩展信息失败", e);
+        }
+        if (ext == null) {
+            ext = new CaseCloseExtDTO();
+        }
+        String currentInvoiceStatus = ext.getInvoiceStatus();
+        if (currentInvoiceStatus != null && !currentInvoiceStatus.trim().isEmpty() && !"暂未申请开票".equals(currentInvoiceStatus)) {
+            return Result.fail("当前开票状态为：" + currentInvoiceStatus + "，不可重复申请开票");
+        }
+        ext.setInvoiceStatus("待开票");
+
+        Boolean paid = null;
+        if (params.containsKey("paid")) {
+            Object paidObj = params.get("paid");
+            if (paidObj instanceof Boolean) {
+                paid = (Boolean) paidObj;
+            } else if (paidObj != null) {
+                paid = Boolean.parseBoolean(paidObj.toString());
+            }
+        }
+
+        String invoiceInfo = params.get("invoiceInfo") == null ? null : params.get("invoiceInfo").toString();
+        ext.setPaid(paid);
+        ext.setInvoiceInfo(invoiceInfo);
+
+        try {
+            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
+        } catch (Exception e) {
+            log.error("序列化结案扩展信息失败", e);
+            return Result.fail("保存开票信息失败");
+        }
+
+        // 双写到新表（读取仍走旧字段）
+        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
+
+        caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        boolean ok = caseInfoService.updateById(caseInfo);
+        return ok ? Result.success() : Result.fail("保存开票信息失败");
+    }
+
+    /**
+     * 双写工具：把旧字段 case_info.case_close_ext(JSON) 同步到新表 case_close_ext。
+     *
+     * 说明：当前阶段“读仍走旧字段”，所以这里不做反向覆盖，只做 upsert。
+     *
+     * @param caseId 案件ID
+     * @param caseCloseExtJson case_info.case_close_ext 的 JSON 字符串（允许为 null/空）
      */
     private void syncCaseCloseExtToNewTable(Long caseId, String caseCloseExtJson) {
         if (caseId == null) {
             return;
         }
         if (caseCloseExtJson == null || caseCloseExtJson.trim().isEmpty()) {
+            // 旧字段无数据则不强制写新表，避免把新表清空。
             return;
         }
+
         CaseCloseExtDTO dto;
         try {
             dto = objectMapper.readValue(caseCloseExtJson, CaseCloseExtDTO.class);
         } catch (Exception e) {
-            log.error("双写 case_close_ext 解析 JSON 失败, caseId={}", caseId, e);
+            log.warn("syncCaseCloseExtToNewTable: JSON 解析失败 caseId={}, json={}", caseId, caseCloseExtJson);
+            return;
+        }
+        if (dto == null) {
             return;
         }
 
-        try {
-            CaseCloseExt row = caseCloseExtMapper.selectByCaseId(caseId);
-            boolean isInsert = (row == null);
-            if (row == null) {
-                row = new CaseCloseExt();
-                row.setCaseId(caseId);
-                row.setCreatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            }
-            row.setSignDate(dto.getSignDate());
-            row.setAdjustedAmount(dto.getAdjustedAmount());
-            row.setMediationFee(dto.getMediationFee());
-            row.setPlaintiffMediationFee(dto.getPlaintiffMediationFee());
-            row.setDefendantMediationFee(dto.getDefendantMediationFee());
-            row.setPayer(dto.getPayer());
-            row.setInvoiced(dto.getInvoiced());
-            row.setInvoiceInfo(dto.getInvoiceInfo());
-            try {
-                row.setPaymentFlows(dto.getPaymentFlows() == null ? null : objectMapper.writeValueAsString(dto.getPaymentFlows()));
-            } catch (Exception e) {
-                log.error("双写 case_close_ext 序列化 paymentFlows 失败, caseId={}", caseId, e);
-                row.setPaymentFlows(null);
-            }
-            row.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        // 查询是否已有记录
+        CaseCloseExt existing = caseCloseExtMapper.selectByCaseId(caseId);
+        CaseCloseExt entity = (existing != null) ? existing : new CaseCloseExt();
+        entity.setCaseId(caseId);
 
-            if (isInsert) {
-                caseCloseExtMapper.insert(row);
-            } else {
-                caseCloseExtMapper.updateById(row);
-            }
+        // DTO -> Entity
+        entity.setSignDate(dto.getSignDate());
+        entity.setAdjustedAmount(dto.getAdjustedAmount());
+        entity.setMediationFee(dto.getMediationFee());
+        entity.setPlaintiffMediationFee(dto.getPlaintiffMediationFee());
+        entity.setDefendantMediationFee(dto.getDefendantMediationFee());
+        entity.setPayer(dto.getPayer());
+
+        // 新字段
+        entity.setInvoiceStatus(dto.getInvoiceStatus());
+        entity.setPaid(dto.getPaid());
+
+        // 历史字段兼容（新流程忽略）
+        entity.setInvoiced(dto.getInvoiced());
+        entity.setInvoiceInfo(dto.getInvoiceInfo());
+
+        // 发票PDF
+        entity.setInvoicePdf(dto.getInvoicePdf());
+
+        // paymentFlows 以 JSON 形式存到新表字段 payment_flows
+        try {
+            entity.setPaymentFlows(dto.getPaymentFlows() == null ? null : objectMapper.writeValueAsString(dto.getPaymentFlows()));
         } catch (Exception e) {
-            log.error("双写 case_close_ext 写入失败, caseId={}", caseId, e);
+            // 不影响主流程
+            log.warn("syncCaseCloseExtToNewTable: paymentFlows 序列化失败 caseId={}", caseId);
+        }
+
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        if (existing == null) {
+            entity.setCreatedTime(now);
+        }
+        entity.setUpdatedTime(now);
+
+        // upsert
+        if (existing == null) {
+            caseCloseExtMapper.insert(entity);
+        } else {
+            caseCloseExtMapper.updateById(entity);
         }
     }
 

@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 
 /**
  * 结案附加信息扩展字段，序列化为 JSON 存储在 case_info.case_close_ext
+ *
+ * @author Copilot
  */
 @Data
 public class CaseCloseExtDTO {
@@ -20,12 +22,36 @@ public class CaseCloseExtDTO {
     private BigDecimal defendantMediationFee;
     /** 支付方：原告/被告/原被告 */
     private String payer;
-    /** 是否开票 */
+
+    /**
+     * 开票状态：
+     * 1、暂未申请开票
+     * 2、待开票
+     * 3、已开票
+     */
+    private String invoiceStatus;
+
+    /**
+     * 是否已付款（申请开票弹窗维护）。
+     */
+    private Boolean paid;
+
+    /**
+     * @deprecated 历史字段：是否开票。新流程请使用 invoiceStatus。
+     */
+    @Deprecated
     private Boolean invoiced;
+
     /** 开票信息（在 invoiced = true 时有效） */
     private String invoiceInfo;
     /** 付款流水列表 */
     private java.util.List<PaymentFlow> paymentFlows;
+
+    /**
+     * 发票PDF（OSS objectName，例如 invoice/xxx.pdf）。
+     * 与付款流水同级展示，供财务在“开票审核”中上传后写入。
+     */
+    private String invoicePdf;
 
     @Data
     public static class PaymentFlow {

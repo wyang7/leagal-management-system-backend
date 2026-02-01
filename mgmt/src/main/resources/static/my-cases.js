@@ -208,37 +208,45 @@ async function showmyCaseDetailModal(caseId) {
         let extHtml='';
         if(caseInfo.caseCloseExt){
             try{ const ext=JSON.parse(caseInfo.caseCloseExt); const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[]; const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00'; const flowsHtml = flows.length
-  ? flows.map((f,idx)=>{
-        const imgSrc = buildPaymentScreenshotSrc(f);
-        const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
-        return `<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
-        <div class='flex-grow-1'>
-            <div>序号：${idx+1}</div>
-            <div>时间：${f.payTime||'-'}</div>
-            <div>金额：${fmtAmount(f.amount)}</div>
-        </div>
-        <div class='ms-3'>
-            ${finalImgSrc? `<img src="${finalImgSrc}"
-                              alt="付款截图${idx+1}"
-                              class="payment-screenshot"
-                              data-url="${finalImgSrc}"
-                              style="width:80px;height:80px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
-                      : '<span class="text-muted">无截图</span>'}
-        </div>
-    </div>`;
-    }).join('')
-  : '<div class="text-muted">暂无付款流水</div>'; extHtml = `<div class='row g-2'>
-                <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?formatAmount(ext.adjustedAmount):'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?formatAmount(ext.mediationFee):'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>原告调解费：</span>${ext.plaintiffMediationFee!=null?formatAmount(ext.plaintiffMediationFee):'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>被告调解费：</span>${ext.defendantMediationFee!=null?formatAmount(ext.defendantMediationFee):'-'}</div>
-                <div class='col-md-6'><span class='text-muted'>是否开票：</span>${ext.invoiced? '是':'否'}</div>
-                ${ext.invoiced? `<div class='col-12'><span class='text-muted'>开票信息：</span>${(ext.invoiceInfo||'').replace(/\n/g,'<br>')}</div>`:''}
-                <div class='col-12 mt-2'><span class='text-muted fw-bold'>案件付款流水：</span></div>
-                <div class='col-12'>${flowsHtml}</div>
-            </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
+                ? flows.map((f,idx)=>{
+                    const imgSrc = buildPaymentScreenshotSrc(f);
+                    return `<div class='border rounded p-2 mb-2 d-flex justify-content-between align-items-center'>
+                              <div>
+                                <div><span class='text-muted'>序号：</span>${idx+1}</div>
+                                <div><span class='text-muted'>时间：</span>${f.payTime||'-'}</div>
+                                <div><span class='text-muted'>金额：</span>${fmtAmount(f.amount)}</div>
+                              </div>
+                              <div class='d-flex align-items-center gap-2'>
+                                ${imgSrc? `<img src="${imgSrc}" alt="付款截图${idx+1}" class="payment-screenshot" data-url="${imgSrc}" style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">` : '<span class="text-muted">无截图</span>'}
+                              </div>
+                            </div>`;
+                }).join('')
+                : `<div class='text-muted'>暂无付款流水</div>`;
+
+                // 发票信息（PDF）
+                const invoicePdf = ext.invoicePdf;
+                const invoicePdfHtml = invoicePdf
+                    ? `<a href="/api/case/invoice-pdf?objectName=${encodeURIComponent(invoicePdf)}" target="_blank" rel="noopener">点击查看/下载发票PDF</a>`
+                    : `<span class='text-muted'>暂无发票</span>`;
+
+                extHtml = `
+                    <div class='row g-2'>
+                        <div class='col-md-6'><span class='text-muted'>签字时间：</span>${ext.signDate||'-'}</div>
+                        <div class='col-md-6'><span class='text-muted'>调成标的额：</span>${ext.adjustedAmount!=null?fmtAmount(ext.adjustedAmount):'-'}</div>
+                        <div class='col-md-6'><span class='text-muted'>调解费：</span>${ext.mediationFee!=null?fmtAmount(ext.mediationFee):'-'}</div>
+                        <div class='col-md-6'><span class='text-muted'>支付方：</span>${ext.payer||'-'}</div>
+                        <div class='col-md-6'><span class='text-muted'>开票状态：</span>${ext.invoiceStatus||'暂未申请开票'}</div>
+                        <div class='col-md-6'><span class='text-muted'>是否已付款：</span>${ext.paid===true?'是':(ext.paid===false?'否':'-')}</div>
+                        <div class='col-12'><span class='text-muted'>开票信息：</span>${ext.invoiceInfo?String(ext.invoiceInfo).replace(/\n/g,'<br>'):'-'}</div>
+                        <div class='col-12'>
+                            <div class='fw-bold mt-2'>付款流水</div>
+                            <div>${flowsHtml}</div>
+                        </div>
+                        <div class='col-12'>
+                            <div class='fw-bold mt-2'>发票信息</div>
+                            <div>${invoicePdfHtml}</div>
+                        </div>
+                    </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
         } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
         // 新增：结案编号展示（澎和/青枫案件号在前，收款单号在后）
         const pengheLabel = (caseInfoResponse.label === null || caseInfoResponse.label === undefined)
@@ -599,6 +607,7 @@ function renderMyCaseTable(cases) {
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
                       `}
                       ${(caseInfo.status === '待结案') ? `
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showApplyInvoiceModal(${caseInfo.caseId})"><i class="fa fa-file-text-o"></i> 申请开票</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
                       ` : ''}
                     </ul>
@@ -675,13 +684,19 @@ async function loadPaymentFlows(caseId) {
     listEl.innerHTML = '<div class="text-muted">加载中...</div>';
     errEl.style.display = 'none';
     try {
-        const caseInfo = await request(`/case/detail/${caseId}`);
+        const resp = await request(`/case/detail/${caseId}`);
+        // /case/detail/{id} 返回的是 {case: CaseInfo, ...}，这里做兼容
+        const caseInfo = (resp && resp.case) ? resp.case : resp;
         if (!caseInfo || !caseInfo.caseCloseExt) {
             listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
             return;
         }
         let ext;
-        try { ext = JSON.parse(caseInfo.caseCloseExt); } catch(e) { ext = null; }
+        try {
+            ext = (typeof caseInfo.caseCloseExt === 'string') ? JSON.parse(caseInfo.caseCloseExt) : caseInfo.caseCloseExt;
+        } catch (e) {
+            ext = null;
+        }
         const flows = (ext && Array.isArray(ext.paymentFlows)) ? ext.paymentFlows : [];
         if (!flows.length) {
             listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
@@ -708,7 +723,7 @@ async function loadPaymentFlows(caseId) {
             <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlow(${idx})">删除</button>
         </div>
     </div>`;
-}).join('');
+        }).join('');
     } catch (e) {
         listEl.innerHTML = '<div class="text-danger">加载付款流水失败</div>';
     }
@@ -878,18 +893,6 @@ async function showCompleteCaseModal(caseId) {
                             </select>
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">是否开票 <span class="text-danger">*</span></label>
-                            <select id="invoiced" class="form-select" required onchange="toggleInvoiceInfo()">
-                                <option value="">请选择</option>
-                                <option value="false">否</option>
-                                <option value="true">是</option>
-                            </select>
-                        </div>
-                        <div class="form-group mb-3" id="invoiceInfoGroup" style="display:none;">
-                            <label class="form-label">开票信息 <span class="text-danger">*</span></label>
-                            <textarea id="invoiceInfo" rows="3" class="form-control" placeholder="请输入开票抬头 / 税号 / 地址等信息"></textarea>
-                        </div>
-                        <div class="form-group mb-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="isMediateCase">
                                 <label class="form-check-label" for="isMediateCase">
@@ -908,17 +911,6 @@ async function showCompleteCaseModal(caseId) {
     </div>`;
     modalContainer.innerHTML = modalHtml;
     new bootstrap.Modal(document.getElementById('completeCaseModal')).show();
-}
-function toggleInvoiceInfo(){
-    const sel=document.getElementById('invoiced');
-    const grp=document.getElementById('invoiceInfoGroup');
-    if(!sel||!grp) return;
-    grp.style.display = sel.value==='true'?'' : 'none';
-    if(sel.value==='true'){
-        document.getElementById('invoiceInfo').setAttribute('required','required');
-    }else{
-        document.getElementById('invoiceInfo').removeAttribute('required');
-    }
 }
 function togglePayerMediationFields() {
     const payer = document.getElementById('payer')?.value || '';
@@ -965,7 +957,6 @@ async function submitCaseCompletion() {
     if (!notes) { alert('请选择结案方式'); return; }
     const adjustedAmountRaw = document.getElementById('adjustedAmount').value.trim();
     const payer = document.getElementById('payer').value.trim();
-    const invoicedStr = document.getElementById('invoiced').value.trim();
     const signDate = document.getElementById('signDate').value || undefined;
     const totalMediationRaw = document.getElementById('mediationFee').value.trim();
     const pMediationRaw = document.getElementById('plaintiffMediationFee')?.value.trim() || '';
@@ -973,13 +964,6 @@ async function submitCaseCompletion() {
     // 必填校验
     if(adjustedAmountRaw===''){ alert('请填写调成标的额'); return; }
     if(payer===''){ alert('请选择支付方'); return; }
-    if(invoicedStr===''){ alert('请选择是否开票'); return; }
-    if(payer === '原被告') {
-        if(pMediationRaw===''){ alert('请填写原告调解费'); return; }
-        if(dMediationRaw===''){ alert('请填写被告调解费'); return; }
-    } else {
-        if(totalMediationRaw===''){ alert('请填写调解费'); return; }
-    }
     // 数值校验
     if(isNaN(adjustedAmountRaw) || Number(adjustedAmountRaw)<0){ alert('调成标的额格式不正确或为负'); return; }
     if(payer === '原被告') {
@@ -987,12 +971,6 @@ async function submitCaseCompletion() {
         if(isNaN(dMediationRaw) || Number(dMediationRaw)<0){ alert('被告调解费格式不正确或为负'); return; }
     } else {
         if(isNaN(totalMediationRaw) || Number(totalMediationRaw)<0){ alert('调解费格式不正确或为负'); return; }
-    }
-    const invoiced = invoicedStr==='true';
-    let invoiceInfo;
-    if(invoiced){
-        invoiceInfo = document.getElementById('invoiceInfo').value.trim();
-        if(!invoiceInfo){ alert('选择开票为“是”时需填写开票信息'); return; }
     }
     const isMediateCase = !!document.getElementById('isMediateCase')?.checked;
 
@@ -1006,8 +984,6 @@ async function submitCaseCompletion() {
         plaintiffMediationFee: payer === '原被告' ? pMediationRaw : undefined,
         defendantMediationFee: payer === '原被告' ? dMediationRaw : undefined,
         payer,
-        invoiced,
-        invoiceInfo: invoiceInfo || undefined,
         isMediateCase
     };
     try {
@@ -1016,7 +992,7 @@ async function submitCaseCompletion() {
         loadMyCases(currentMyCasePage,currentMyCasePageSize);
         alert('已提交结案审核');
     } catch (e) {
-        alert('提交失败，请稍后重试');
+        alert('提交失败，请重试');
     }
 }
 
@@ -1240,7 +1216,7 @@ async function submitMyPreFeedback() {
         loadMyCasesPage();
         alert('反馈已提交');
     } catch (e) {
-        alert('提交反馈失败，请稍后重试');
+        alert('提交反馈失败，请重试');
     }
 }
 
@@ -1304,7 +1280,7 @@ function showReturnCaseModal(caseId) {
         <div class="modal-dialog">
             <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
                 <div class="modal-header" style="border-bottom:1px solid #f0f0;">
-                    <h5 class="modal-title"><i class="fa fa-undo text-primary me-2"></i>退回案件</h5>
+                    <h5 class="modal-title"><i class="fa fa-undo textprimary me-2"></i>退回案件</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background:#fafcff;">
@@ -1362,3 +1338,160 @@ function buildPaymentScreenshotSrc(flow) {
     // 旧：本地静态路径，直接访问
     return flow.screenshotUrl;
 }
+
+// =========================
+// 申请开票（待结案独立入口）
+// =========================
+
+async function showApplyInvoiceModal(caseId) {
+    let container = document.getElementById('applyInvoiceModalContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'applyInvoiceModalContainer';
+        document.body.appendChild(container);
+    }
+
+    // 读取当前案件 ext，用于回填
+    let ext = {};
+    try {
+        const resp = await request(`/case/detail/${caseId}`);
+        const caseInfo = (resp && resp.case) ? resp.case : resp;
+        if (caseInfo && caseInfo.caseCloseExt) {
+            try {
+                ext = (typeof caseInfo.caseCloseExt === 'string') ? (JSON.parse(caseInfo.caseCloseExt) || {}) : (caseInfo.caseCloseExt || {});
+            } catch (e) {
+                ext = {};
+            }
+        }
+    } catch (e) {
+        ext = {};
+    }
+
+    const paidVal = (typeof ext.paid === 'boolean') ? (ext.paid ? 'true' : 'false') : '';
+    const invoiceInfo = ext.invoiceInfo || '';
+
+    container.innerHTML = `
+    <div class="modal fade" id="applyInvoiceModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+          <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+            <h5 class="modal-title"><i class="fa fa-file-text-o text-primary me-2"></i>申请开票</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" style="background:#fafcff;">
+            <input type="hidden" id="applyInvoiceCaseId" value="${caseId}">
+
+            <div class="mb-3">
+              <label class="form-label">付款流水</label>
+              <div class="d-flex gap-2 mb-2 align-items-center">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="showPaymentFlowsModal(${caseId}, true)"><i class="fa fa-credit-card"></i> 维护付款流水</button>
+                <span class="text-muted small">（可上传/删除，修改后返回此处再点击“刷新预览”即可看到最新）</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshApplyInvoiceFlowsPreview(${caseId})">刷新预览</button>
+              </div>
+              <div id="applyInvoiceFlowsPreview" class="small"></div>
+            </div>
+
+            <hr/>
+
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label">是否已付款</label>
+                <select id="applyInvoicePaid" class="form-select">
+                  <option value="" ${paidVal===''?'selected':''}>未填写</option>
+                  <option value="true" ${paidVal==='true'?'selected':''}>是</option>
+                  <option value="false" ${paidVal==='false'?'selected':''}>否</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">开票信息</label>
+                <textarea id="applyInvoiceInfo" rows="4" class="form-control" placeholder="请输入开票抬头 / 税号 / 地址等信息">${invoiceInfo || ''}</textarea>
+              </div>
+            </div>
+            <div class="text-danger mt-2" id="applyInvoiceError" style="display:none;"></div>
+          </div>
+          <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="submitApplyInvoice()">提交</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    new bootstrap.Modal(document.getElementById('applyInvoiceModal')).show();
+    await refreshApplyInvoiceFlowsPreview(caseId);
+}
+
+async function refreshApplyInvoiceFlowsPreview(caseId) {
+    const el = document.getElementById('applyInvoiceFlowsPreview');
+    if (!el) return;
+    el.innerHTML = '<div class="text-muted">加载中...</div>';
+    try {
+        const resp = await request(`/case/detail/${caseId}`);
+        const caseInfo = (resp && resp.case) ? resp.case : resp;
+        let ext = {};
+        if (caseInfo && caseInfo.caseCloseExt) {
+            try {
+                ext = (typeof caseInfo.caseCloseExt === 'string') ? (JSON.parse(caseInfo.caseCloseExt) || {}) : (caseInfo.caseCloseExt || {});
+            } catch (e) {
+                ext = {};
+            }
+        }
+        const flows = Array.isArray(ext.paymentFlows) ? ext.paymentFlows : [];
+        if (!flows.length) {
+            el.innerHTML = '<div class="text-muted">暂无付款流水</div>';
+            return;
+        }
+        const fmtAmt = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
+        el.innerHTML = flows.map((f,idx)=>{
+            const imgSrc = buildPaymentScreenshotSrc(f);
+            const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
+            return `<div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-center">
+            <div>
+              <div>序号：${idx+1}</div>
+              <div>时间：${f.payTime||'-'}</div>
+              <div>金额：${fmtAmt(f.amount)}</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              ${finalImgSrc? `<img src="${finalImgSrc}"
+                              alt="付款截图${idx+1}"
+                              class="payment-screenshot"
+                              data-url="${finalImgSrc}"
+                              style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
+                      : '<span class="text-muted">无截图</span>'}
+            </div>
+        </div>`;
+        }).join('');
+    } catch (e) {
+        el.innerHTML = '<div class="text-danger">加载付款流水失败</div>';
+    }
+}
+
+async function submitApplyInvoice() {
+    const errEl = document.getElementById('applyInvoiceError');
+    if (errEl) errEl.style.display = 'none';
+
+    const caseId = document.getElementById('applyInvoiceCaseId')?.value;
+    const paidStr = document.getElementById('applyInvoicePaid')?.value;
+    const invoiceInfo = document.getElementById('applyInvoiceInfo')?.value || '';
+
+    if (!caseId) return;
+
+    const payload = {
+        caseId,
+        invoiceInfo: invoiceInfo.trim() || undefined
+    };
+    if (paidStr === 'true') payload.paid = true;
+    if (paidStr === 'false') payload.paid = false;
+
+    try {
+        await request('/case/apply-invoice', 'POST', payload);
+        const modalEl = document.getElementById('applyInvoiceModal');
+        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (modal) modal.hide();
+        loadMyCases(currentMyCasePage, currentMyCasePageSize);
+        alert('开票信息已提交');
+    } catch (e) {
+        if (errEl) { errEl.textContent = '提交失败，请稍后重试'; errEl.style.display = 'block'; }
+    }
+}
+
