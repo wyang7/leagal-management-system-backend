@@ -52,7 +52,8 @@ public class InvoiceAuditController {
                                  @RequestParam("file") MultipartFile file,
                                  HttpSession session) {
         UserSession currentUser = (UserSession) session.getAttribute("currentUser");
-        if (currentUser == null || currentUser.getRoleType() == null || !currentUser.getRoleType().contains("管理员")) {
+        if (currentUser == null || currentUser.getRoleType() == null || !currentUser.getRoleType().contains("管理员")
+                || !currentUser.getRoleType().contains("财务")) {
             return Result.fail("无权限");
         }
         if (caseId == null) {
