@@ -317,7 +317,8 @@ async function submitInvoiceAudit() {
         formData.append('caseId', caseId);
         formData.append('file', file);
 
-        const resp = await fetch('http://localhost:8090/api/invoice/audit', {
+        // const resp = await fetch('http://localhost:8090/api/invoice/audit', {
+        const resp = await fetch('http://47.118.19.86:8090/api/invoice/audit', {
             method: 'POST',
             body: formData,
             credentials: 'include'

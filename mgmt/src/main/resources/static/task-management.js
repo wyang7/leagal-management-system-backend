@@ -995,7 +995,8 @@ function exportSelectedTaskCases() {
     }
 
     const payload = { taskIds: taskIds };
-    const baseUrl = 'http://localhost:8090/api';
+    // const baseUrl = 'http://localhost:8090/api';
+    const baseUrl = 'http://47.118.19.86:8090/api';
     const url = baseUrl + '/task/export-cases';
     fetch(url, {
         method: 'POST',
