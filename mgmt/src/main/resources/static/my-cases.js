@@ -593,13 +593,14 @@ function renderMyCaseTable(cases) {
                       ` : ''}
                       ${(caseInfo.status === '待结案' || caseInfo.status === '结案') ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId}, true)"><i class="fa fa-credit-card"></i> 补充付款流水</a></li>
-                      ` : ''}
-                      ${(caseInfo.status !== '结案') ? `
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 修改结案信息</a></li>
+                      ` : `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 提交结案审核</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
-                      ` : `
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 修改结案信息</a></li>
                       `}
+                      ${(caseInfo.status === '待结案') ? `
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
+                      ` : ''}
                     </ul>
                   </div>
                 </div>
