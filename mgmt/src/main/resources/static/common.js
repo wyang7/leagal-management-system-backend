@@ -30,10 +30,8 @@ async function request(url, method = 'GET', data = null) {
     }
 
     try {
-        // 发送请求，确保后端地址正确
-        // 注意：如果后端端口或上下文路径不同，请修改这里
-        const baseUrl = 'http://47.118.19.86:8090/api';
-        // const baseUrl = 'http://localhost:8090/api';
+        // 发送请求，确保后端地址正确;
+        const baseUrl = window.baseUrl;
         const response = await fetch(baseUrl + url, options);
 
         // 处理响应
@@ -193,4 +191,11 @@ async function logout() {
         }
         window.location.href = 'login.html';
     }
+}
+
+
+// 暴露到全局
+if (typeof window !== 'undefined') {
+    window.baseUrl = 'http://47.118.19.86:8090/api';
+    // window.baseUrl = 'http://localhost:8090/api';
 }
