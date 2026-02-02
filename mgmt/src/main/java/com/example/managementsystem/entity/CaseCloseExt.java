@@ -21,6 +21,10 @@ public class CaseCloseExt {
     @TableField("case_id")
     private Long caseId;
 
+    /** 结案方式：司法确认/撤诉/民初/其他 */
+    @TableField("completion_notes")
+    private String completionNotes;
+
     /** 签字时间 (yyyy-MM-dd) */
     @TableField("sign_date")
     private String signDate;

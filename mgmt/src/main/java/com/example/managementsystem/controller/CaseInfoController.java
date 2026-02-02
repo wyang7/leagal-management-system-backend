@@ -10,7 +10,9 @@ import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -913,7 +915,18 @@ public class CaseInfoController {
             caseInfo.setPengheCaseNumber(nextNumberStr);
         }
         // 构造扩展 DTO
-        CaseCloseExtDTO ext = new CaseCloseExtDTO();
+        CaseCloseExtDTO ext;
+        if (StringUtil.isNotBlank(caseInfo.getCaseCloseExt())){
+            try {
+                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+            } catch (JsonProcessingException e) {
+                ext = new CaseCloseExtDTO();
+            }
+        }else {
+            ext = new CaseCloseExtDTO();
+        }
+        // 结案方式：同步写入 case_close_ext 新表（以及 case_info.case_close_ext JSON）
+        ext.setCompletionNotes(notes);
         ext.setSignDate(signDate);
         try {
             if (adjustedAmountObj != null) {
@@ -1696,7 +1709,7 @@ public class CaseInfoController {
         }
 
         // 新流程：申请开票不允许前端指定状态。
-        // 业务规则：只能在“暂未申请开票”（或未设置）时发起申请，发起后自动流转为“待开票”。
+        // 业务规则：只能在“暂未申请开票”（或未设置）时发起申请，申请后自动流转为“待开票”。
         CaseCloseExtDTO ext = null;
         try {
             if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
@@ -1777,6 +1790,7 @@ public class CaseInfoController {
         entity.setCaseId(caseId);
 
         // DTO -> Entity
+        entity.setCompletionNotes(dto.getCompletionNotes());
         entity.setSignDate(dto.getSignDate());
         entity.setAdjustedAmount(dto.getAdjustedAmount());
         entity.setMediationFee(dto.getMediationFee());

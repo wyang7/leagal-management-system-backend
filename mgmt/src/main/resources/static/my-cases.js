@@ -602,12 +602,12 @@ function renderMyCaseTable(cases) {
                       ${(caseInfo.status === '待结案' || caseInfo.status === '结案') ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId}, true)"><i class="fa fa-credit-card"></i> 补充付款流水</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 修改结案信息</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showApplyInvoiceModal(${caseInfo.caseId})"><i class="fa fa-file-text-o"></i> 申请开票</a></li>
                       ` : `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 提交结案审核</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
                       `}
                       ${(caseInfo.status === '待结案') ? `
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showApplyInvoiceModal(${caseInfo.caseId})"><i class="fa fa-file-text-o"></i> 申请开票</a></li>
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
                       ` : ''}
                     </ul>
@@ -832,10 +832,40 @@ async function showCompleteCaseModal(caseId) {
     modalContainer.innerHTML = `<div class="modal fade" id="completeCaseModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><div class="modal-body p-4 text-center">加载中...</div></div></div></div>`;
     let caseInfo = null;
     try { caseInfo = await request(`/case/detail/${caseId}`); } catch (e) {}
-    const defaultAmount = caseInfo && caseInfo.amount != null ? (Number(caseInfo.amount).toFixed(2)) : '';
-    const today = new Date().toISOString().slice(0,10);
-    const modalHtml = `
-    <div class="modal fade" id="completeCaseModal" tabindex="-1" aria-hidden="true">
+
+    // 兼容 /case/detail 返回 {case: {...}} 或直接 {...}
+    const c = (caseInfo && caseInfo.case) ? caseInfo.case : caseInfo;
+    // 解析既有结案扩展信息，便于“修改结案信息”时回填
+    let existExt = {};
+    if (c && c.caseCloseExt) {
+        try {
+            existExt = (typeof c.caseCloseExt === 'string') ? (JSON.parse(c.caseCloseExt) || {}) : (c.caseCloseExt || {});
+        } catch (e) {
+            existExt = {};
+        }
+    }
+
+    // 回填值准备
+    const existNotes = (existExt && existExt.completionNotes != null && String(existExt.completionNotes).trim() !== '')
+        ? String(existExt.completionNotes).trim()
+        : ((c && (c.completionNotes != null ? c.completionNotes : c.notes) != null)
+            ? String(c.completionNotes != null ? c.completionNotes : c.notes).trim()
+            : '');
+    const existSignDate = existExt.signDate ? String(existExt.signDate).slice(0, 10) : '';
+    const existAdjustedAmount = (existExt.adjustedAmount != null && existExt.adjustedAmount !== '')
+        ? Number(existExt.adjustedAmount).toFixed(2)
+        : '';
+    const existPayer = existExt.payer || '';
+    const existMediationFee = (existExt.mediationFee != null && existExt.mediationFee !== '') ? String(existExt.mediationFee) : '';
+    const existPMediationFee = (existExt.plaintiffMediationFee != null && existExt.plaintiffMediationFee !== '') ? String(existExt.plaintiffMediationFee) : '';
+    const existDMediationFee = (existExt.defendantMediationFee != null && existExt.defendantMediationFee !== '') ? String(existExt.defendantMediationFee) : '';
+    const existIsMediateCase = !!(c && (c.isMediateCase === true || c.isMediateCase === 1 || c.isMediateCase === 'true'));
+
+    // 调成标的额默认：优先已有结案信息，其次案件原标的额
+    const defaultAmount = existAdjustedAmount || (c && c.amount != null ? (Number(c.amount).toFixed(2)) : '');
+     const today = new Date().toISOString().slice(0,10);
+     const modalHtml = `
+     <div class="modal fade" id="completeCaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
                 <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
@@ -849,69 +879,93 @@ async function showCompleteCaseModal(caseId) {
                             <label class="form-label">结案方式 <span class="text-danger">*</span></label>
                             <select id="completionNotes" class="form-select" required>
                                 <option value="">请选择</option>
-                                <option value="司法确认">司法确认</option>
-                                <option value="撤诉">撤诉</option>
-                                <option value="民初">民初</option>
-                                <option value="其他">其他</option>
-                            </select>
-                        </div>
-                        <hr/>
-                        <div class="form-group mb-3">
-                            <label class="form-label">签字时间 (≥ 今日)</label>
-                            <input type="date" id="signDate" class="form-control" min="${today}">
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">调成标的额 (元) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" id="adjustedAmount" required class="form-control" placeholder="请输入调成标的额" value="${defaultAmount}">
-                            <div class="form-text">默认值来自案件原标的额，可自行修改。</div>
-                        </div>
-                        <div class="form-group mb-3" id="mediationFeeGroup">
-                            <label class="form-label">
-                                调解费 (元) <span class="text-danger">*</span>
-                            </label>
-                            <input type="number" step="0.01" id="mediationFee" required class="form-control" placeholder="请输入调解费">
-                        </div>
-                        <div class="form-group mb-3" id="plaintiffMediationFeeGroup" style="display:none;">
-                            <label class="form-label">
-                                原告调解费 (元) <span class="text-danger">*</span>
-                            </label>
-                            <input type="number" step="0.01" id="plaintiffMediationFee" class="form-control" placeholder="请输入原告调解费">
-                        </div>
-                        <div class="form-group mb-3" id="defendantMediationFeeGroup" style="display:none;">
-                            <label class="form-label">
-                                被告调解费 (元) <span class="text-danger">*</span>
-                            </label>
-                            <input type="number" step="0.01" id="defendantMediationFee" class="form-control" placeholder="请输入被告调解费">
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">支付方 <span class="text-danger">*</span></label>
-                            <select id="payer" class="form-select" required onchange="togglePayerMediationFields()">
-                                <option value="">请选择</option>
-                                <option value="原告">原告</option>
-                                <option value="被告">被告</option>
-                                <option value="原被告">原被告</option>
-                            </select>
-                        </div>
-                        <div class="form-group mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="isMediateCase">
-                                <label class="form-check-label" for="isMediateCase">
-                                    是否是人调案件（系统将自动生成人调号）
-                                </label>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
-                    <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
-                    <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitCaseCompletion()" style="border-radius:4px;">提交审核</button>
-                </div>
-            </div>
-        </div>
-    </div>`;
+                                <option value="司法确认" ${existNotes==='司法确认'?'selected':''}>司法确认</option>
+                                <option value="撤诉" ${existNotes==='撤诉'?'selected':''}>撤诉</option>
+                                <option value="民初" ${existNotes==='民初'?'selected':''}>民初</option>
+                                <option value="其他" ${existNotes==='其他'?'selected':''}>其他</option>
+                             </select>
+                         </div>
+                         <hr/>
+                         <div class="form-group mb-3">
+                             <label class="form-label">签字时间 (≥ 今日)</label>
+                            <input type="date" id="signDate" class="form-control" min="${today}" value="${existSignDate}">
+                         </div>
+                         <div class="form-group mb-3">
+                             <label class="form-label">调成标的额 (元) <span class="text-danger">*</span></label>
+                             <input type="number" step="0.01" id="adjustedAmount" required class="form-control" placeholder="请输入调成标的额" value="${defaultAmount}">
+                             <div class="form-text">默认值来自案件原标的额，可自行修改。</div>
+                         </div>
+                         <div class="form-group mb-3" id="mediationFeeGroup">
+                             <label class="form-label">
+                                 调解费 (元) <span class="text-danger">*</span>
+                             </label>
+                            <input type="number" step="0.01" id="mediationFee" required class="form-control" placeholder="请输入调解费" value="${existMediationFee}">
+                         </div>
+                         <div class="form-group mb-3" id="plaintiffMediationFeeGroup" style="display:none;">
+                             <label class="form-label">
+                                 原告调解费 (元) <span class="text-danger">*</span>
+                             </label>
+                            <input type="number" step="0.01" id="plaintiffMediationFee" class="form-control" placeholder="请输入原告调解费" value="${existPMediationFee}">
+                         </div>
+                         <div class="form-group mb-3" id="defendantMediationFeeGroup" style="display:none;">
+                             <label class="form-label">
+                                 被告调解费 (元) <span class="text-danger">*</span>
+                             </label>
+                            <input type="number" step="0.01" id="defendantMediationFee" class="form-control" placeholder="请输入被告调解费" value="${existDMediationFee}">
+                         </div>
+                         <div class="form-group mb-3">
+                             <label class="form-label">支付方 <span class="text-danger">*</span></label>
+                             <select id="payer" class="form-select" required onchange="togglePayerMediationFields()">
+                                 <option value="">请选择</option>
+                                <option value="原告" ${existPayer==='原告'?'selected':''}>原告</option>
+                                <option value="被告" ${existPayer==='被告'?'selected':''}>被告</option>
+                                <option value="原被告" ${existPayer==='原被告'?'selected':''}>原被告</option>
+                             </select>
+                         </div>
+                         <div class="form-group mb-3">
+                             <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isMediateCase" ${existIsMediateCase?'checked':''}>
+                                 <label class="form-check-label" for="isMediateCase">
+                                     是否是人调案件（系统将自动生成人调号）
+                                 </label>
+                             </div>
+                         </div>
+                     </form>
+                 </div>
+                 <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                     <button type="button" class="ant-btn ant-btn-secondary btn btn-secondary" data-bs-dismiss="modal" style="border-radius:4px;">取消</button>
+                     <button type="button" class="ant-btn ant-btn-primary btn btn-primary" onclick="submitCaseCompletion()" style="border-radius:4px;">提交审核</button>
+                 </div>
+             </div>
+         </div>
+     </div>`;
     modalContainer.innerHTML = modalHtml;
     new bootstrap.Modal(document.getElementById('completeCaseModal')).show();
-}
+
+    // 强制回填结案方式（注意：select 的 id 是 completionNotes）
+    const notesSel = document.getElementById('completionNotes');
+    if (notesSel) {
+        // 兜底规范化：去空格/换行，并兼容一些别名
+        const normalized = (existNotes || '').replace(/\s+/g, '');
+        const noteAliasMap = {
+            '司法确认书': '司法确认',
+            '司法确认': '司法确认',
+            '撤诉': '撤诉',
+            '民初': '民初',
+            '民初一审': '民初',
+            '其他': '其他'
+        };
+        const finalVal = noteAliasMap[normalized] || existNotes;
+        // 只有当下拉里存在对应 option 时才设置，避免设置后仍显示空
+        const hasOption = Array.from(notesSel.options || []).some(o => o.value === finalVal);
+        if (hasOption) {
+            notesSel.value = finalVal;
+        }
+    }
+
+    // 回填后，根据支付方展示/隐藏调解费字段
+     togglePayerMediationFields();
+ }
 function togglePayerMediationFields() {
     const payer = document.getElementById('payer')?.value || '';
     const totalGroup = document.getElementById('mediationFeeGroup');

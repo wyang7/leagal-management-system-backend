@@ -10,6 +10,12 @@ import java.math.BigDecimal;
  */
 @Data
 public class CaseCloseExtDTO {
+    /**
+     * 结案方式（原一直存储在 case_info.completion_notes/接口参数 notes）。
+     * 取值：司法确认/撤诉/民初/其他
+     */
+    private String completionNotes;
+
     /** 签字时间 (yyyy-MM-dd) */
     private String signDate;
     /** 调成标的额，默认原案件 amount */

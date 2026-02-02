@@ -920,7 +920,7 @@ function renderCaseTable(cases) {
                     <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">案件操作</button>
                     <ul class="dropdown-menu" style="display:none;">
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})"><i class="fa fa-edit"></i> 编辑</a></li>
-                      ${(caseInfo.status === '待结案' || caseInfo.status === '结案') ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId})"><i class="fa fa-credit-card"></i> 补充结案信息</a></li>` : ''}
+                      ${(caseInfo.status === '待结案' || caseInfo.status === '结案') ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId})"><i class="fa fa-credit-card"></i> 补充付款流水</a></li>` : ''}
                       ${caseInfo.status !== '结案' ? ((App.user.roleType === '管理员' || (App.user.roleType && App.user.roleType.indexOf('管理员') !== -1)) && App.user.station && App.user.station.indexOf('总部') !== -1 ? `<li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})"><i class="fa fa-trash"></i> 删除</a></li>` : '') : ''}
                       ${caseInfo.status !== '结案' ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})"><i class="fa fa-handshake-o"></i> 分派案件</a></li>
