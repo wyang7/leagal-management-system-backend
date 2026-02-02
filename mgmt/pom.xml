@@ -18,6 +18,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <!-- 说明：本模块依赖统一在父 pom 中管理（包含 spring-boot、mybatis-plus、poi 等）。 -->
+
     <build>
         <plugins>
             <plugin>

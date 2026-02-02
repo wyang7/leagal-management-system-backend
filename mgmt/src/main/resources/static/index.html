@@ -348,6 +348,7 @@
 <script src="role-management.js"></script>
 <script src="case-management.js"></script>
 <script src="invoice-management.js"></script>
+<script src="bank-flow-management.js"></script>
 <script src="task-management.js"></script>
 <script src="task-receive.js"></script>
 <script src="my-cases.js"></script>
@@ -448,6 +449,8 @@
             items.push({ key: 'finance-mgmt-root', text: '财务管理', icon: 'fa-credit-card', cssClass: 'nav-link nav-link-root disabled', isFolder: true, isFinanceFolder: true });
             // 开票管理（二级菜单：缩进 + 小字号）
             items.push({ key: 'invoice-mgmt', text: '开票管理', icon: 'fa-circle-o', onClick: 'handleRootClick(\'invoice-mgmt\', loadInvoiceManagementPage)', cssClass: 'nav-link-station', isFinanceChild: true });
+            // 银行流水管理（二级菜单）
+            items.push({ key: 'bank-flow-mgmt', text: '银行流水管理', icon: 'fa-circle-o', onClick: 'handleRootClick(\'bank-flow-mgmt\', loadBankFlowManagementPage)', cssClass: 'nav-link-station', isFinanceChild: true });
         }
 
         items.forEach((item, index) => {

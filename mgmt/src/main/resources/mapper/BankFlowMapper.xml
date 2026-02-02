@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.managementsystem.mapper.BankFlowMapper">
+
+    <select id="countBankFlows" resultType="int">
+        SELECT COUNT(1)
+        FROM bank_flow bf
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    bf.flow_no LIKE CONCAT('%', #{keyword}, '%')
+                    OR bf.payer LIKE CONCAT('%', #{keyword}, '%')
+                    OR bf.payee LIKE CONCAT('%', #{keyword}, '%')
+                    OR bf.channel LIKE CONCAT('%', #{keyword}, '%')
+                    OR bf.payee_account LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="caseNumber != null and caseNumber != ''">
+                AND bf.case_number = #{caseNumber}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectBankFlows" resultType="com.example.managementsystem.entity.BankFlow">
+        SELECT
+            bf.id,
+            bf.flow_no AS flowNo,
+            bf.trade_time AS tradeTime,
+            bf.trade_amount AS tradeAmount,
+            bf.payer,
+            bf.payee,
+            bf.channel,
+            bf.payee_account AS payeeAccount,
+            bf.case_number AS caseNumber,
+            bf.created_time AS createdTime,
+            bf.updated_time AS updatedTime
+        FROM bank_flow bf
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    bf.flow_no LIKE CONCAT('%', #{keyword}, '%')
+                    OR bf.payer LIKE CONCAT('%', #{keyword}, '%')
+                    OR bf.payee LIKE CONCAT('%', #{keyword}, '%')
+                    OR bf.channel LIKE CONCAT('%', #{keyword}, '%')
+                    OR bf.payee_account LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="caseNumber != null and caseNumber != ''">
+                AND bf.case_number = #{caseNumber}
+            </if>
+        </where>
+        ORDER BY bf.trade_time DESC, bf.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="selectByFlowNo" resultType="com.example.managementsystem.entity.BankFlow">
+        SELECT
+            bf.id,
+            bf.flow_no AS flowNo,
+            bf.trade_time AS tradeTime,
+            bf.trade_amount AS tradeAmount,
+            bf.payer,
+            bf.payee,
+            bf.channel,
+            bf.payee_account AS payeeAccount,
+            bf.case_number AS caseNumber,
+            bf.created_time AS createdTime,
+            bf.updated_time AS updatedTime
+        FROM bank_flow bf
+        WHERE bf.flow_no = #{flowNo}
+        LIMIT 1
+    </select>
+
+</mapper>
+
