@@ -19,9 +19,15 @@ import javax.servlet.http.HttpServletResponse;
 public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        String env = System.getenv("env");
+        String baseUrl="http://47.118.19.86:8090";
+        if (env != null && "prd".equals(env.trim())) {
+            baseUrl="http://47.118.19.86:8090";
+        }else {
+            baseUrl="http://localhost:8090";
+        }
         registry.addMapping("/**")
-                .allowedOrigins("http://47.118.19.86:8090") // 前端页面的地址，不要用*
-//                .allowedOrigins("http://localhost:8090") // 前端页面的地址，不要用*
+                .allowedOrigins(baseUrl) // 前端页面的地址，不要用*
                 .allowedMethods("GET", "POST", "PUT", "DELETE")
                 .allowCredentials(true) // 关键：允许携带cookie
                 .maxAge(3600);
