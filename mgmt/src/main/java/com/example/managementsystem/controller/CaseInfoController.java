@@ -1699,8 +1699,8 @@ public class CaseInfoController {
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
-        if (!"待结案".equals(caseInfo.getStatus())) {
-            return Result.fail("仅待结案状态的案件可以申请开票");
+        if (!"待结案".equals(caseInfo.getStatus()) && !"结案".equals(caseInfo.getStatus())) {
+            return Result.fail("仅待结案和结案状态的案件可以申请开票");
         }
 
         UserSession currentUser = (UserSession) session.getAttribute("currentUser");
