@@ -1722,7 +1722,8 @@ public class CaseInfoController {
             ext = new CaseCloseExtDTO();
         }
         String currentInvoiceStatus = ext.getInvoiceStatus();
-        if (currentInvoiceStatus != null && !currentInvoiceStatus.trim().isEmpty() && !"暂未申请开票".equals(currentInvoiceStatus)) {
+        if (currentInvoiceStatus != null && !currentInvoiceStatus.trim().isEmpty() && !"暂未申请开票".equals(currentInvoiceStatus)
+                && !"开票被打回".equals(currentInvoiceStatus)) {
             return Result.fail("当前开票状态为：" + currentInvoiceStatus + "，不可重复申请开票");
         }
         ext.setInvoiceStatus("待开票");
@@ -1753,7 +1754,20 @@ public class CaseInfoController {
 
         caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         boolean ok = caseInfoService.updateById(caseInfo);
-        return ok ? Result.success() : Result.fail("保存开票信息失败");
+        if (!ok) {
+            return Result.fail("保存开票信息失败");
+        }
+
+        // 写入案件历史：申请开票
+        Long operatorId = currentUser.getUserId();
+        String afterStatus = caseInfo.getStatus(); // 申请开票不改变案件主状态
+        String remark = invoiceInfo;
+        if (remark != null && remark.length() > 200) {
+            remark = remark.substring(0, 200) + "...";
+        }
+        caseInfoService.addCaseHistory(caseId, "申请开票", afterStatus, remark, operatorId);
+
+        return Result.success();
     }
 
     /**

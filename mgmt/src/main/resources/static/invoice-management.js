@@ -145,9 +145,22 @@ function renderInvoiceTable(records) {
     tbody.innerHTML = records.map(r => {
         const applyTime = r.applyInvoiceTime ? (r.applyInvoiceTime.length > 10 ? r.applyInvoiceTime : r.applyInvoiceTime) : '-';
         const statusClass = r.invoiceStatus === '已开票' ? 'status-closed' : 'status-completed';
-        const auditBtn = (invoiceCurrentStatus === '待开票')
+        const isPending = invoiceCurrentStatus === '待开票';
+        const isInvoiced = invoiceCurrentStatus === '已开票';
+
+        // 待开票：开票审核 + 打回
+        const auditBtn = isPending
             ? `<button class="btn btn-sm btn-warning" type="button" onclick="showInvoiceAuditModal(${r.caseId})">开票审核</button>`
             : '';
+        const rejectBtn = isPending
+            ? `<button class="btn btn-sm btn-outline-danger" type="button" onclick="rejectInvoiceApply(${r.caseId})">打回</button>`
+            : '';
+
+        // 已开票：查看/修改发票PDF
+        const editInvoiceBtn = isInvoiced
+            ? `<button class="btn btn-sm btn-primary" type="button" onclick="showInvoiceEditModal(${r.caseId})">修改开票信息</button>`
+            : '';
+
         return `
         <tr>
             <td><input type="checkbox" class="invoice-case-checkbox" value="${r.caseId}"></td>
@@ -165,6 +178,8 @@ function renderInvoiceTable(records) {
                 <div class="d-flex gap-2 flex-wrap">
                   <button class="btn btn-sm btn-info" type="button" onclick="showCaseDetailModal(${r.caseId})">案件详情</button>
                   ${auditBtn}
+                  ${rejectBtn}
+                  ${editInvoiceBtn}
                 </div>
             </td>
         </tr>`;
@@ -174,6 +189,24 @@ function renderInvoiceTable(records) {
     if (selectAll) {
         selectAll.checked = false;
     }
+}
+
+// 打回待开票申请：仅财务/管理员可用
+async function rejectInvoiceApply(caseId) {
+    if (!caseId) return;
+    const reason = prompt('请输入打回原因（必填）：');
+    if (reason === null) return; // 取消
+    if (!reason.trim()) {
+        alert('打回原因不能为空');
+        return;
+    }
+    try {
+        await request('/invoice/reject', 'POST', { caseId, reason });
+        alert('已打回给调解员');
+    } catch (e) {
+        alert('打回失败，请稍后重试');
+    }
+    await loadInvoiceCases(invoiceCurrentPage, invoicePageSize);
 }
 
 // -------------------------
@@ -336,6 +369,158 @@ async function submitInvoiceAudit() {
     } catch (e) {
         if (errEl) { errEl.textContent = '提交失败：' + (e.message || '未知错误'); errEl.style.display = 'block'; }
     }
+}
+
+// -------------------------
+// 已开票：查看/修改发票PDF
+// -------------------------
+
+async function showInvoiceEditModal(caseId) {
+    if (!caseId) return;
+    let container = document.getElementById('invoiceEditModalContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'invoiceEditModalContainer';
+        document.body.appendChild(container);
+    }
+
+    container.innerHTML = `
+    <div class="modal fade" id="invoiceEditModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+          <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+            <h5 class="modal-title"><i class="fa fa-file-pdf-o text-primary me-2"></i>修改开票信息</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" style="background:#fafcff;">
+            <input type="hidden" id="invoiceEditCaseId" value="${caseId}">
+            <div class="mb-3">
+              <label class="form-label">当前发票PDF</label>
+              <div id="invoiceEditCurrentPdf" class="small text-muted">加载中...</div>
+            </div>
+            <hr/>
+            <div class="mb-2 fw-bold">上传新的发票PDF（会覆盖原文件）</div>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-8">
+                <input type="file" id="invoiceEditPdfFile" accept="application/pdf" class="form-control" />
+                <div class="form-text small">只允许 PDF 文件；如果不上传文件仅删除原有PDF，可点击下方“删除发票PDF”按钮。</div>
+              </div>
+              <div class="col-md-4 d-grid">
+                <button type="button" class="btn btn-primary" onclick="submitInvoiceEdit()">保存修改</button>
+              </div>
+            </div>
+            <div class="mt-3">
+              <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteInvoicePdf()">删除发票PDF</button>
+            </div>
+            <div class="text-danger mt-2" id="invoiceEditError" style="display:none;"></div>
+          </div>
+          <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    new bootstrap.Modal(document.getElementById('invoiceEditModal')).show();
+    await loadInvoiceEditData(caseId);
+}
+
+async function loadInvoiceEditData(caseId) {
+    const el = document.getElementById('invoiceEditCurrentPdf');
+    if (el) el.innerHTML = '<span class="text-muted">加载中...</span>';
+    try {
+        const resp = await request(`/case/detail/${caseId}`);
+        const caseInfo = resp && resp.case ? resp.case : resp;
+        let ext = {};
+        if (caseInfo && caseInfo.caseCloseExt) {
+            try {
+                ext = typeof caseInfo.caseCloseExt === 'string'
+                    ? (JSON.parse(caseInfo.caseCloseExt) || {})
+                    : (caseInfo.caseCloseExt || {});
+            } catch (e) {
+                ext = {};
+            }
+        }
+        const invoicePdf = ext.invoicePdf;
+        if (!el) return;
+        if (invoicePdf) {
+            const url = `/api/case/invoice-pdf?objectName=${encodeURIComponent(invoicePdf)}`;
+            el.innerHTML = `<a href="${url}" target="_blank" rel="noopener">点击查看/下载当前发票PDF</a>`;
+        } else {
+            el.innerHTML = '<span class="text-muted">暂无发票PDF</span>';
+        }
+    } catch (e) {
+        if (el) el.innerHTML = '<span class="text-danger">加载失败</span>';
+    }
+}
+
+async function submitInvoiceEdit() {
+    const errEl = document.getElementById('invoiceEditError');
+    if (errEl) errEl.style.display = 'none';
+
+    const caseId = document.getElementById('invoiceEditCaseId')?.value;
+    const fileInput = document.getElementById('invoiceEditPdfFile');
+    const file = fileInput ? fileInput.files[0] : null;
+
+    if (!caseId) return;
+
+    if (!file) {
+        // 未选择文件，则不做上传，只提示可使用删除按钮
+        if (errEl) {
+            errEl.textContent = '未选择文件，如需仅删除原有PDF，请使用“删除发票PDF”按钮';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    const lower = (file.name || '').toLowerCase();
+    if (!lower.endsWith('.pdf')) {
+        if (errEl) { errEl.textContent = '仅支持PDF文件'; errEl.style.display = 'block'; }
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('caseId', caseId);
+        formData.append('file', file);
+
+        const resp = await fetch(window.baseUrl + '/invoice/update-pdf', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        const json = await resp.json();
+        if (!resp.ok || json.code !== 200) {
+            throw new Error(json.msg || json.message || '修改失败');
+        }
+        const modalEl = document.getElementById('invoiceEditModal');
+        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (modal) modal.hide();
+        loadInvoiceCases(invoiceCurrentPage, invoicePageSize);
+        alert('发票PDF已更新');
+    } catch (e) {
+        if (errEl) { errEl.textContent = '修改失败：' + (e.message || '未知错误'); errEl.style.display = 'block'; }
+    }
+}
+
+async function deleteInvoicePdf() {
+    const errEl = document.getElementById('invoiceEditError');
+    if (errEl) errEl.style.display = 'none';
+
+    const caseId = document.getElementById('invoiceEditCaseId')?.value;
+    if (!caseId) return;
+    if (!confirm('确认删除该案件关联的发票PDF吗？此操作不可恢复。')) {
+        return;
+    }
+
+    try {
+        await request('/invoice/delete-pdf', 'POST', { caseId });
+        alert('发票PDF已删除');
+    } catch (e) {
+        if (errEl) { errEl.textContent = '删除失败：' + (e.message || '未知错误'); errEl.style.display = 'block'; }
+    }
+    await loadInvoiceEditData(caseId);
+    await loadInvoiceCases(invoiceCurrentPage, invoicePageSize);
 }
 
 function renderInvoicePagination(total, pageNum, pageSize) {
