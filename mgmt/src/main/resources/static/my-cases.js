@@ -631,7 +631,7 @@ function showPaymentFlowsModal(caseId, fromMyCases) {
         document.body.appendChild(container);
     }
     container.innerHTML = `
-    <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true" style="z-index: 1080;">
         <div class="modal-dialog modal-lg">
             <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
                 <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
@@ -672,7 +672,35 @@ function showPaymentFlowsModal(caseId, fromMyCases) {
             </div>
         </div>
     </div>`;
-    const modal = new bootstrap.Modal(document.getElementById(modalId));
+    const modalEl = document.getElementById(modalId);
+    const modal = new bootstrap.Modal(modalEl);
+
+    // 提升当前弹窗和其 backdrop 的层级，关闭时再恢复，避免整页一直是黑的
+    const shownHandler = () => {
+        // 只提升最新创建的 backdrop
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        const bd = backdrops[backdrops.length - 1];
+        if (bd) {
+            bd.dataset.originalZIndex = bd.style.zIndex || '';
+            bd.style.zIndex = '1075';
+        }
+    };
+    const hiddenHandler = () => {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        // 关闭时恢复（如果还有其它 modal，会重新生成自己的 backdrop）
+        backdrops.forEach(bd => {
+            if (bd.dataset && 'originalZIndex' in bd.dataset) {
+                bd.style.zIndex = bd.dataset.originalZIndex;
+                delete bd.dataset.originalZIndex;
+            }
+        });
+        modalEl.removeEventListener('shown.bs.modal', shownHandler);
+        modalEl.removeEventListener('hidden.bs.modal', hiddenHandler);
+    };
+
+    modalEl.addEventListener('shown.bs.modal', shownHandler);
+    modalEl.addEventListener('hidden.bs.modal', hiddenHandler);
+
     modal.show();
     // 标记来源便于接口前缀统一（这里实际上前后端接口相同，所以不区分 fromMyCases）
     loadPaymentFlows(caseId);
