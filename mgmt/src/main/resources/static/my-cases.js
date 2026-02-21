@@ -215,6 +215,7 @@ async function showmyCaseDetailModal(caseId) {
                                 <div><span class='text-muted'>序号：</span>${idx+1}</div>
                                 <div><span class='text-muted'>时间：</span>${f.payTime||'-'}</div>
                                 <div><span class='text-muted'>金额：</span>${fmtAmount(f.amount)}</div>
+                                <div><span class='text-muted'>渠道：</span>${f.channel||'-'}</div>
                               </div>
                               <div class='d-flex align-items-center gap-2'>
                                 ${imgSrc? `<img src="${imgSrc}" alt="付款截图${idx+1}" class="payment-screenshot" data-url="${imgSrc}" style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">` : '<span class="text-muted">无截图</span>'}
@@ -646,17 +647,26 @@ function showPaymentFlowsModal(caseId, fromMyCases) {
                     </div>
                     <hr/>
                     <div class="mb-2 fw-bold">新增付款流水</div>
-                    <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 时间 + 金额），只能新增和删除，不允许修改。</div>
+                    <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 渠道 + 时间 + 金额），只能新增和删除，不允许修改。</div>
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">付款截图 (jpg/jpeg/png)</label>
                             <input type="file" id="paymentScreenshotFile" accept="image/png,image/jpeg" class="form-control" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label">付款渠道</label>
+                            <select id="paymentChannelSelect" class="form-select">
+                                <option value="">请选择</option>
+                                <option value="青枫">青枫</option>
+                                <option value="澎和助力">澎和助力</option>
+                                <option value="澎和信息">澎和信息</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">付款时间</label>
                             <input type="datetime-local" id="paymentTimeInput" class="form-control" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label">付款金额 (元)</label>
                             <input type="number" step="0.01" id="paymentAmountInput" class="form-control" />
                         </div>
@@ -734,10 +744,12 @@ async function loadPaymentFlows(caseId) {
         listEl.innerHTML = flows.map((f,idx)=>{
             const imgSrc = buildPaymentScreenshotSrc(f);
             const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
+            const channel = f.channel || '-';
             return `
     <div class="list-group-item d-flex justify-content-between align-items-center">
         <div>
             <div>序号：${idx+1}</div>
+            <div>渠道：${channel}</div>
             <div>时间：${f.payTime||'-'}</div>
             <div>金额：${fmtAmt(f.amount)}</div>
         </div>
@@ -762,13 +774,15 @@ async function submitNewPaymentFlow() {
     const fileInput = document.getElementById('paymentScreenshotFile');
     const payTimeInput = document.getElementById('paymentTimeInput');
     const amountInput = document.getElementById('paymentAmountInput');
+    const channelSelect = document.getElementById('paymentChannelSelect');
     const errEl = document.getElementById('paymentFlowsError');
     errEl.style.display = 'none';
     const file = fileInput.files[0];
     const payTime = payTimeInput.value.trim();
     const amountRaw = amountInput.value.trim();
-    if (!file || !payTime || !amountRaw) {
-        errEl.textContent = '付款截图、付款时间和付款金额为必填项';
+    const channel = channelSelect.value.trim();
+    if (!file || !channel || !payTime || !amountRaw) {
+        errEl.textContent = '付款截图、付款渠道、付款时间和付款金额为必填项';
         errEl.style.display = 'block';
         return;
     }
@@ -809,12 +823,14 @@ async function submitNewPaymentFlow() {
             action: 'add',
             screenshotUrl,
             payTime,
-            amount: amountRaw
+            amount: amountRaw,
+            channel
         });
 
         fileInput.value = '';
         payTimeInput.value = '';
         amountInput.value = '';
+        channelSelect.value = '';
         loadPaymentFlows(caseId);
     } catch (e) {
         errEl.textContent = '保存付款流水失败：' + (e.message || '未知错误');

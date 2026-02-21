@@ -475,6 +475,7 @@ async function showCaseDetailModal(caseId) {
               ? flows.map((f,idx)=>{
                     const imgSrc = buildPaymentScreenshotSrc(f);
                     const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
+                    const channel = f.channel || '-';
                     return `<div class='border rounded p-2 mb-2 small d-flex align-items-center'>
                         <div class='flex-grow-1'>
                           <div><span class='text-muted'>序号：</span>${idx+1}</div>
@@ -2248,17 +2249,26 @@ function showPaymentFlowsModal(caseId) {
                     </div>
                     <hr/>
                     <div class="mb-2 fw-bold">新增付款流水</div>
-                    <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 时间 + 金额），只能新增和删除，不允许修改。</div>
+                    <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 渠道 + 时间 + 金额），只能新增和删除，不允许修改。</div>
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">付款截图 (jpg/jpeg/png)</label>
                             <input type="file" id="paymentScreenshotFile" accept="image/png,image/jpeg" class="form-control" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label">付款渠道</label>
+                            <select id="paymentChannelSelectMgmt" class="form-select">
+                                <option value="">请选择</option>
+                                <option value="青枫">青枫</option>
+                                <option value="澎和助力">澎和助力</option>
+                                <option value="澎和信息">澎和信息</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">付款时间</label>
                             <input type="datetime-local" id="paymentTimeInput" class="form-control" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label">付款金额 (元)</label>
                             <input type="number" step="0.01" id="paymentAmountInput" class="form-control" />
                         </div>
@@ -2307,10 +2317,12 @@ async function loadPaymentFlowsMgmt(caseId) {
             const imgSrc = buildPaymentScreenshotSrc(f);
             // 兼容：旧的静态路径需要加 /api
             const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
+            const channel = f.channel || '-';
             return `
             <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
                     <div>序号：${idx+1}</div>
+                    <div>渠道：${channel}</div>
                     <div>时间：${f.payTime||'-'}</div>
                     <div>金额：${fmtAmt(f.amount)}</div>
                 </div>
@@ -2331,16 +2343,18 @@ async function submitNewPaymentFlowMgmt() {
     const fileInput = document.getElementById('paymentScreenshotFile');
     const payTimeInput = document.getElementById('paymentTimeInput');
     const amountInput = document.getElementById('paymentAmountInput');
+    const channelSelect = document.getElementById('paymentChannelSelectMgmt');
     const errEl = document.getElementById('paymentFlowsError');
     if (errEl) errEl.style.display = 'none';
 
     const file = fileInput && fileInput.files ? fileInput.files[0] : null;
     const payTime = payTimeInput ? payTimeInput.value.trim() : '';
     const amountRaw = amountInput ? amountInput.value.trim() : '';
+    const channel = channelSelect ? channelSelect.value.trim() : '';
 
-    if (!file || !payTime || !amountRaw) {
+    if (!file || !channel || !payTime || !amountRaw) {
         if (errEl) {
-            errEl.textContent = '付款截图、付款时间和付款金额为必填项';
+            errEl.textContent = '付款截图、付款渠道、付款时间和付款金额为必填项';
             errEl.style.display = 'block';
         }
         return;
@@ -2387,13 +2401,15 @@ async function submitNewPaymentFlowMgmt() {
              action: 'add',
              screenshotUrl,
              payTime,
-             amount: amountRaw
+             amount: amountRaw,
+             channel
          });
 
         // 4) 刷新
          if (fileInput) fileInput.value = '';
          if (payTimeInput) payTimeInput.value = '';
          if (amountInput) amountInput.value = '';
+         if (channelSelect) channelSelect.value = '';
          loadPaymentFlowsMgmt(caseId);
 
      } catch (e) {
@@ -2404,76 +2420,3 @@ async function submitNewPaymentFlowMgmt() {
      }
 }
 
-async function removePaymentFlowMgmt(index) {
-    const caseId = document.getElementById('paymentFlowsCaseId').value;
-    const errEl = document.getElementById('paymentFlowsError');
-    if (errEl) errEl.style.display = 'none';
-    if (!confirm('确定要删除该条付款流水吗？')) return;
-
-    try {
-        await request('/case/payment-flows', 'POST', { caseId, action: 'remove', index });
-
-        // 删除成功后：关闭付款流水浮窗
-        const modalEl = document.getElementById('paymentFlowsModal');
-        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
-        if (modal) {
-            modal.hide();
-        }
-
-        // 防御性：清理所有残留的 Bootstrap 遮罩和 body 状态，避免整页保持灰色
-        document.querySelectorAll('.modal-backdrop').forEach(function (el) {
-            if (el && el.parentNode) {
-                el.parentNode.removeChild(el);
-            }
-        });
-        document.body.classList.remove('modal-open');
-        document.body.style.removeProperty('padding-right');
-
-        // 清理付款流水模态容器 DOM，避免重复 id 残留
-        const container = document.getElementById('paymentFlowsModalContainer');
-        if (container) container.innerHTML = '';
-
-    } catch (e) {
-        if (errEl) {
-            errEl.textContent = '删除付款流水失败';
-            errEl.style.display = 'block';
-        }
-    }
-}
-
-// 图片预览：复用全局 showImagePreview（如不存在则创建）
-if (typeof showImagePreview === 'undefined') {
-    function showImagePreview(url) {
-        let container = document.getElementById('imagePreviewModalContainer');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'imagePreviewModalContainer';
-            document.body.appendChild(container);
-        }
-        container.innerHTML = `
-        <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-xl">
-                <div class="modal-content" style="background:rgba(0,0,0,0.85);border:none;">
-                    <div class="modal-header border-0">
-                        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body d-flex justify-content-center align-items-center p-2">
-                        <img src="${url}" alt="预览" style="max-width:100%;max-height:80vh;border-radius:4px;">
-                    </div>
-                </div>
-            </div>
-        </div>`;
-        new bootstrap.Modal(document.getElementById('imagePreviewModal')).show();
-    }
-}
-
-if (!window.__caseMgmtImagePreviewBound) {
-    window.__caseMgmtImagePreviewBound = true;
-    document.addEventListener('click', function (e) {
-        const target = e.target;
-        if (target && target.classList && target.classList.contains('payment-screenshot')) {
-            const url = target.getAttribute('data-url');
-            if (url) showImagePreview(url);
-        }
-    });
-}

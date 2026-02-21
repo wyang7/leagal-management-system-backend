@@ -71,6 +71,9 @@ public class CaseCloseExtDTO {
          */
         private String screenshotUrlType;
 
+        /** 付款渠道：青枫 / 澎和助力 / 澎和信息 */
+        private String channel;
+
         /** 付款时间 (yyyy-MM-dd HH:mm:ss) */
         private String payTime;
         /** 付款金额 */

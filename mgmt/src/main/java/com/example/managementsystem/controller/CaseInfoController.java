@@ -1541,12 +1541,19 @@ public class CaseInfoController {
 
         String action = (String) params.getOrDefault("action", "add");
         if ("add".equals(action)) {
-            // 新增一条流水：screenshotUrl, payTime, amount
+            // 新增一条流水：screenshotUrl, payTime, amount, channel
             String screenshotUrl = (String) params.get("screenshotUrl");
             String payTime = (String) params.get("payTime");
             Object amountObj = params.get("amount");
+            String channel = params.get("channel") == null ? null : params.get("channel").toString();
             if (screenshotUrl == null || screenshotUrl.isEmpty() || payTime == null || payTime.isEmpty() || amountObj == null) {
                 return Result.fail("付款截图、付款时间和付款金额不能为空");
+            }
+            // 可选：对付款渠道做简单校验（仅允许三种枚举或为空）
+            if (channel != null && !channel.isEmpty()) {
+                if (!("青枫".equals(channel) || "澎和助力".equals(channel) || "澎和信息".equals(channel))) {
+                    return Result.fail("付款渠道不合法");
+                }
             }
             java.math.BigDecimal amount;
             try {
@@ -1566,6 +1573,7 @@ public class CaseInfoController {
             }
             flow.setPayTime(payTime);
             flow.setAmount(amount);
+            flow.setChannel(channel);
             ext.getPaymentFlows().add(flow);
 
         } else if ("remove".equals(action)) {
