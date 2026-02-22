@@ -52,7 +52,7 @@ function loadMyCasesPage(timeout = false) {
                             </span>
                             <select id="myCaseStationSelect" class="form-select ant-select" style="border-radius:0 4px 4px 0;">
                                 <option value="">全部驻点</option>
-                                <option value="九堡彭埠">九堡彭埠</option>
+                                <option value="九堡">九堡</option>
                                 <option value="本部">本部</option>
                                 <option value="四季青">四季青</option>
                                 <option value="笕桥">笕桥</option>

@@ -1,6 +1,6 @@
 /**
  * 加载案件管理页面，接收驻点参数
- * @param {string} station 驻点名称（九堡彭埠、本部、艮桥、四季青、凯旋街道、闸弄口）
+ * @param {string} station 驻点名称（九堡、彭埠、本部、笕桥、四季青、凯旋街道、闸弄口）
  */
 
 let currentStation= '';

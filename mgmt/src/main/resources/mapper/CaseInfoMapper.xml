@@ -62,16 +62,7 @@
             AND c.assistant_id = #{assistantId}
         </if>
         <if test="station != null and station != '' and station != '总部'">
-            <choose>
-                <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
-                <when test="station == '九堡彭埠'">
-                    AND c.case_location in ('九堡', '彭埠')
-                </when>
-                <!-- 其他情况使用等于条件 -->
-                <otherwise>
-                    AND c.case_location = #{station}
-                </otherwise>
-            </choose>
+            AND c.case_location = #{station}
         </if>
         <!-- 万能搜索：案由、原告、被告、案号、助理用户名、处理人用户名 -->
         <if test="keyword != null and keyword != ''">
@@ -181,16 +172,7 @@
             AND c.assistant_id = #{assistantId}
         </if>
         <if test="station != null and station != '' and station != '总部'">
-            <choose>
-                <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
-                <when test="station == '九堡彭埠'">
-                    AND c.case_location in ('九堡', '彭埠')
-                </when>
-                <!-- 其他情况使用等于条件 -->
-                <otherwise>
-                    AND c.case_location = #{station}
-                </otherwise>
-            </choose>
+            AND c.case_location = #{station}
         </if>
         <!-- 万能搜索：案由、原告、被告、案号、助理用户名、处理人用户名 -->
         <if test="keyword != null and keyword != ''">
@@ -349,16 +331,7 @@
            AND case_name LIKE CONCAT('%', #{caseName}, '%')
         </if>
         <if test="station != null and station != '' and station != '总部'">
-            <choose>
-                <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
-                <when test="station == '九堡彭埠'">
-                    AND case_location in ('九堡', '彭埠')
-                </when>
-                <!-- 其他情况使用等于条件 -->
-                <otherwise>
-                    AND case_location = #{station}
-                </otherwise>
-            </choose>
+            AND case_location = #{station}
         </if>
         ORDER BY case_id DESC
     </select>

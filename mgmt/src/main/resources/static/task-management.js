@@ -284,7 +284,8 @@ function createTaskModal() {
                                 <label for="taskStation">案件包归属地</label>
                                 <select id="taskStation" class="form-control" required>
                                     <option value="">请选择归属地</option>
-                                    <option value="九堡彭埠">九堡彭埠</option>
+                                    <option value="九堡">九堡</option>
+                                    <option value="彭埠">彭埠</option>
                                     <option value="本部">本部</option>
                                     <option value="四季青">四季青</option>
                                     <option value="笕桥">笕桥</option>
@@ -906,7 +907,8 @@ function showBatchCreateTaskModal() {
                             <label>案件包归属地</label>
                             <select id="batchTaskStation" class="form-control" required>
                                 <option value="">请选择归属地</option>
-                                <option value="九堡彭埠">九堡彭埠</option>
+                                <option value="九堡">九堡</option>
+                                <option value="彭埠">彭埠</option>
                                 <option value="本部">本部</option>
                                 <option value="四季青">四季青</option>
                                 <option value="笕桥">笕桥</option>

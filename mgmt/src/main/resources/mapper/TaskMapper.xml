@@ -13,16 +13,7 @@
             AND status = #{taskStatus}
         </if>
         <if test="station != null and station != '' and station != '总部'">
-            <choose>
-                <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
-                <when test="station == '九堡彭埠'">
-                    AND station in ('九堡', '彭埠', '九堡彭埠')
-                </when>
-                <!-- 其他情况使用等于条件 -->
-                <otherwise>
-                    AND station = #{station}
-                </otherwise>
-            </choose>
+            AND station = #{station}
         </if>
     </select>
 
@@ -48,16 +39,7 @@
             AND status = #{taskStatus}
         </if>
         <if test="station != null and station != ''  and station != '总部' ">
-            <choose>
-                <!-- 当 station 是 '九堡彭埠' 时，使用 in 条件 -->
-                <when test="station == '九堡彭埠'">
-                    AND station in ('九堡', '彭埠', '九堡彭埠')
-                </when>
-                <!-- 其他情况使用等于条件 -->
-                <otherwise>
-                    AND station = #{station}
-                </otherwise>
-            </choose>
+            AND station = #{station}
         </if>
         ORDER BY created_time DESC ,task_id DESC
         LIMIT #{offset}, #{pageSize}
@@ -74,15 +56,10 @@
             AND status = #{taskStatus}
         </if>
         <if test="stations != null and stations.size > 0">
-            AND (
-                station IN
-                <foreach collection="stations" item="st" open="(" separator="," close=")">
-                    #{st}
-                </foreach>
-                <if test="stations.contains('九堡彭埠')">
-                    OR station IN ('九堡', '彭埠', '九堡彭埠')
-                </if>
-            )
+            AND station IN
+            <foreach collection="stations" item="st" open="(" separator="," close=")">
+                #{st}
+            </foreach>
         </if>
     </select>
 
@@ -97,15 +74,10 @@
             AND status = #{taskStatus}
         </if>
         <if test="stations != null and stations.size > 0">
-            AND (
-                station IN
-                <foreach collection="stations" item="st" open="(" separator="," close=")">
-                    #{st}
-                </foreach>
-                <if test="stations.contains('九堡彭埠')">
-                    OR station IN ('九堡', '彭埠', '九堡彭埠')
-                </if>
-            )
+            AND station IN
+            <foreach collection="stations" item="st" open="(" separator="," close=")">
+                #{st}
+            </foreach>
         </if>
         ORDER BY created_time DESC ,task_id DESC
         LIMIT #{offset}, #{pageSize}

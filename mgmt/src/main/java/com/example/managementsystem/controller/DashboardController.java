@@ -61,7 +61,6 @@ public class DashboardController {
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for (String st : stationList) {
-            // station 合并逻辑：前端若传"九堡彭埠"则拆分，当前约定直接传单独驻点避免额外查询
             // 拉取该驻点的所有案件（利用分页服务内部 mapper，直接用 wrapper)
             // 由于 service 层没有直接根据 station 返回全部接口，这里使用自定义查询：重用 selectCasePage 分页多次取完
             List<CaseInfo> stationCases = loadAllCasesByStation(st);

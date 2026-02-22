@@ -55,10 +55,6 @@ async function getAdminStations(userInfo) {
             // 总部管理员显示全部驻点
             return allStations;
         }
-        if (station === '九堡彭埠') {
-            // 合并驻点需要拆分成两个展示块
-            return ['九堡','彭埠'];
-        }
         // 如果是单一驻点且在允许列表中
         if (allStations.includes(station)) {
             return [station];
@@ -71,7 +67,7 @@ async function getAdminStations(userInfo) {
     }
 }
 
-// 管理员工作区卡片（合并一行展示，统一样式）
+// 管理员工作区卡片（按驻点逐个展示，不再合并九堡/彭埠）
 async function renderAdminWorkspace(stations) {
     if (!stations || stations.length === 0) {
         document.getElementById('workspaceCards').innerHTML = `
@@ -79,28 +75,12 @@ async function renderAdminWorkspace(stations) {
         `;
         return;
     }
-    // 统计数据，支持九堡+彭埠合并为一行显示
     const stats = [];
-    const hasJiubao = stations.includes('九堡');
-    const hasPengbu = stations.includes('彭埠');
-    if (hasJiubao && hasPengbu) {
-        // 汇总九堡与彭埠
-        const jbReturn = await getCaseCountByStatus('九堡', '退回');
-        const pbReturn = await getCaseCountByStatus('彭埠', '退回');
-        const jbClose = await getCaseCountByStatus('九堡', '待结案');
-        const pbClose = await getCaseCountByStatus('彭埠', '待结案');
-        stats.push({station: '九堡彭埠', returnCount: jbReturn + pbReturn, closeCount: jbClose + pbClose});
-    }
-    // 其它驻点（排除已合并的）
     for (const station of stations) {
-        if ((station === '九堡' || station === '彭埠') && hasJiubao && hasPengbu) {
-            continue; // 已合并跳过单项
-        }
         const returnCount = await getCaseCountByStatus(station, '退回');
         const closeCount = await getCaseCountByStatus(station, '待结案');
         stats.push({station, returnCount, closeCount});
     }
-    // 合并展示区块
     document.getElementById('workspaceCards').innerHTML = `
         <div class="ant-card mb-4" style="border-radius:10px;box-shadow:0 4px 16px #f0f1f2;">
             <div class="ant-card-body">

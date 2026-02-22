@@ -338,7 +338,7 @@ public class TaskController {
 
             boolean hqAdmin = isHeadquarters(currentUser);
             if (!hqAdmin) {
-                // 非总部管理员：只能导出自己驻点范围内的案件包
+                // 非总部管理员：只允许导出自己驻点范围内的案件包
                 java.util.Set<String> allowedStations = new java.util.HashSet<>(resolveUserStations(currentUser));
                 for (Long taskId : taskIds) {
                     Task t = taskService.getById(taskId);
@@ -347,17 +347,9 @@ public class TaskController {
                         return;
                     }
                     String st = t.getStation();
-                    // 兼容九堡彭埠映射：允许 stations 含“九堡彭埠”时导出 station 为 九堡/彭埠/九堡彭埠
-                    if ("九堡".equals(st) || "彭埠".equals(st)) {
-                        if (!allowedStations.contains("九堡彭埠") && !allowedStations.contains(st)) {
-                            response.setStatus(403);
-                            return;
-                        }
-                    } else {
-                        if (st != null && !allowedStations.contains(st)) {
-                            response.setStatus(403);
-                            return;
-                        }
+                    if (st != null && !allowedStations.contains(st)) {
+                        response.setStatus(403);
+                        return;
                     }
                 }
             }
