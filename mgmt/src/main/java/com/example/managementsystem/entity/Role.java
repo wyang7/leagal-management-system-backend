@@ -45,6 +45,12 @@ public class Role implements Serializable {
     private String station;
 
     /**
+     * 案件来源（如：上城法院本部、九堡法庭、笕桥法庭、综治中心），用于权限控制
+     */
+    @TableField("case_source")
+    private String caseSource;
+
+    /**
      * 创建时间
      */
     @TableField("created_time")

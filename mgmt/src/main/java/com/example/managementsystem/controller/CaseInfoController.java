@@ -99,7 +99,16 @@ public class CaseInfoController {
             return Result.fail("角色信息异常");
         }
         String station = role.getStation();
+        String caseSource = role.getCaseSource();
+        // 目前 getCasesByStatusList 仅支持 station 过滤，这里先按原有逻辑透传 station，
+        // 若后续需要按来源进一步裁剪，可在 service 内部或 mapper 增加 caseSource 条件。
         List<CaseInfo> list = caseInfoService.getCasesByStatusList(statusList, taskId, caseName, station);
+        // 如果角色配置了案件来源，则在内存中再做一层来源过滤，保证权限为“来源+归属地”双条件
+        if (StringUtils.hasText(caseSource)) {
+            list = list.stream()
+                    .filter(c -> caseSource.equals(c.getCaseSource()))
+                    .collect(Collectors.toList());
+        }
         return Result.success(list);
     }
 

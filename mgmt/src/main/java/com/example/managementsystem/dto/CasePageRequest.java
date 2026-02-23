@@ -38,6 +38,8 @@ public class CasePageRequest {
     private String receiveTimeEnd;
     /** 过滤条件：驻点 */
     private String station;
+    /** 过滤条件：案件来源（上城法院本部、九堡法庭、笕桥法庭、综治中心） */
+    private String caseSource;
     /** 过滤条件：案件包ID */
     private Long taskId;
 

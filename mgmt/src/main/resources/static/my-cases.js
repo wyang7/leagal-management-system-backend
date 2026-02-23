@@ -53,11 +53,13 @@ function loadMyCasesPage(timeout = false) {
                             <select id="myCaseStationSelect" class="form-select ant-select" style="border-radius:0 4px 4px 0;">
                                 <option value="">全部驻点</option>
                                 <option value="九堡">九堡</option>
+                                <option value="彭埠">彭埠</option>
                                 <option value="本部">本部</option>
                                 <option value="四季青">四季青</option>
                                 <option value="笕桥">笕桥</option>
                                 <option value="凯旋街道">凯旋街道</option>
                                 <option value="闸弄口">闸弄口</option>
+                                <option value="丁兰">丁兰</option>
                             </select>
                         </div>
                     </div>
@@ -105,6 +107,7 @@ function loadMyCasesPage(timeout = false) {
                                 <th style="white-space:nowrap;">案件号</th>
                                 <th style="white-space:nowrap;">案由</th>
                                 <th style="white-space:nowrap;">标的额</th>
+                                <th style="white-space:nowrap;" title="案件来源">案件来源</th>
                                 <th style="white-space:nowrap;" title="案件归属地">归属地</th>
                                 <th style="white-space:nowrap;">原告</th>
                                 <th style="white-space:nowrap;">被告</th>
@@ -117,7 +120,7 @@ function loadMyCasesPage(timeout = false) {
                         </thead>
                         <tbody id="myCaseTableBody">
                             <tr>
-                                <td colspan="10" class="text-center">加载中...</td>
+                                <td colspan="12" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -285,6 +288,7 @@ async function showmyCaseDetailModal(caseId) {
             <div class='col-md-6'><span class='text-muted'>案件号：</span><span class='fw-bold'>${caseInfo.caseNumber||'-'}</span></div>
             <div class='col-md-6'><span class='text-muted'>案由：</span>${caseInfo.caseName||'-'}</div>
             <div class='col-md-6'><span class='text-muted'>标的额：</span>${formatAmount(caseInfo.amount)}</div>
+            <div class='col-md-6'><span class='text-muted'>案件来源：</span>${caseInfo.caseSource||'-'}</div>
             <div class='col-md-6'><span class='text-muted'>归属地：</span>${caseInfo.caseLocation||'-'}</div>
             <div class='col-md-6'><span class='text-muted'>法官：</span>${caseInfo.judge||'-'}</div>
             <div class='col-md-6'><span class='text-muted'>收案时间：</span>${formatDate(caseInfo.courtReceiveTime)}</div>
@@ -353,12 +357,9 @@ async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
     try {
         const username = await getCurrentUserName();
         const tableBodyEl = document.getElementById('myCaseTableBody');
-        if (!tableBodyEl) {
-            // 页面容器尚未渲染，直接退出，稍后用户重新触发或页面重新加载
-            return;
-        }
+        if (!tableBodyEl) { return; }
         if (!username) {
-            tableBodyEl.innerHTML = `<tr><td colspan="11" class="text-center text-danger">未获取到用户信息</td></tr>`;
+            tableBodyEl.innerHTML = `<tr><td colspan="12" class="text-center text-danger">未获取到用户信息</td></tr>`;
             return;
         }
         const caseName = document.getElementById('myCaseSearchInput')?.value.trim() || '';
@@ -386,7 +387,7 @@ async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
         renderMyPagination({ total: response.total, pageNum: response.pageNum, pageSize: response.pageSize });
     } catch (error) {
         const body = document.getElementById('myCaseTableBody');
-        if (body) { body.innerHTML = `<tr><td colspan="11" class="text-center text-danger">加载案件失败</td></tr>`; }
+        if (body) { body.innerHTML = `<tr><td colspan="12" class="text-center text-danger">加载案件失败</td></tr>`; }
     }
 }
 
@@ -541,7 +542,7 @@ async function filterMyCases(status, pageNum = 1, pageSize = 10) {
 function renderMyCaseTable(cases) {
     const tableBody = document.getElementById('myCaseTableBody');
     if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="11" class="text-center">没有找到案件数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">没有找到案件数据</td></tr>`;
         return;
     }
     let html = '';
@@ -581,12 +582,13 @@ function renderMyCaseTable(cases) {
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
-            <td>${caseInfo.caseLocation || '-'}</td>
-            <td>${caseInfo.plaintiffName || '-'}</td>
-            <td>${caseInfo.defendantName || '-'}</td>
-            <td>${caseInfo.judge || '-'}</td>
-            <td>${caseInfo.assistantName || '-'}</td>
-            <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>
+            <td>${caseInfo.caseSource || ''}</td>
+            <td>${caseInfo.caseLocation || ''}</td>
+            <td>${caseInfo.plaintiffName || ''}</td>
+            <td>${caseInfo.defendantName || ''}</td>
+            <td>${caseInfo.judge || ''}</td>
+            <td>${caseInfo.assistantName || ''}</td>
+            <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : ''}</td>
             <td><span class="status-badge ${statusClass}">${caseInfo.status}</span>${remindHtml}</td>
             <td>
                 <div class="d-flex flex-column gap-2">

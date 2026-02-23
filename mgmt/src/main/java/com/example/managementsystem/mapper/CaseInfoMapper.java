@@ -66,6 +66,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                       @Param("userId") Long userId,
                       @Param("taskId") Long taskId,
                       @Param("station") String station,
+                      @Param("caseSource") String caseSource,
                       @Param("keyword") String keyword);
 
     /*
@@ -105,6 +106,7 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
                                   @Param("userId") Long userId,
                                   @Param("taskId") Long taskId,
                                   @Param("station") String station,
+                                  @Param("caseSource") String caseSource,
                                   @Param("sortField") String sortField,
                                   @Param("sortOrder") String sortOrder,
                                   @Param("keyword") String keyword);

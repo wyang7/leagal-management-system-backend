@@ -177,6 +177,7 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         String defendant = request.getDefendant();
         Long taskId = request.getTaskId();
         String station = request.getStation();
+        String caseSource = request.getCaseSource();
         String sortField = request.getSortField();
         String sortOrder = request.getSortOrder();
         Boolean timeout = request.getTimeout();
@@ -196,8 +197,26 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
         }
         // 超时逻辑复用
         if (timeout != null && timeout) {
-            List<CaseInfo> candidateCases = baseMapper.selectCasePage(0, 10000, caseName, status, statusList, caseNumber, plaintiff, defendant,
-                receiveTimeStart, receiveTimeEnd, assistantId, userId, taskId,station, sortField, sortOrder, keyword);
+            List<CaseInfo> candidateCases = baseMapper.selectCasePage(
+                    0,
+                    10000,
+                    caseName,
+                    status,
+                    statusList,
+                    caseNumber,
+                    plaintiff,
+                    defendant,
+                    receiveTimeStart,
+                    receiveTimeEnd,
+                    assistantId,
+                    userId,
+                    taskId,
+                    station,
+                    caseSource,
+                    sortField,
+                    sortOrder,
+                    keyword
+            );
             List<CaseInfo> allRecords = new ArrayList<>();
             java.time.LocalDateTime now = java.time.LocalDateTime.now();
             for (CaseInfo caseInfo : candidateCases) {
@@ -224,8 +243,42 @@ public class CaseInfoServiceImpl extends ServiceImpl<CaseInfoMapper, CaseInfo> i
             result.put("pageSize", pageSize);
             return result;
         }
-        int total = baseMapper.countAllCases(caseName, status, statusList, caseNumber, plaintiff, defendant, receiveTimeStart, receiveTimeEnd, assistantId, userId,taskId, station, keyword);
-        List<CaseInfo> records = baseMapper.selectCasePage(offset, pageSize, caseName, status, statusList, caseNumber, plaintiff, defendant, receiveTimeStart, receiveTimeEnd, assistantId, userId,taskId, station, sortField, sortOrder, keyword);
+        int total = baseMapper.countAllCases(
+                caseName,
+                status,
+                statusList,
+                caseNumber,
+                plaintiff,
+                defendant,
+                receiveTimeStart,
+                receiveTimeEnd,
+                assistantId,
+                userId,
+                taskId,
+                station,
+                caseSource,
+                keyword
+        );
+        List<CaseInfo> records = baseMapper.selectCasePage(
+                offset,
+                pageSize,
+                caseName,
+                status,
+                statusList,
+                caseNumber,
+                plaintiff,
+                defendant,
+                receiveTimeStart,
+                receiveTimeEnd,
+                assistantId,
+                userId,
+                taskId,
+                station,
+                caseSource,
+                sortField,
+                sortOrder,
+                keyword
+        );
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);
         result.put("records", records);

@@ -19,6 +19,7 @@ function loadRoleManagementPage() {
                                 <th style="white-space:nowrap;">角色ID</th>
                                 <th style="white-space:nowrap;">角色名</th>
                                 <th style="white-space:nowrap;">角色类型</th>
+                                <th style="white-space:nowrap;">案件来源</th>
                                 <th style="white-space:nowrap;">驻点信息</th>
                                 <th style="white-space:nowrap;">创建时间</th>
                                 <th style="white-space:nowrap;">关联用户</th>
@@ -27,7 +28,7 @@ function loadRoleManagementPage() {
                         </thead>
                         <tbody id="roleTableBody">
                             <tr>
-                                <td colspan="7" class="text-center">加载中...</td>
+                                <td colspan="8" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -62,7 +63,7 @@ async function loadRoles() {
         renderRoleTable(roles);
     } catch (error) {
         document.getElementById('roleTableBody').innerHTML = `
-            <tr><td colspan="7" class="text-center text-danger">加载角色失败</td></tr>
+            <tr><td colspan="8" class="text-center text-danger">加载角色失败</td></tr>
         `;
     }
 }
@@ -75,7 +76,7 @@ function renderRoleTable(roles) {
     const tableBody = document.getElementById('roleTableBody');
     
     if (!roles || roles.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="7" class="text-center">没有找到角色数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">没有找到角色数据</td></tr>`;
         return;
     }
     
@@ -86,6 +87,7 @@ function renderRoleTable(roles) {
             <td>${role.roleId}</td>
             <td>${role.roleName}</td>
             <td>${role.roleType}</td>
+            <td>${role.caseSource || ''}</td>
             <td>${role.station || ''}</td>
             <td>${role.createdTime ? new Date(role.createdTime).toLocaleString() : ''}</td>
             <td>
@@ -143,6 +145,16 @@ function createRoleModal() {
                                 </select>
                             </div>
                             <div class="form-group">
+                                <label for="roleCaseSource">案件来源</label>
+                                <select id="roleCaseSource" class="form-control">
+                                    <option value="">全部案件来源</option>
+                                    <option value="上城法院本部">上城法院本部</option>
+                                    <option value="九堡法庭">九堡法庭</option>
+                                    <option value="笕桥法庭">笕桥法庭</option>
+                                    <option value="综治中心">综治中心</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label for="roleStation">驻点</label>
                                 <select id="roleStation" class="form-control" required>
                                     <option value="">请选择驻点</option>
@@ -153,6 +165,7 @@ function createRoleModal() {
                                     <option value="笕桥">笕桥</option>
                                     <option value="凯旋街道">凯旋街道</option>
                                     <option value="闸弄口">闸弄口</option>
+                                    <option value="丁兰">丁兰</option>
                                     <option value="总部">总部</option>
                                 </select>
                             </div>
@@ -201,6 +214,7 @@ async function showEditRoleModal(roleId) {
         document.getElementById('roleId').value = role.roleId;
         document.getElementById('roleName').value = role.roleName;
         document.getElementById('roleType').value = role.roleType;
+        document.getElementById('roleCaseSource').value = role.caseSource || '';
         document.getElementById('roleStation').value = role.station || '总部';
         document.getElementById('roleModalTitle').textContent = '编辑角色';
         
@@ -220,6 +234,7 @@ async function saveRole() {
     const roleId = document.getElementById('roleId').value;
     const roleName = document.getElementById('roleName').value.trim();
     const roleType = document.getElementById('roleType').value;
+    const roleCaseSource = document.getElementById('roleCaseSource').value.trim();
     const roleStation = document.getElementById('roleStation').value.trim();
     
     // 简单验证
@@ -236,6 +251,7 @@ async function saveRole() {
     const roleData = {
         roleName: roleName,
         roleType: roleType,
+        caseSource: roleCaseSource || null,
         station: roleStation
     };
     

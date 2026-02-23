@@ -116,6 +116,12 @@ public class CaseInfo implements Serializable {
     private String caseLocation;
 
     /**
+     * 案件来源（如：上城法院本部、九堡法庭、笕桥法庭、综治中心）
+     */
+    @TableField("case_source")
+    private String caseSource;
+
+    /**
      * 法院收案时间
      */
     @TableField("court_receive_time")

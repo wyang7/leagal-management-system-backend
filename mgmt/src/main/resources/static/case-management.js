@@ -57,7 +57,7 @@ function loadCaseManagementPage(station, status) {
                     </div>
                 </div>
                 <div id="advancedSearchContainer" class="row g-3 align-items-center mt-2" style="display: none;">
-                    <!-- 状态多选：使用勾选框，仅在顶部筛选为“全部”时生效 -->
+                    <!-- 状态多选：使用复选框，仅在顶部筛选为“全部”时生效 -->
                     <div class="col-md-4">
                         <label class="form-label small text-muted d-block mb-1">案件状态多选</label>
                         <div id="statusCheckboxGroup" class="border rounded p-2 bg-light">
@@ -96,7 +96,7 @@ function loadCaseManagementPage(station, status) {
                         </div>
                         <div class="form-text small">仅当上方状态选择“全部”时，按勾选状态进行查询和导出</div>
                     </div>
-                    <!-- 驻点下拉 -->
+                    <!-- 案由 -->
                     <div class="col-md-3">
                         <div class="input-group">
                             <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
@@ -105,6 +105,22 @@ function loadCaseManagementPage(station, status) {
                             <input type="text" id="caseSearchInput" class="form-control ant-input" placeholder="案由" style="border-radius:0 4px 4px 0;">
                         </div>
                     </div>
+                    <!-- 案件来源筛选 -->
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-building text-secondary"></i>
+                            </span>
+                            <select id="caseSourceSelect" class="form-select ant-select" style="border-radius:0 4px 4px 0;">
+                                <option value="">全部案件来源</option>
+                                <option value="上城法院本部">上城法院本部</option>
+                                <option value="九堡法庭">九堡法庭</option>
+                                <option value="笕桥法庭">笕桥法庭</option>
+                                <option value="综治中心">综治中心</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- 其余原有高级查询字段保持不变 -->
                     <div class="col-md-3">
                         <div class="input-group">
                             <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
@@ -198,7 +214,7 @@ function loadCaseManagementPage(station, status) {
                         <thead class="ant-table-thead table-light"></thead>
                         <tbody id="caseTableBody">
                             <tr>
-                                <td colspan="13" class="text-center">加载中...</td>
+                                <td colspan="14" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -642,6 +658,15 @@ async function loadCases(pageNum = 1, customPageSize = pageSize, station = '') {
             // 从勾选框读取多选状态
             getSelectedStatusesFromCheckboxes().forEach(v => statusList.push(v));
         }
+        const sourceSelect = document.getElementById('caseSourceSelect');
+        let source = sourceSelect ? sourceSelect.value.trim() : '';
+        // 如果左侧菜单已经选择了案件来源，则优先使用全局 currentCaseSource
+        if (window.currentCaseSource) {
+            source = window.currentCaseSource;
+            if (sourceSelect) {
+                sourceSelect.value = source;
+            }
+        }
         const payload = {
             pageNum,
             pageSize: pageSize,
@@ -658,7 +683,8 @@ async function loadCases(pageNum = 1, customPageSize = pageSize, station = '') {
             statusList: statusList.length ? statusList : undefined,
             station: currentStationTemp || undefined,
             sortField: currentSortField || undefined,
-            sortOrder: currentSortField ? currentSortOrder : undefined
+            sortOrder: currentSortField ? currentSortOrder : undefined,
+            caseSource: source || undefined
         };
         const response = await request('/case/page', 'POST', payload);
         renderCaseTableHeader();
@@ -905,15 +931,14 @@ function renderCaseTable(cases) {
             <td>${caseInfo.caseNumber}</td>
             <td>${caseInfo.caseName}</td>
             <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
+            <td>${caseInfo.caseSource || ''}</td>
             <td>${caseInfo.caseLocation || '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
-            <td>${caseInfo.judge || '-'}</td>
+            <td>${caseInfo.courtReceiveTime || ''}</td>
             <td>${caseInfo.assistantName || '-'}</td>
-            ${(currentFilterStatus !== '结案' && currentFilterStatus !== '调解失败') ? `<td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : '-'}</td>` : ''}
-            ${(currentFilterStatus === '结案' || currentFilterStatus === '调解失败') ? `<td>${caseInfo.returnCourtTime ? caseInfo.returnCourtTime.split(' ')[0] : '-'}</td>` : ''}
-            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>${caseInfo.username || '-'}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>
                 <div class="d-flex flex-column gap-2">
                   <button class="btn btn-sm btn-info" type="button" onclick="showCaseDetailModal(${caseInfo.caseId})">案件详情</button>
@@ -950,50 +975,22 @@ function renderCaseTableHeader() {
     if (!thead) return;
     thead.innerHTML = `
         <tr>
-            <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases"></th>
+            <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases" onclick="toggleSelectAllCases()"></th>
             <th style="white-space:nowrap;">案件号</th>
             <th style="white-space:nowrap;">案由</th>
             <th style="white-space:nowrap;">标的额</th>
+            <th style="white-space:nowrap;" title="案件来源">案件来源</th>
             <th style="white-space:nowrap;" title="案件归属地">归属地</th>
             <th style="white-space:nowrap;">原告</th>
             <th style="white-space:nowrap;">被告</th>
-            <th style="white-space:nowrap;">法官</th>
+            <th style="white-space:nowrap;">法院收案时间</th>
             <th style="white-space:nowrap;">案件助理</th>
-            ${
-            (currentFilterStatus !== '结案' && currentFilterStatus !== '调解失败')
-            ? `<th style="white-space:nowrap;">
-                领取时间
-                <span class="sort-btn" onclick="toggleSort('receiveTime')">
-                    <i class="fa fa-sort${currentSortField==='receiveTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
-                </span>
-               </th>`
-            : ''
-            }
-            
-            ${
-                (currentFilterStatus === '结案' || currentFilterStatus === '调解失败')
-                ? `<th style="white-space:nowrap;">
-                    退回法院时间
-                    <span class="sort-btn" onclick="toggleSort('returnCourtTime')">
-                        <i class="fa fa-sort${currentSortField==='returnCourtTime'?(currentSortOrder==='asc'?'-asc':'-desc'):''}"></i>
-                    </span>
-                </th>`
-                : ''
-            }
-            <th style="white-space:nowrap;">状态</th>
             <th style="white-space:nowrap;">处理人</th>
+            <th style="white-space:nowrap;">状态</th>
             <th style="white-space:nowrap;">操作</th>
         </tr>
     `;
-    // 重新绑定全选事件
-    const selectAllCheckbox = document.getElementById('selectAllCases');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.removeEventListener('change', handleSelectAllChange);
-        selectAllCheckbox.addEventListener('change', handleSelectAllChange);
-    }
 }
-
-
 
 /**
  * 排序按钮切换
