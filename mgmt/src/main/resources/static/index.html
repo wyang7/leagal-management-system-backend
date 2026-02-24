@@ -456,6 +456,8 @@
         const userStations = Array.from(new Set(
             stationStr.split(',').map(s => s.trim()).filter(Boolean)
         ));
+
+        // 只有“总部驻点的管理员”才允许看到用户管理/角色管理
         const hasHeadquartersAdmin = isAdmin && userStations.includes('总部');
 
         // 管理员“案件来源+归属地”权限：后端返回 shape 建议为
@@ -491,8 +493,12 @@
                 visibleCaseSourceTree = ALL_CASE_SOURCE_TREE
                     .map(node => {
                         const allowedSet = permittedStationsBySource.get(node.source);
-                        if (!allowedSet || allowedSet.size === 0) {
+                        if (!allowedSet) {
                             return null;
+                        }
+                        // 关键修复：如果角色只配置了案件来源、未配置归属地(stations)，则允许看到该来源下的全部归属地
+                        if (allowedSet.size === 0) {
+                            return { source: node.source, stations: node.stations };
                         }
                         const allowedStations = node.stations.filter(s => allowedSet.has(s));
                         if (allowedStations.length === 0) {
@@ -512,9 +518,11 @@
         items.push({ key: 'system-files', text: '案件系统文件', icon: 'fa-folder', onClick: 'handleRootClick(\'system-files\', loadSystemFilePage)', cssClass: 'nav-link-root' });
 
         if (isAdmin) {
-            // 管理类菜单
-            items.push({ key: 'user-mgmt', text: '用户管理', icon: 'fa-users', onClick: 'handleRootClick(\'user-mgmt\', loadUserManagementPage)', cssClass: 'nav-link-root' });
-            items.push({ key: 'role-mgmt', text: '角色管理', icon: 'fa-id-badge', onClick: 'handleRootClick(\'role-mgmt\', loadRoleManagementPage)', cssClass: 'nav-link-root' });
+            // 管理类菜单（仅总部管理员可见）
+            if (hasHeadquartersAdmin) {
+                items.push({ key: 'user-mgmt', text: '用户管理', icon: 'fa-users', onClick: 'handleRootClick(\'user-mgmt\', loadUserManagementPage)', cssClass: 'nav-link-root' });
+                items.push({ key: 'role-mgmt', text: '角色管理', icon: 'fa-id-badge', onClick: 'handleRootClick(\'role-mgmt\', loadRoleManagementPage)', cssClass: 'nav-link-root' });
+            }
 
             // 案件管理分组标题
             items.push({ key: 'case-mgmt-root', text: '案件管理', icon: 'fa-folder-open', cssClass: 'nav-link nav-link-root disabled', isFolder: true });
@@ -582,7 +590,7 @@
                 }
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                // 关键：三级菜单不要使用通用 nav-link 类，避免被 `.sidebar .nav-link.active` 影响导致“全亮”
+                // 关键：三级菜单不要���用通用 nav-link 类，避免被 `.sidebar .nav-link.active` 影响导致“全亮”
                 btn.className = 'nav-link-source-child';
                 btn.setAttribute('onclick', item.onClick);
                 btn.setAttribute('data-source', item.parentSource);

@@ -498,11 +498,6 @@ public class TaskController {
             return Result.fail("未登录或会话已过期，请重新登录");
         }
 
-        // 权限校验：调解员才允许领取
-        if (!StringUtils.hasText(currentUser.getRoleType()) || !currentUser.getRoleType().contains("调解员")) {
-            return Result.fail("无权限：仅调解员可领取案件包");
-        }
-
         // 总部调解员放开
         if (!isHeadquartersMediator(currentUser)) {
             List<String> stations = resolveUserStations(currentUser);

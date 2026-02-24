@@ -215,7 +215,11 @@ async function showEditRoleModal(roleId) {
         document.getElementById('roleName').value = role.roleName;
         document.getElementById('roleType').value = role.roleType;
         document.getElementById('roleCaseSource').value = role.caseSource || '';
-        document.getElementById('roleStation').value = role.station || '总部';
+
+        // station 为空时不要默认选“总部”，保持为空让用户选择
+        const station = (role.station == null) ? '' : String(role.station).trim();
+        document.getElementById('roleStation').value = station;
+
         document.getElementById('roleModalTitle').textContent = '编辑角色';
         
         // 显示模态框
