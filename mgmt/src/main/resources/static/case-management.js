@@ -571,6 +571,7 @@ async function showCaseDetailModal(caseId) {
           <div class='col-md-6'><span class='text-muted'>案件号：</span><span class='fw-bold'>${caseInfo.caseNumber||'-'}</span></div>
           <div class='col-md-6'><span class='text-muted'>案由：</span>${caseInfo.caseName||'-'}</div>
           <div class='col-md-6'><span class='text-muted'>标的额：</span>${fmtAmount(caseInfo.amount)}</div>
+          <div class='col-md-6'><span class='text-muted'>案件来源：</span>${caseInfo.caseSource||'-'}</div>
           <div class='col-md-6'><span class='text-muted'>归属地：</span>${caseInfo.caseLocation||'-'}</div>
           <div class='col-md-6'><span class='text-muted'>法官：</span>${caseInfo.judge||'-'}</div>
           <div class='col-md-6'><span class='text-muted'>收案时间：</span>${fmtDate(caseInfo.courtReceiveTime)}</div>
@@ -711,7 +712,7 @@ async function importCasesFromExcel(event) {
             alert('单次导入数据不能超过5000条');
             return;
         }
-        const expected = ['案件号','案件归属地', '法院收案时间', '原告', '被告', '案由', '标的额', '助理', '法官'];
+        const expected = ['案件号','案件归属地', '案件来源', '法院收案时间', '原告', '被告', '案由', '标的额', '助理', '法官'];
         if (rows[0].join() !== expected.join()) {
             alert('Excel表头格式不正确');
             return;
@@ -727,14 +728,14 @@ async function importCasesFromExcel(event) {
             }
             // 校验字段缺失（仅对非空行校验）
             if (
-                row.length < 9 ||
-                row.slice(1, 7).some(cell => cell === undefined || cell === null || cell === '')
+                row.length < 10 ||
+                row.slice(1, 8).some(cell => cell === undefined || cell === null || cell === '')
             ) {
                 alert(`第${i + 1}行存在字段缺失`);
                 return;
             }
             // 校验日期格式
-            const dateStr = row[2] + '';
+            const dateStr = row[3] + '';
             if (!dateRegFull.test(dateStr) && !dateRegNoYear.test(dateStr)) {
                 alert(`第${i + 1}行法院收案时间格式错误，需为2025.8.15或8.15`);
                 return;
@@ -742,13 +743,14 @@ async function importCasesFromExcel(event) {
             caseList.push({
                 caseNumber: row[0],
                 caseLocation: row[1],
-                courtReceiveTime: row[2],
-                plaintiffName: row[3],
-                defendantName: row[4],
-                caseName: row[5],
-                amount: parseFloat(row[6]) || 0 ,
-                assistantName: row[7],
-                judge: row[8]
+                caseSource: row[2],
+                courtReceiveTime: row[3],
+                plaintiffName: row[4],
+                defendantName: row[5],
+                caseName: row[6],
+                amount: parseFloat(row[7]) || 0 ,
+                assistantName: row[8],
+                judge: row[9]
             });
         }
         try {
@@ -1325,6 +1327,16 @@ function createCaseModal(taskOptions, assistantOptions) {
                                 </select>
                             </div>
                             <div class="form-group">
+                                <label for="caseSource">案件来源</label>
+                                <select id="caseSource" class="form-control">
+                                    <option value="">请选择案件来源</option>
+                                    <option value="上城法院本部">上城法院本部</option>
+                                    <option value="九堡法庭">九堡法庭</option>
+                                    <option value="笕桥法庭">笕桥法庭</option>
+                                    <option value="综治中心">综治中心</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label for="courtReceiveTime">法院收案时间</label>
                                 <input type="date" id="courtReceiveTime" class="form-control" required>
                             </div>
@@ -1439,7 +1451,6 @@ async function showAddCaseModal() {
 async function showEditCaseModal(caseId) {
     try {
         const caseInfo = await request(`/case/${caseId}`);
-        // 确保caseInfo是一个对象，避免后续访问时报错
         const safeCaseInfo = caseInfo || {};
         const taskOptions = await loadTasksForCaseForm();
         const assistantOptions = await loadCaseAssistants();
@@ -1466,6 +1477,7 @@ async function showEditCaseModal(caseId) {
         document.getElementById('caseName').value = safeCaseInfo.caseName ?? '';
         document.getElementById('caseAmount').value = safeCaseInfo.amount ?? '';
         document.getElementById('caseLocation').value = safeCaseInfo.caseLocation ?? '';
+        document.getElementById('caseSource').value = safeCaseInfo.caseSource ?? '';
         document.getElementById('courtReceiveTime').value = courtReceiveDate ?? '';
         document.getElementById('defendantName').value = safeCaseInfo.defendantName ?? '';
         document.getElementById('plaintiffName').value = safeCaseInfo.plaintiffName ?? '';
@@ -1526,6 +1538,7 @@ async function saveCase() {
     const caseNumber = document.getElementById('caseNumber').value.trim();
     const plaintiffName = document.getElementById('plaintiffName').value.trim();
     const caseLocation = document.getElementById('caseLocation').value.trim();
+    const caseSource = document.getElementById('caseSource').value.trim();
     const courtReceiveTime = document.getElementById('courtReceiveTime').value.trim();
     const defendantName = document.getElementById('defendantName').value.trim();
     const caseName = document.getElementById('caseName').value.trim();
@@ -1573,6 +1586,7 @@ async function saveCase() {
         amount: amount,
         status: status,
         caseLocation: caseLocation,
+        caseSource: caseSource || null,
         courtReceiveTime: courtReceiveTime,
         plaintiffName: plaintiffName,
         defendantName: defendantName,
@@ -1929,6 +1943,11 @@ async function exportCases() {
         }
     } else {
         const statusList = (currentFilterStatus === 'all') ? getSelectedStatusesFromCheckboxes() : [];
+        const sourceSelect = document.getElementById('caseSourceSelect');
+        let source = sourceSelect ? sourceSelect.value.trim() : '';
+        if (window.currentCaseSource) {
+            source = window.currentCaseSource;
+        }
         params = {
             caseName: document.getElementById('caseSearchInput').value.trim(),
             caseNumber: document.getElementById('caseNumberSearchInput').value.trim(),
@@ -1940,7 +1959,8 @@ async function exportCases() {
             receiveTimeEnd: document.getElementById('receiveTimeEndInput').value.trim(),
             status: currentFilterStatus !== 'all' ? currentFilterStatus : undefined,
             statusList: statusList.length ? statusList : undefined,
-            station: currentStation || undefined
+            station: currentStation || undefined,
+            caseSource: source || undefined
         };
     }
     // 请求后端导出接口，返回文件流

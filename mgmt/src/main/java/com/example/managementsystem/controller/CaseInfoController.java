@@ -1160,6 +1160,7 @@ public class CaseInfoController {
                     request.setStatusList(statusList);
                 }
                 request.setStation((String) params.get("station"));
+                request.setCaseSource((String) params.get("caseSource"));
                 request.setKeyword((String) params.getOrDefault("keyword", null));
                 request.setPageNum(1);
                 request.setPageSize(10000);
@@ -1266,7 +1267,7 @@ public class CaseInfoController {
 
             // 非结案状态：保持原有导出列
             String[] headers = {
-                "案件号", "案由", "标的额", "案件归属地", "原告", "被告", "法官", "案件助理", "领取时间", "退回法院时间",
+                "案件号", "案由", "标的额", "案件归属地", "案件来源", "原告", "被告", "法官", "案件助理", "领取时间", "退回法院时间",
                 "状态", "处理人", "法院收案时间", "反馈情况", "退回情况", "案件完成情况", "调解失败备注", "关联案件包"
             };
 
@@ -1284,6 +1285,7 @@ public class CaseInfoController {
                 row.createCell(col++).setCellValue(c.getCaseName() == null ? "" : c.getCaseName());
                 row.createCell(col++).setCellValue(c.getAmount() == null ? 0 : c.getAmount().doubleValue());
                 row.createCell(col++).setCellValue(c.getCaseLocation() == null ? "" : c.getCaseLocation());
+                row.createCell(col++).setCellValue(c.getCaseSource() == null ? "" : c.getCaseSource());
                 row.createCell(col++).setCellValue(c.getPlaintiffName() == null ? "" : c.getPlaintiffName());
                 row.createCell(col++).setCellValue(c.getDefendantName() == null ? "" : c.getDefendantName());
                 row.createCell(col++).setCellValue(c.getJudge() == null ? "" : c.getJudge());
