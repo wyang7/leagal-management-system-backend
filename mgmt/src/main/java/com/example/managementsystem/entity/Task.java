@@ -53,6 +53,12 @@ public class Task implements Serializable {
     @TableField("station")
     private String station;
 
+    /**
+     * 案件来源（如：上城法院本部、九堡法庭、笕桥法庭、综治中心），用于案件包维度的权限控制与筛选。
+     */
+    @TableField("case_source")
+    private String caseSource;
+
     @TableField("receive_time")
     private LocalDateTime receiveTime;
 

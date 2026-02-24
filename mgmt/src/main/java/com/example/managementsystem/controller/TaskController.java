@@ -91,6 +91,20 @@ public class TaskController {
     }
 
     /**
+     * 判断是否为总部调解员（roleType 包含“调解员”，且 station 包含“总部”）
+     */
+    private boolean isHeadquartersMediator(UserSession currentUser) {
+        if (currentUser == null) {
+            return false;
+        }
+        String roleType = currentUser.getRoleType();
+        if (!StringUtils.hasText(roleType) || !roleType.contains("调解员")) {
+            return false;
+        }
+        return isHeadquarters(currentUser);
+    }
+
+    /**
      * 从当前用户的所有角色中汇总驻点（去重）。
      * 注意：当前项目中 UserSession.station 也会存放逗号分隔驻点，这里优先使用 station；
      * 若 station 为空则回退到 roleIds -> role.station 汇总。
@@ -126,6 +140,31 @@ public class TaskController {
             }
         }
         return new ArrayList<>(stations);
+    }
+
+    /**
+     * 聚合当前用户角色中的案件来源集合（去重）。
+     */
+    private List<String> resolveUserCaseSources(UserSession currentUser) {
+        if (currentUser == null || !StringUtils.hasText(currentUser.getRoleIds())) {
+            return Collections.emptyList();
+        }
+        String[] roleIdArray = currentUser.getRoleIds().split(",");
+        Set<String> sources = new LinkedHashSet<>();
+        for (String ridStr : roleIdArray) {
+            if (!StringUtils.hasText(ridStr)) {
+                continue;
+            }
+            try {
+                Long rid = Long.parseLong(ridStr.trim());
+                Role r = roleService.getById(rid);
+                if (r != null && StringUtils.hasText(r.getCaseSource())) {
+                    sources.add(r.getCaseSource().trim());
+                }
+            } catch (NumberFormatException ignore) {
+            }
+        }
+        return new ArrayList<>(sources);
     }
 
     private Result<?> requireHeadquartersAdmin(HttpSession session) {
@@ -201,8 +240,8 @@ public class TaskController {
 
     /**
      * 分页查询案件包列表
-     * - 总部管理员：可查看全部驻点
-     * - 非总部管理员：仅能查看自己驻点的案件包（A用户拥有彭埠、笕桥权限 -> 只能看到这两个驻点）
+     * - 管理员：仍按驻点过滤（总部管理员不过滤）
+     * - 调解员（领取案件包页）：只返回待领取，且按来源+归属地（station）过滤；总部调解员可看全部
      */
     @GetMapping("/page")
     public Result<Map<String, Object>> getTaskPage(
@@ -210,14 +249,14 @@ public class TaskController {
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String taskName,
             @RequestParam(required = false) String taskStatus,
+            @RequestParam(required = false) String caseSource,
             HttpSession session) {
         UserSession currentUser = (UserSession) session.getAttribute("currentUser");
         if (currentUser == null) {
             return Result.fail("未登录或会话已过期，请重新登录");
         }
 
-        // 临时调解员不展示案件包（保持原有规则）
-        // 这里用 roleType 兜底判断（UserSession.roleType 可能是逗号分隔）
+        // 临时调解员不展示案件包
         if (StringUtils.hasText(currentUser.getRoleType()) && currentUser.getRoleType().contains("临时调解员")) {
             Map<String, Object> result = new HashMap<>();
             result.put("total", 0);
@@ -227,10 +266,64 @@ public class TaskController {
             return Result.success(result);
         }
 
+        boolean isMediator = StringUtils.hasText(currentUser.getRoleType()) && currentUser.getRoleType().contains("调解员");
+        boolean hqMediator = isHeadquartersMediator(currentUser);
+
+        if (isMediator) {
+            // 调解员领取：只允许看待领取
+            String effectiveStatus = StringUtils.hasText(taskStatus) ? taskStatus : "待领取";
+            if (!"待领取".equals(effectiveStatus)) {
+                effectiveStatus = "待领取";
+            }
+
+            if (hqMediator) {
+                // 总部调解员：不过滤 station 和 caseSource
+                return Result.success(taskService.getTaskPage(pageNum, pageSize, taskName, effectiveStatus, null, null));
+            }
+
+            // 非总部调解员：按 station + caseSource 权限过滤
+            List<String> stations = resolveUserStations(currentUser);
+            List<String> sources = resolveUserCaseSources(currentUser);
+            // 若前端指定来源，则必须在权限范围内
+            String effectiveSource = null;
+            if (StringUtils.hasText(caseSource)) {
+                if (!sources.contains(caseSource)) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("total", 0);
+                    result.put("records", new ArrayList<>());
+                    result.put("pageNum", pageNum);
+                    result.put("pageSize", pageSize);
+                    return Result.success(result);
+                }
+                effectiveSource = caseSource;
+            }
+
+            // 如果没有指定来源，则默认不过滤来源（由 task.station 限制归属地后，仍可能露出其它来源的包，需做二次限制）
+            // 这里策略：如果用户有多个来源权限，则不加来源过滤，但在 SQL 层无法表达“case_source IN (...)”；
+            // 所以当 sources.size()>0 且 effectiveSource 为空时，我们分来源分页会复杂。
+            // 为保持最小改动：当未指定 caseSource 时，如果用户只有一个来源权限，则自动使用该来源过滤；否则前端需要指定来源。
+            if (effectiveSource == null) {
+                if (sources.size() == 1) {
+                    effectiveSource = sources.get(0);
+                } else {
+                    // 多来源但未指定：返回空，提示前端选择来源
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("total", 0);
+                    result.put("records", new ArrayList<>());
+                    result.put("pageNum", pageNum);
+                    result.put("pageSize", pageSize);
+                    return Result.success(result);
+                }
+            }
+
+            return Result.success(taskService.getTaskPage(pageNum, pageSize, taskName, effectiveStatus, stations, effectiveSource));
+        }
+
+        // 管理员：按驻点过滤（总部管理员不过滤）；caseSource 仅作为筛选条件
         boolean hqAdmin = isHeadquarters(currentUser);
         List<String> userStations = resolveUserStations(currentUser);
         return Result.success(taskService.getTaskPage(pageNum, pageSize, taskName, taskStatus,
-                hqAdmin ? null : userStations));
+                hqAdmin ? null : userStations, caseSource));
     }
 
     /**
@@ -388,6 +481,8 @@ public class TaskController {
 
     /**
      * 领取案件包
+     * - 总部调解员：可领取任意待领取案件包
+     * - 非总部调解员：只能领取自己来源+归属地(station)范围内的待领取案件包
      */
     @PostMapping("/receive")
     public Result<?> receiveTask(@RequestBody Map<String, Object> params, HttpSession session) {
@@ -402,6 +497,26 @@ public class TaskController {
         if (currentUser == null || currentUser.getUserId() == null) {
             return Result.fail("未登录或会话已过期，请重新登录");
         }
+
+        // 权限校验：调解员才允许领取
+        if (!StringUtils.hasText(currentUser.getRoleType()) || !currentUser.getRoleType().contains("调解员")) {
+            return Result.fail("无权限：仅调解员可领取案件包");
+        }
+
+        // 总部调解员放开
+        if (!isHeadquartersMediator(currentUser)) {
+            List<String> stations = resolveUserStations(currentUser);
+            List<String> sources = resolveUserCaseSources(currentUser);
+            String taskStation = taskWithCases.getStation();
+            String taskSource = taskWithCases.getCaseSource();
+            if (StringUtils.hasText(taskStation) && (stations == null || !stations.contains(taskStation))) {
+                return Result.fail("无权限：不可领取该归属地的案件包");
+            }
+            if (StringUtils.hasText(taskSource) && (sources == null || !sources.contains(taskSource))) {
+                return Result.fail("无权限：不可领取该案件来源的案件包");
+            }
+        }
+
         Long operatorId = currentUser.getUserId();
         boolean success = taskService.receiveTask(taskId, userId,operatorId,false);
         return success ? Result.success() : Result.fail("领取案件包失败，当前案件已到达领取上限");

@@ -6,6 +6,12 @@ ALTER TABLE case_info
 ALTER TABLE role
     ADD COLUMN case_source VARCHAR(64) NULL COMMENT '角色可管理的案件来源：上城法院本部、九堡法庭、笕桥法庭、综治中心' AFTER station;
 
+ALTER TABLE task
+    ADD COLUMN case_source VARCHAR(50) NULL COMMENT '案件来源（上城法院本部/九堡法庭/笕桥法庭/综治中心等）'
+  AFTER station;
+
+
+
 -- 1）优先处理特殊逻辑：九堡/彭埠/笕桥 且 案件编号包含“杭”的，来源统一为“综治中心”
 UPDATE case_info
 SET case_source = '综治中心'

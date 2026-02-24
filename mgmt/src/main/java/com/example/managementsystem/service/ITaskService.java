@@ -2,7 +2,7 @@ package com.example.managementsystem.service;
 
 import com.example.managementsystem.entity.Task;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.example.managementsystem.entity.CaseInfo;
+
 import java.util.List;
 import java.util.Map;
 
@@ -32,9 +32,10 @@ public interface ITaskService extends IService<Task> {
 
     /**
      * 分页查询案件包列表（包含状态）
-     * @param stations 允许查看的驻点列表；总部管理员传 null 或空表示不过滤
+     * @param stations 允许查看的驻点列表；总部用户传 null 或空表示不过滤
+     * @param caseSource 案件来源过滤；可为空表示不过滤
      */
-    Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName,String taskStatus,List<String> stations);
+    Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize,String taskName,String taskStatus,List<String> stations, String caseSource);
 
     /**
      * 批量发布案件包（将状态从待发布改为待领取）

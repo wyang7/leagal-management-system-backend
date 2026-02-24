@@ -83,4 +83,80 @@
         LIMIT #{offset}, #{pageSize}
     </select>
 
+    <!-- 多驻点：查询任务总数 + 来源过滤 -->
+    <select id="countAllTasksByStationsAndSource" resultType="int">
+        SELECT COUNT(*) FROM task
+        WHERE 1=1
+        <if test="taskName != null and taskName != ''">
+            AND task_name LIKE CONCAT('%', #{taskName}, '%')
+        </if>
+        <if test="taskStatus != null and taskStatus != ''">
+            AND status = #{taskStatus}
+        </if>
+        <if test="caseSource != null and caseSource != ''">
+            AND case_source = #{caseSource}
+        </if>
+        <if test="stations != null and stations.size > 0">
+            AND station IN
+            <foreach collection="stations" item="st" open="(" separator="," close=")">
+                #{st}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 多驻点：分页查询任务 + 来源过滤 -->
+    <select id="selectTaskPageByStationsAndSource" resultType="com.example.managementsystem.entity.Task">
+        SELECT * FROM task
+        WHERE 1=1
+        <if test="taskName != null and taskName != ''">
+            AND task_name LIKE CONCAT('%', #{taskName}, '%')
+        </if>
+        <if test="taskStatus != null and taskStatus != ''">
+            AND status = #{taskStatus}
+        </if>
+        <if test="caseSource != null and caseSource != ''">
+            AND case_source = #{caseSource}
+        </if>
+        <if test="stations != null and stations.size > 0">
+            AND station IN
+            <foreach collection="stations" item="st" open="(" separator="," close=")">
+                #{st}
+            </foreach>
+        </if>
+        ORDER BY created_time DESC ,task_id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 不限驻点：查询任务总数 + 来源过滤 -->
+    <select id="countAllTasksAndSource" resultType="int">
+        SELECT COUNT(*) FROM task
+        WHERE 1=1
+        <if test="taskName != null and taskName != ''">
+            AND task_name LIKE CONCAT('%', #{taskName}, '%')
+        </if>
+        <if test="taskStatus != null and taskStatus != ''">
+            AND status = #{taskStatus}
+        </if>
+        <if test="caseSource != null and caseSource != ''">
+            AND case_source = #{caseSource}
+        </if>
+    </select>
+
+    <!-- 不限驻点：分页查询任务 + 来源过滤 -->
+    <select id="selectTaskPageAndSource" resultType="com.example.managementsystem.entity.Task">
+        SELECT * FROM task
+        WHERE 1=1
+        <if test="taskName != null and taskName != ''">
+            AND task_name LIKE CONCAT('%', #{taskName}, '%')
+        </if>
+        <if test="taskStatus != null and taskStatus != ''">
+            AND status = #{taskStatus}
+        </if>
+        <if test="caseSource != null and caseSource != ''">
+            AND case_source = #{caseSource}
+        </if>
+        ORDER BY created_time DESC ,task_id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
 </mapper>

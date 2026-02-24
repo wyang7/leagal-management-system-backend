@@ -115,7 +115,8 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
     List<CaseInfo> selectByStatusList(@Param("statusList") List<String> statusList,
                                       @Param("taskId") Integer taskId,
                                       @Param("caseName") String caseName,
-                                      @Param("station") String station);
+                                      @Param("station") String station,
+                                      @Param("caseSource") String caseSource);
 
     /**
      * 更新案件为调解失败状态，包含备注和退回法院时间

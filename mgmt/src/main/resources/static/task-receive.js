@@ -8,7 +8,7 @@ function loadTaskReceivePage() {
         <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
             <div class="ant-card-body">
                 <div class="row g-3 align-items-center">
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <div class="input-group">
                             <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
                                 <i class="fa fa-briefcase text-secondary"></i>
@@ -16,7 +16,22 @@ function loadTaskReceivePage() {
                             <input type="text" id="receiveTaskSearchInput" class="form-control ant-input" placeholder="案件包名称" style="border-radius:0 4px 4px 0;">
                         </div>
                     </div>
-                    <div class="col-md-2 d-flex align-items-end">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-building text-secondary"></i>
+                            </span>
+                            <select id="receiveTaskCaseSourceSelect" class="form-select ant-select" style="border-radius:0 4px 4px 0;">
+                                <option value="">全部/请选择案件来源</option>
+                                <option value="上城法院本部">上城法院本部</option>
+                                <option value="九堡法庭">九堡法庭</option>
+                                <option value="笕桥法庭">笕桥法庭</option>
+                                <option value="综治中心">综治中心</option>
+                            </select>
+                        </div>
+                        <div class="form-text small text-muted">若你有多个来源权限，请先选择案件来源</div>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
                         <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="searchReceiveTasks()">
                             <i class="fa fa-search me-1"></i> 查询
                         </button>
@@ -32,6 +47,7 @@ function loadTaskReceivePage() {
                             <tr>
                                 <th style="white-space:nowrap;">任务ID</th>
                                 <th style="white-space:nowrap;">任务名</th>
+                                <th style="white-space:nowrap;">案件来源</th>
                                 <th style="white-space:nowrap;">创建时间</th>
                                 <th style="white-space:nowrap;">关联案件数</th>
                                 <th style="white-space:nowrap;">操作</th>
@@ -39,7 +55,7 @@ function loadTaskReceivePage() {
                         </thead>
                         <tbody id="receiveTaskTableBody">
                             <tr>
-                                <td colspan="5" class="text-center">加载中...</td>
+                                <td colspan="6" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -61,7 +77,7 @@ function renderReceiveTaskTable(tasks) {
     const tableBody = document.getElementById('receiveTaskTableBody');
 
     if (!tasks || tasks.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center">没有找到待领取的案件包</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center">没有找到待领取的案件包</td></tr>`;
         return;
     }
 
@@ -71,6 +87,7 @@ function renderReceiveTaskTable(tasks) {
         <tr>
             <td>${task.taskId}</td>
             <td>${task.taskName}</td>
+            <td>${task.caseSource || '-'}</td>
             <td>${task.createdTime ? new Date(task.createdTime).toLocaleString() : ''}</td>
             <td>${task.caseCount || 0}</td>
             <td>
@@ -279,10 +296,12 @@ async function searchReceiveTasks() {
  */
 async function loadReceiveTasks(pageNum = 1, pageSize = 10, taskName = '') {
     try {
+        const caseSource = document.getElementById('receiveTaskCaseSourceSelect')?.value.trim() || '';
         // 构建请求URL，包含分页参数和搜索条件
         const url = `/task/page?pageNum=${pageNum}&pageSize=${pageSize}` +
-            (taskName ? `&taskName=${encodeURIComponent(taskName)}` : '')+
-            (`&taskStatus=待领取`);
+            (taskName ? `&taskName=${encodeURIComponent(taskName)}` : '') +
+            (`&taskStatus=待领取`) +
+            (caseSource ? `&caseSource=${encodeURIComponent(caseSource)}` : '');
 
         const response = await request(url);
 
@@ -297,7 +316,7 @@ async function loadReceiveTasks(pageNum = 1, pageSize = 10, taskName = '') {
     } catch (error) {
         console.error('加载可领取任务失败:', error);
         document.getElementById('receiveTaskTableBody').innerHTML = `
-            <tr><td colspan="5" class="text-center text-danger">加载任务失败，请重试</td></tr>
+            <tr><td colspan="6" class="text-center text-danger">加载任务失败，请重试</td></tr>
         `;
     }
 }

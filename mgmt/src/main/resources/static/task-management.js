@@ -21,7 +21,7 @@ function loadTaskManagementPage() {
         <div class="ant-card ant-card-bordered mb-4" style="border-radius:8px;box-shadow:0 2px 8px #f0f1f2;">
             <div class="ant-card-body">
                 <div class="row g-3 align-items-center">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="input-group">
                             <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
                                 <i class="fa fa-briefcase text-secondary"></i>
@@ -29,12 +29,26 @@ function loadTaskManagementPage() {
                             <input type="text" id="taskSearchInput" class="form-control ant-input" placeholder="案件包名称" style="border-radius:0 4px 4px 0;">
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light px-2" style="border-radius:4px 0 0 4px;">
+                                <i class="fa fa-building text-secondary"></i>
+                            </span>
+                            <select id="taskCaseSourceSelect" class="form-select ant-select" style="border-radius:0 4px 4px 0;">
+                                <option value="">全部案件来源</option>
+                                <option value="上城法院本部">上城法院本部</option>
+                                <option value="九堡法庭">九堡法庭</option>
+                                <option value="笕桥法庭">笕桥法庭</option>
+                                <option value="综治中心">综治中心</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="ant-btn ant-btn-primary w-100" style="border-radius:4px;" onclick="searchTasks()">
                             <i class="fa fa-search me-1"></i> 查询
                         </button>
                     </div>
-                    <div class="col-md-4 d-flex justify-content-end align-items-end gap-2" id="taskMgmtTopActions">
+                    <div class="col-md-3 d-flex justify-content-end align-items-end gap-2" id="taskMgmtTopActions">
                         <!-- 导出：管理员均可（总部/非总部都可导出自己可见的数据） -->
                         <button class="ant-btn" onclick="exportSelectedTaskCases()">
                             <i class="fa fa-download"></i> 导出选中案件包
@@ -65,6 +79,7 @@ function loadTaskManagementPage() {
                                 <th style="white-space:nowrap;"><input type="checkbox" id="selectAllTasks" onclick="toggleSelectAllTasks()"></th>
                                 <th style="white-space:nowrap;">任务ID</th>
                                 <th style="white-space:nowrap;">任务名</th>
+                                <th style="white-space:nowrap;">案件来源</th>
                                 <th style="white-space:nowrap;">案件包归属</th>
                                 <th style="white-space:nowrap;">领取时间</th>
                                 <th style="white-space:nowrap;">关联案件数</th>
@@ -75,7 +90,7 @@ function loadTaskManagementPage() {
                         </thead>
                         <tbody id="taskTableBody">
                             <tr>
-                                <td colspan="9" class="text-center">加载中...</td>
+                                <td colspan="10" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -93,7 +108,8 @@ function loadTaskManagementPage() {
 
 function searchTasks() {
     const taskName = document.getElementById('taskSearchInput').value.trim();
-    loadTasks(1, taskPageSize, taskName);
+    const caseSource = document.getElementById('taskCaseSourceSelect') ? document.getElementById('taskCaseSourceSelect').value.trim() : '';
+    loadTasks(1, taskPageSize, taskName, caseSource);
 }
 
 /**
@@ -122,7 +138,7 @@ function createTaskModalContainer() {
 /**
  * 加载任务列表
  */
-async function loadTasks(pageNum = 1, pageSizeParam = taskPageSize, taskName = '') {
+async function loadTasks(pageNum = 1, pageSizeParam = taskPageSize, taskName = '', caseSource = '') {
 
     try {
         // 同步全局页码和每页条数
@@ -131,6 +147,9 @@ async function loadTasks(pageNum = 1, pageSizeParam = taskPageSize, taskName = '
         let url = `/task/page?pageNum=${pageNum}&pageSize=${pageSizeParam}`;
         if (taskName) {
             url += `&taskName=${encodeURIComponent(taskName)}`;
+        }
+        if (caseSource) {
+            url += `&caseSource=${encodeURIComponent(caseSource)}`;
         }
         const response = await request(url);
         renderTaskTable(response.records);
@@ -141,7 +160,7 @@ async function loadTasks(pageNum = 1, pageSizeParam = taskPageSize, taskName = '
         });
     } catch (error) {
         document.getElementById('taskTableBody').innerHTML = `
-            <tr><td colspan="9" class="text-center text-danger">加载任务失败</td></tr>
+            <tr><td colspan="10" class="text-center text-danger">加载任务失败</td></tr>
         `;
         const pag = document.getElementById('taskPaginationContainer');
         if (pag) pag.innerHTML = '';
@@ -156,7 +175,7 @@ function renderTaskTable(tasks) {
     const canWrite = isHeadquartersAdminUser();
 
     if (!tasks || tasks.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="9" class="text-center">没有找到任务数据</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="10" class="text-center">没有找到任务数据</td></tr>`;
         return;
     }
 
@@ -203,6 +222,7 @@ function renderTaskTable(tasks) {
             <td><input type="checkbox" name="taskCheckbox" value="${task.taskId}"></td>
             <td>${task.taskId}</td>
             <td>${task.taskName}</td>
+            <td>${task.caseSource || '-'}</td>
             <td>${task.station || '-'}</td>
             <td>${task.receiveTime ? new Date(task.receiveTime).toLocaleString() : '-'}</td>
             <td>${task.caseCount || 0}</td>
@@ -281,6 +301,16 @@ function createTaskModal() {
                                 <input type="text" id="taskName" class="form-control" required>
                             </div>
                             <div class="form-group mb-2">
+                                <label for="taskCaseSource">案件来源</label>
+                                <select id="taskCaseSource" class="form-control" required>
+                                    <option value="">请选择案件来源</option>
+                                    <option value="上城法院本部">上城法院本部</option>
+                                    <option value="九堡法庭">九堡法庭</option>
+                                    <option value="笕桥法庭">笕桥法庭</option>
+                                    <option value="综治中心">综治中心</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-2">
                                 <label for="taskStation">案件包归属地</label>
                                 <select id="taskStation" class="form-control" required>
                                     <option value="">请选择归属地</option>
@@ -338,6 +368,7 @@ async function showEditTaskModal(taskId) {
         document.getElementById('taskId').value = task.taskId;
         document.getElementById('taskName').value = task.taskName;
         document.getElementById('taskStation').value = task.station || '';
+        document.getElementById('taskCaseSource').value = task.caseSource || '';
         document.getElementById('taskModalTitle').textContent = '编辑任务';
 
         // 显示模态框
@@ -533,7 +564,8 @@ function bindTaskPageSizeChange() {
         const val = parseInt(this.value, 10) || 10;
         taskPageSize = val;
         const taskName = document.getElementById('taskSearchInput')?.value.trim() || '';
-        loadTasks(1, taskPageSize, taskName);
+        const caseSource = document.getElementById('taskCaseSourceSelect')?.value.trim() || '';
+        loadTasks(1, taskPageSize, taskName, caseSource);
     };
 }
 
@@ -545,7 +577,8 @@ async function saveTask() {
     const taskId = document.getElementById('taskId').value;
     const taskName = document.getElementById('taskName').value.trim();
     const station = document.getElementById('taskStation').value;
-    
+    const caseSource = document.getElementById('taskCaseSource').value;
+
     // 简单验证
     if (!taskName) {
         alert('请输入任务名');
@@ -555,12 +588,17 @@ async function saveTask() {
         alert('请选择驻点');
         return;
     }
-    
+    if (!caseSource) {
+        alert('请选择案件来源');
+        return;
+    }
+
     const taskData = {
         taskName: taskName,
-        station: station
+        station: station,
+        caseSource: caseSource
     };
-    
+
     try {
         if (taskId) {
             // 编辑案件包
@@ -570,14 +608,14 @@ async function saveTask() {
             // 新增案件包
             await request('/task', 'POST', taskData);
         }
-        
+
         // 关闭模态框
         const taskModal = bootstrap.Modal.getInstance(document.getElementById('taskModal'));
         taskModal.hide();
-        
+
         // 重新加载任务列表
         loadTasks(currentTaskPage, taskPageSize);
-        
+
         alert(taskId ? '任务更新成功' : '任务新增成功');
     } catch (error) {
         // 错误处理已在request函数中完成
@@ -592,7 +630,7 @@ async function deleteTask(taskId) {
     if (!confirm('确定要删除这个任务吗？关联的案件将不再属于任何任务！')) {
         return;
     }
-    
+
     try {
         await request(`/task/${taskId}`, 'DELETE');
         // 重新加载任务列表

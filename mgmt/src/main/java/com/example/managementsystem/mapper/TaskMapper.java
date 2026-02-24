@@ -53,4 +53,26 @@ public interface TaskMapper extends BaseMapper<Task> {
                                         @Param("taskName") String taskName,
                                         @Param("taskStatus") String taskStatus,
                                         @Param("stations") List<String> stations);
+
+    int countAllTasksByStationsAndSource(@Param("taskName") String taskName,
+                                         @Param("taskStatus") String taskStatus,
+                                         @Param("stations") List<String> stations,
+                                         @Param("caseSource") String caseSource);
+
+    List<Task> selectTaskPageByStationsAndSource(@Param("offset") int offset,
+                                                 @Param("pageSize") int pageSize,
+                                                 @Param("taskName") String taskName,
+                                                 @Param("taskStatus") String taskStatus,
+                                                 @Param("stations") List<String> stations,
+                                                 @Param("caseSource") String caseSource);
+
+    int countAllTasksAndSource(@Param("taskName") String taskName,
+                               @Param("taskStatus") String taskStatus,
+                               @Param("caseSource") String caseSource);
+
+    List<Task> selectTaskPageAndSource(@Param("offset") int offset,
+                                       @Param("pageSize") int pageSize,
+                                       @Param("taskName") String taskName,
+                                       @Param("taskStatus") String taskStatus,
+                                       @Param("caseSource") String caseSource);
 }

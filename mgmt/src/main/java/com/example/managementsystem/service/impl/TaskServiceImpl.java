@@ -146,21 +146,32 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
      */
     @Override
     public Map<String, Object> getTaskPage(Integer pageNum, Integer pageSize
-            ,String taskName,String taskStatus,List<String> stations) {
+            ,String taskName,String taskStatus,List<String> stations, String caseSource) {
         int offset = (pageNum - 1) * pageSize;
 
-        // 总部管理员：stations 为空 -> 不做驻点过滤
         boolean filterByStations = stations != null && !stations.isEmpty();
+        boolean filterBySource = caseSource != null && !caseSource.trim().isEmpty();
 
         int total;
         List<Task> records;
+
         if (filterByStations) {
-            total = baseMapper.countAllTasksByStations(taskName, taskStatus, stations);
-            records = baseMapper.selectTaskPageByStations(offset, pageSize, taskName, taskStatus, stations);
+            if (filterBySource) {
+                total = baseMapper.countAllTasksByStationsAndSource(taskName, taskStatus, stations, caseSource);
+                records = baseMapper.selectTaskPageByStationsAndSource(offset, pageSize, taskName, taskStatus, stations, caseSource);
+            } else {
+                total = baseMapper.countAllTasksByStations(taskName, taskStatus, stations);
+                records = baseMapper.selectTaskPageByStations(offset, pageSize, taskName, taskStatus, stations);
+            }
         } else {
-            // 兼容旧逻辑：传 null 不过滤
-            total = baseMapper.countAllTasks(taskName, taskStatus, null);
-            records = baseMapper.selectTaskPage(offset, pageSize, taskName, taskStatus, null);
+            if (filterBySource) {
+                total = baseMapper.countAllTasksAndSource(taskName, taskStatus, caseSource);
+                records = baseMapper.selectTaskPageAndSource(offset, pageSize, taskName, taskStatus, caseSource);
+            } else {
+                // 兼容旧逻辑：传 null 不过滤
+                total = baseMapper.countAllTasks(taskName, taskStatus, null);
+                records = baseMapper.selectTaskPage(offset, pageSize, taskName, taskStatus, null);
+            }
         }
 
         if (CollectionUtils.isNotEmpty(records)) {
