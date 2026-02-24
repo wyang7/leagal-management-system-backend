@@ -91,14 +91,14 @@ public class TaskController {
     }
 
     /**
-     * 判断是否为总部调解员（roleType 包含“调解员”，且 station 包含“总部”）
+     * 判断是否为总部调解员（roleType 包含“调解员”或“管理员”，且 station 包含“总部”）
      */
-    private boolean isHeadquartersMediator(UserSession currentUser) {
+    private boolean isHeadquartersMediatorAdmin(UserSession currentUser) {
         if (currentUser == null) {
             return false;
         }
         String roleType = currentUser.getRoleType();
-        if (!StringUtils.hasText(roleType) || !roleType.contains("调解员")) {
+        if (!StringUtils.hasText(roleType) || (!roleType.contains("调解员") && !roleType.contains("管理员"))) {
             return false;
         }
         return isHeadquarters(currentUser);
@@ -267,7 +267,7 @@ public class TaskController {
         }
 
         boolean isMediator = StringUtils.hasText(currentUser.getRoleType()) && currentUser.getRoleType().contains("调解员");
-        boolean hqMediator = isHeadquartersMediator(currentUser);
+        boolean hqMediator = isHeadquartersMediatorAdmin(currentUser);
 
         if (isMediator) {
             // 调解员领取：只允许看待领取
@@ -499,7 +499,7 @@ public class TaskController {
         }
 
         // 总部调解员放开
-        if (!isHeadquartersMediator(currentUser)) {
+        if (!isHeadquartersMediatorAdmin(currentUser)) {
             List<String> stations = resolveUserStations(currentUser);
             List<String> sources = resolveUserCaseSources(currentUser);
             String taskStation = taskWithCases.getStation();
