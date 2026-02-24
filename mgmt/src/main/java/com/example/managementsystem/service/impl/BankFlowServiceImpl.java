@@ -235,7 +235,7 @@ public class BankFlowServiceImpl implements IBankFlowService {
         ||"系统内清算资金往来-全渠道收单平台".equals(v) || "系统内资金清算往来".equals(v)) {
             return v;
         }
-        throw new IllegalArgumentException("交易渠道不合法（仅允许：支付宝、微信、对公）");
+        throw new IllegalArgumentException("交易渠道不合法（仅允许：支付宝、微信、对公、系统内资金清算往来、系统内清算资金往来-全渠道收单平台)");
     }
 
     private String getCellString(Cell cell) {
