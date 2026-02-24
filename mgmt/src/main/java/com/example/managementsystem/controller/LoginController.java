@@ -99,6 +99,11 @@ public class LoginController {
         java.util.List<String> names = new java.util.ArrayList<>();
         java.util.List<String> types = new java.util.ArrayList<>();
         java.util.List<String> stations = new java.util.ArrayList<>();
+
+        // 新增：聚合管理员的来源-归属地权限
+        java.util.Map<String, java.util.Set<String>> casePerms = new java.util.HashMap<>();
+        boolean hasHqAdmin = false;
+
         for (Role r : roles) {
             idStrs.add(String.valueOf(r.getRoleId()));
             names.add(r.getRoleName());
@@ -106,7 +111,30 @@ public class LoginController {
             if (r.getStation() != null && !r.getStation().isEmpty()) {
                 stations.add(r.getStation());
             }
+
+            // 总部管理员：放开全部
+            if (r.getRoleType() != null && r.getRoleType().contains("管理员")) {
+                if (r.getStation() != null && r.getStation().contains("总部")) {
+                    hasHqAdmin = true;
+                }
+                String src = r.getCaseSource();
+                String st = r.getStation();
+                if (src != null && !src.trim().isEmpty()) {
+                    casePerms.computeIfAbsent(src.trim(), k -> new java.util.HashSet<>());
+                    // 归属地允许多个：用逗号分隔（例如 "闸弄口" 或 "九堡,彭埠"）
+                    if (st != null && !st.trim().isEmpty()) {
+                        String[] parts = st.split(",");
+                        for (String p : parts) {
+                            String v = p == null ? "" : p.trim();
+                            if (!v.isEmpty() && !"总部".equals(v)) {
+                                casePerms.get(src.trim()).add(v);
+                            }
+                        }
+                    }
+                }
+            }
         }
+
         // 保存登录状态
         UserSession userSession = new UserSession();
         userSession.setUserId(user.getUserId());
@@ -117,6 +145,18 @@ public class LoginController {
         // 若存在多个驻点，前端可以自行解析，这里简单用逗号拼接
         userSession.setStation(String.join(",", stations));
         userSession.setLoginTime(new Date(System.currentTimeMillis()));
+
+        // 写入权限到 session 返回值
+        if (!hasHqAdmin && !casePerms.isEmpty()) {
+            java.util.List<UserSession.CaseSourceStationPerm> perms = new java.util.ArrayList<>();
+            for (java.util.Map.Entry<String, java.util.Set<String>> e : casePerms.entrySet()) {
+                UserSession.CaseSourceStationPerm p = new UserSession.CaseSourceStationPerm();
+                p.setCaseSource(e.getKey());
+                p.setStations(new java.util.ArrayList<>(e.getValue()));
+                perms.add(p);
+            }
+            userSession.setCaseSourceStationPerms(perms);
+        }
 
         session.setAttribute("currentUser", userSession);
         session.setAttribute("loginUser", user);
@@ -147,7 +187,7 @@ public class LoginController {
         
         boolean success = userService.save(user);
         if (!success) {
-            return Result.fail("注册失败");
+            return Result.fail("注册失��");
         }
         // 如果注册时传了 roleId，建立一条默认关联
         if (loginDTO.getRoleId() != null) {

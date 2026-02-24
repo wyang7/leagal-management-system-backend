@@ -458,6 +458,52 @@
         ));
         const hasHeadquartersAdmin = isAdmin && userStations.includes('总部');
 
+        // 管理员“案件来源+归属地”权限：后端返回 shape 建议为
+        // userInfo.caseSourceStationPerms = [{caseSource:'九堡法庭', stations:['九堡','彭埠']}, ...]
+        // 兼容：如果后端暂未返回，则回退为显示全部（避免影响老版本）
+        const permsArr = Array.isArray(userInfo.caseSourceStationPerms) ? userInfo.caseSourceStationPerms : null;
+        const permittedStationsBySource = new Map();
+        if (permsArr) {
+            permsArr.forEach(p => {
+                const src = (p && p.caseSource) ? String(p.caseSource).trim() : '';
+                const sts = (p && Array.isArray(p.stations)) ? p.stations.map(s => String(s).trim()).filter(Boolean) : [];
+                if (!src) return;
+                if (!permittedStationsBySource.has(src)) {
+                    permittedStationsBySource.set(src, new Set());
+                }
+                const set = permittedStationsBySource.get(src);
+                sts.forEach(s => set.add(s));
+            });
+        }
+
+        // 来源/归属地全量定义
+        const ALL_CASE_SOURCE_TREE = [
+            { source: '上城法院本部', stations: ['本部'] },
+            { source: '九堡法庭', stations: ['九堡', '彭埠'] },
+            { source: '笕桥法庭', stations: ['笕桥'] },
+            { source: '综治中心', stations: ['四季青','闸弄口','凯旋街道','九堡','彭埠','笕桥','丁兰'] }
+        ];
+
+        // 计算当前用户可见的来源树（总部管理员：全部；否则按 perms 过滤）
+        let visibleCaseSourceTree = ALL_CASE_SOURCE_TREE;
+        if (isAdmin && !hasHeadquartersAdmin) {
+            if (permsArr) {
+                visibleCaseSourceTree = ALL_CASE_SOURCE_TREE
+                    .map(node => {
+                        const allowedSet = permittedStationsBySource.get(node.source);
+                        if (!allowedSet || allowedSet.size === 0) {
+                            return null;
+                        }
+                        const allowedStations = node.stations.filter(s => allowedSet.has(s));
+                        if (allowedStations.length === 0) {
+                            return null;
+                        }
+                        return { source: node.source, stations: allowedStations };
+                    })
+                    .filter(Boolean);
+            }
+        }
+
         const items = [];
         // 顶层：所有登录用户的根菜单
         items.push({ key: 'workspace', text: '我的工作区', icon: 'fa-home', onClick: 'handleRootClick(\'workspace\', loadWorkspacePage)', cssClass: 'nav-link-root' });
@@ -473,27 +519,25 @@
             // 案件管理分组标题
             items.push({ key: 'case-mgmt-root', text: '案件管理', icon: 'fa-folder-open', cssClass: 'nav-link nav-link-root disabled', isFolder: true });
 
-            // 仅保留“案件来源”二级/三级菜单，不再按归属地直接列出二级菜单
-            // 上城法院本部
-            items.push({ key: 'case-source-benbu', text: '上城法院本部', icon: 'fa-building', onClick: `handleCaseSourceClick('上城法院本部')`, isCaseSourceParent: true, sourceKey: '上城法院本部' });
-            items.push({ key: 'case-source-benbu-child', text: '本部', icon: 'fa-circle', onClick: `handleCaseSourceLocationClick('上城法院本部','本部')`, isCaseSourceChild: true, parentSource: '上城法院本部' });
-            // 九堡法庭
-            items.push({ key: 'case-source-jiubao', text: '九堡法庭', icon: 'fa-building', onClick: `handleCaseSourceClick('九堡法庭')`, isCaseSourceParent: true, sourceKey: '九堡法庭' });
-            items.push({ key: 'case-source-jiubao-child-jiubao', text: '九堡', icon: 'fa-circle', onClick: `handleCaseSourceLocationClick('九堡法庭','九堡')`, isCaseSourceChild: true, parentSource: '九堡法庭' });
-            items.push({ key: 'case-source-jiubao-child-pengbu', text: '彭埠', icon: 'fa-circle', onClick: `handleCaseSourceLocationClick('九堡法庭','彭埠')`, isCaseSourceChild: true, parentSource: '九堡法庭' });
-            // 笕桥法庭
-            items.push({ key: 'case-source-jianqiao', text: '笕桥法庭', icon: 'fa-building', onClick: `handleCaseSourceClick('笕桥法庭')`, isCaseSourceParent: true, sourceKey: '笕桥法庭' });
-            items.push({ key: 'case-source-jianqiao-child-jianqiao', text: '笕桥', icon: 'fa-circle', onClick: `handleCaseSourceLocationClick('笕桥法庭','笕桥')`, isCaseSourceChild: true, parentSource: '笕桥法庭' });
-            // 综治中心
-            items.push({ key: 'case-source-zongzhi', text: '综治中心', icon: 'fa-building', onClick: `handleCaseSourceClick('综治中心')`, isCaseSourceParent: true, sourceKey: '综治中心' });
-            ['四季青','闸弄口','凯旋街道','九堡','彭埠','笕桥','丁兰'].forEach(loc => {
+            // 案件来源二级/三级菜单：按权限渲染
+            visibleCaseSourceTree.forEach(node => {
                 items.push({
-                    key: `case-source-zongzhi-child-${loc}`,
-                    text: loc,
-                    icon: 'fa-circle',
-                    onClick: `handleCaseSourceLocationClick('综治中心','${loc}')`,
-                    isCaseSourceChild: true,
-                    parentSource: '综治中心'
+                    key: `case-source-${node.source}`,
+                    text: node.source,
+                    icon: 'fa-building',
+                    onClick: `handleCaseSourceClick('${node.source}')`,
+                    isCaseSourceParent: true,
+                    sourceKey: node.source
+                });
+                (node.stations || []).forEach(loc => {
+                    items.push({
+                        key: `case-source-${node.source}-child-${loc}`,
+                        text: loc,
+                        icon: 'fa-circle',
+                        onClick: `handleCaseSourceLocationClick('${node.source}','${loc}')`,
+                        isCaseSourceChild: true,
+                        parentSource: node.source
+                    });
                 });
             });
 
