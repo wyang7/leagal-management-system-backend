@@ -111,7 +111,7 @@ public class BankFlowController {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("银行流水导入模板");
             Row header = sheet.createRow(0);
-            String[] headers = {"流水号", "交易时间", "交易金额", "付款方", "收款方", "交易渠道", "收款账号", "案件号"};
+            String[] headers = {"流水号", "交易时间", "交易金额", "付款方", "收款方（青枫、澎和工作室、澎和信息）", "交易渠道（支付宝、微信、对公、系统内资金清算往来、系统内清算资金往来-全渠道收单平台）"};
             for (int i = 0; i < headers.length; i++) {
                 header.createCell(i).setCellValue(headers[i]);
             }
@@ -142,7 +142,7 @@ public class BankFlowController {
             try (Workbook workbook = new XSSFWorkbook()) {
                 Sheet sheet = workbook.createSheet("银行流水");
                 Row header = sheet.createRow(0);
-                String[] headers = {"流水号", "交易时间", "交易金额", "付款方", "收款方", "交易渠道", "收款账号", "案件号"};
+                String[] headers = {"流水号", "交易时间", "交易金额", "付款方", "收款方（青枫、澎和工作室、澎和信息）", "交易渠道（支付宝、微信、对公、系统内资金清算往来、系统内清算资金往来-全渠道收单平台）"};
                 for (int i = 0; i < headers.length; i++) {
                     header.createCell(i).setCellValue(headers[i]);
                 }
@@ -157,8 +157,6 @@ public class BankFlowController {
                     r.createCell(c++).setCellValue(bf.getPayer() == null ? "" : bf.getPayer());
                     r.createCell(c++).setCellValue(bf.getPayee() == null ? "" : bf.getPayee());
                     r.createCell(c++).setCellValue(bf.getChannel() == null ? "" : bf.getChannel());
-                    r.createCell(c++).setCellValue(bf.getPayeeAccount() == null ? "" : bf.getPayeeAccount());
-                    r.createCell(c++).setCellValue(bf.getCaseNumber() == null ? "" : bf.getCaseNumber());
                 }
                 for (int i = 0; i < headers.length; i++) {
                     sheet.autoSizeColumn(i);
@@ -175,4 +173,3 @@ public class BankFlowController {
         }
     }
 }
-

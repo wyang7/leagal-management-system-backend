@@ -109,10 +109,7 @@ public class BankFlowServiceImpl implements IBankFlowService {
                 throw new IllegalArgumentException("Excel为空");
             }
 
-            // 允许两种格式：
-            // A) 第一行为表头：流水号/交易时间/交易金额/付款方/收款方/交易渠道/收款账号/案件号
-            // B) 无表头：直接从第1行开始按固定列读取
-
+            // 新模板表头：流水号/交易时间/交易金额/付款方/收款方/交易渠道
             int startRow = 0;
             Row header = sheet.getRow(0);
             if (header != null) {
@@ -124,7 +121,22 @@ public class BankFlowServiceImpl implements IBankFlowService {
 
             for (int i = startRow; i <= sheet.getLastRowNum(); i++) {
                 Row r = sheet.getRow(i);
-                if (r == null) continue;
+                if (r == null) {
+                    continue;
+                }
+
+                // 跳过空行：前6列都为空则跳过
+                boolean allEmpty = true;
+                for (int c = 0; c < 6; c++) {
+                    String v = getCellString(r.getCell(c));
+                    if (org.springframework.util.StringUtils.hasText(v)) {
+                        allEmpty = false;
+                        break;
+                    }
+                }
+                if (allEmpty) {
+                    continue;
+                }
 
                 try {
                     BankFlow bf = new BankFlow();
@@ -132,13 +144,27 @@ public class BankFlowServiceImpl implements IBankFlowService {
                     bf.setTradeTime(getCellString(r.getCell(1)));
                     bf.setTradeAmount(getCellBigDecimal(r.getCell(2)));
                     bf.setPayer(getCellString(r.getCell(3)));
-                    bf.setPayee(getCellString(r.getCell(4)));
-                    bf.setChannel(getCellString(r.getCell(5)));
-                    bf.setPayeeAccount(getCellString(r.getCell(6)));
-                    bf.setCaseNumber(getCellString(r.getCell(7)));
+                    bf.setPayee(normalizePayee(getCellString(r.getCell(4))));
+                    bf.setChannel(normalizeChannel(getCellString(r.getCell(5))));
 
+                    // 必填校验
                     if (!StringUtils.hasText(bf.getFlowNo())) {
                         throw new IllegalArgumentException("流水号为空");
+                    }
+                    if (!StringUtils.hasText(bf.getTradeTime())) {
+                        throw new IllegalArgumentException("交易时间为空");
+                    }
+                    if (bf.getTradeAmount() == null) {
+                        throw new IllegalArgumentException("交易金额为空");
+                    }
+                    if (!StringUtils.hasText(bf.getPayer())) {
+                        throw new IllegalArgumentException("付款方为空");
+                    }
+                    if (!StringUtils.hasText(bf.getPayee())) {
+                        throw new IllegalArgumentException("收款方为空");
+                    }
+                    if (!StringUtils.hasText(bf.getChannel())) {
+                        throw new IllegalArgumentException("交易渠道为空");
                     }
 
                     // upsert：按 flow_no 作为唯一键
@@ -152,6 +178,9 @@ public class BankFlowServiceImpl implements IBankFlowService {
                         bf.setId(exists.getId());
                         bf.setCreatedTime(exists.getCreatedTime());
                         bf.setUpdatedTime(now);
+                        // 保留旧字段（历史数据）：收款账号/案件号（新模板不维护）
+                        bf.setPayeeAccount(exists.getPayeeAccount());
+                        bf.setCaseNumber(exists.getCaseNumber());
                         bankFlowMapper.updateById(bf);
                     }
                     success++;
@@ -175,6 +204,38 @@ public class BankFlowServiceImpl implements IBankFlowService {
     public List<BankFlow> listForExport(String keyword, String caseNumber) {
         // 直接拉取最多 10000 条（足够覆盖目前场景）
         return bankFlowMapper.selectBankFlows(0, 10000, keyword, caseNumber);
+    }
+
+    private String normalizePayee(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        String v = raw.trim();
+        // 允许用户输入 1/2/3 或直接输入名称
+        if ("1".equals(v)) v = "青枫";
+        if ("2".equals(v)) v = "澎和工作室";
+        if ("3".equals(v)) v = "澎和信息";
+
+        if ("青枫".equals(v) || "澎和工作室".equals(v) || "澎和信息".equals(v)) {
+            return v;
+        }
+        throw new IllegalArgumentException("收款方不合法（仅允许：青枫、澎和工作室、澎和信息）");
+    }
+
+    private String normalizeChannel(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        String v = raw.trim();
+        if ("1".equalsIgnoreCase(v)) v = "支付宝";
+        if ("2".equalsIgnoreCase(v)) v = "微信";
+        if ("3".equalsIgnoreCase(v)) v = "对公";
+
+        if ("支付宝".equals(v) || "微信".equals(v) || "对公".equals(v)
+        ||"系统内清算资金往来-全渠道收单平台".equals(v) || "系统内资金清算往来".equals(v)) {
+            return v;
+        }
+        throw new IllegalArgumentException("交易渠道不合法（仅允许：支付宝、微信、对公）");
     }
 
     private String getCellString(Cell cell) {
@@ -239,4 +300,3 @@ public class BankFlowServiceImpl implements IBankFlowService {
         return null;
     }
 }
-

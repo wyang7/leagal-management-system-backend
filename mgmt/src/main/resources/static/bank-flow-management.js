@@ -370,7 +370,7 @@ function showImportBankFlowModal() {
           </div>
           <div class="modal-body" style="background:#fafcff;">
             <input type="file" id="bankFlowImportFile" accept=".xlsx" class="form-control" />
-            <div class="form-text small">支持 .xlsx。列顺序：流水号/交易时间/交易金额/付款方/收款方/交易渠道/收款账号/案件号</div>
+            <div class="form-text small">支持 .xlsx。列顺序：流水号/交易时间/交易金额/付款方/收款方（青枫、澎和工作室、澎和信息）/交易渠道（支付宝、微信、对公、系统内资金清算往来、系统内清算资金往来-全渠道收单平台）</div>
             <div class="text-danger mt-2" id="bankFlowImportError" style="display:none;"></div>
             <pre class="mt-2 small" id="bankFlowImportResult" style="display:none;background:#fff;border:1px solid #eee;border-radius:6px;padding:8px;max-height:220px;overflow:auto;"></pre>
           </div>
