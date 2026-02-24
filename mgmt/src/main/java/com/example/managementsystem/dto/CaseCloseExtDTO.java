@@ -1,5 +1,7 @@
 package com.example.managementsystem.dto;
 
+import com.example.managementsystem.entity.CaseCloseExt;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import java.math.BigDecimal;
 
@@ -78,5 +80,48 @@ public class CaseCloseExtDTO {
         private String payTime;
         /** 付款金额 */
         private BigDecimal amount;
+    }
+
+    /**
+     * 从拆分表实体转换为 DTO（用于读切换：从 case_close_ext 表组装回前端仍使用的 JSON 字段）。
+     *
+     * <p>注意：
+     * - paymentFlows 在拆表中以 JSON 字符串存储，转换时会尝试解析为 List。
+     * - 解析失败时不会抛异常，paymentFlows 将保持为 null（避免影响主流程）。
+     */
+    public static CaseCloseExtDTO fromEntity(CaseCloseExt entity) {
+        if (entity == null) {
+            return null;
+        }
+        CaseCloseExtDTO dto = new CaseCloseExtDTO();
+        dto.setCompletionNotes(entity.getCompletionNotes());
+        dto.setSignDate(entity.getSignDate());
+        dto.setAdjustedAmount(entity.getAdjustedAmount());
+        dto.setMediationFee(entity.getMediationFee());
+        dto.setPlaintiffMediationFee(entity.getPlaintiffMediationFee());
+        dto.setDefendantMediationFee(entity.getDefendantMediationFee());
+        dto.setPayer(entity.getPayer());
+
+        dto.setInvoiceStatus(entity.getInvoiceStatus());
+        dto.setPaid(entity.getPaid());
+        dto.setInvoiced(entity.getInvoiced());
+        dto.setInvoiceInfo(entity.getInvoiceInfo());
+        dto.setInvoicePdf(entity.getInvoicePdf());
+
+        String flowsJson = entity.getPaymentFlows();
+        if (flowsJson != null && !flowsJson.trim().isEmpty()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                @SuppressWarnings("unchecked")
+                java.util.List<PaymentFlow> flows = mapper.readValue(
+                        flowsJson,
+                        mapper.getTypeFactory().constructCollectionType(java.util.List.class, PaymentFlow.class)
+                );
+                dto.setPaymentFlows(flows);
+            } catch (Exception ignored) {
+                // 兼容：拆表 payment_flows 历史数据可能不规范，解析失败不影响返回
+            }
+        }
+        return dto;
     }
 }

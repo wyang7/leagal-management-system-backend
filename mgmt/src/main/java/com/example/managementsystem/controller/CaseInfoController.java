@@ -38,6 +38,7 @@ import com.example.managementsystem.dto.CaseCloseExtDTO;
 import com.example.managementsystem.entity.CaseCloseExt;
 import com.example.managementsystem.mapper.CaseCloseExtMapper;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.managementsystem.controller.support.CaseCloseExtCompatHelper;
 
 /**
  * <p>
@@ -126,7 +127,27 @@ public class CaseInfoController {
     @GetMapping("/{id}")
     public Result<CaseInfo> getCaseById(@PathVariable Long id) {
         CaseInfo caseInfo = caseInfoService.getById(id);
-        return caseInfo != null ? Result.success(caseInfo) : Result.fail("案件不存在");
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+
+        // 读切换：优先从新表 case_close_ext 读取，序列化成 JSON 放回 case.caseCloseExt（仅返回，不落库）
+        try {
+            CaseCloseExtCompatHelper.fillCaseCloseExtForReturn(
+                    caseInfo,
+                    c -> {
+                        if (c == null || c.getCaseId() == null) {
+                            return null;
+                        }
+                        CaseCloseExt entity = caseCloseExtMapper.selectByCaseId(c.getCaseId());
+                        return entity == null ? null : CaseCloseExtDTO.fromEntity(entity);
+                    },
+                    objectMapper
+            );
+        } catch (Exception ignored) {
+        }
+
+        return Result.success(caseInfo);
     }
     /**
      * 分页查询案件列表 (改造为 POST + RequestBody)
@@ -513,6 +534,23 @@ public class CaseInfoController {
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
+
+        // 读切换：优先从新表 case_close_ext 读取，序列化成 JSON 放回 case.caseCloseExt（仅返回，不落库）
+        try {
+            CaseCloseExtCompatHelper.fillCaseCloseExtForReturn(
+                    caseInfo,
+                    c -> {
+                        if (c == null || c.getCaseId() == null) {
+                            return null;
+                        }
+                        CaseCloseExt entity = caseCloseExtMapper.selectByCaseId(c.getCaseId());
+                        return entity == null ? null : CaseCloseExtDTO.fromEntity(entity);
+                    },
+                    objectMapper
+            );
+        } catch (Exception ignored) {
+        }
+
         // 根据驻点动态返回青枫号/澎和号展示字段
         Map<String, Object> resp = new HashMap<>();
         resp.put("case", caseInfo);
