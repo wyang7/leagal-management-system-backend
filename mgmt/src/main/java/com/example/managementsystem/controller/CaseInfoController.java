@@ -224,6 +224,14 @@ public class CaseInfoController {
 
                 String caseNumber = caseInfo.getCaseNumber() != null ? caseInfo.getCaseNumber() : "未知案件编号";
 
+                // 新增：案件来源与归属地包含关系校验
+                try {
+                    validateCaseSourceLocation(caseInfo.getCaseSource(), caseInfo.getCaseLocation());
+                } catch (IllegalArgumentException ex) {
+                    errorMessages.add(String.format("案件编号[%s]：%s，已跳过", caseNumber, ex.getMessage()));
+                    continue;
+                }
+
                 // 校验案件助理角色
                 if (StringUtils.isEmpty(caseInfo.getAssistantName())) {
                     String caseLocation = caseInfo.getCaseLocation();
@@ -317,6 +325,13 @@ public class CaseInfoController {
      */
     @PostMapping
     public Result<?> addCase(@RequestBody CaseInfo caseInfo) {
+
+        // 新增：案件来源与归属地包含关系校验（失败直接返回）
+        try {
+            validateCaseSourceLocation(caseInfo == null ? null : caseInfo.getCaseSource(), caseInfo == null ? null : caseInfo.getCaseLocation());
+        } catch (IllegalArgumentException ex) {
+            return Result.fail(ex.getMessage());
+        }
 
         // 校验案件助理角色
         if (caseInfo.getAssistantId() != null) {
@@ -443,6 +458,9 @@ public class CaseInfoController {
         }
         if (body.containsKey("caseLocation")) {
             caseInfo.setCaseLocation((String) body.get("caseLocation"));
+        }
+        if (body.containsKey("caseSource")) {
+            caseInfo.setCaseSource((String) body.get("caseSource"));
         }
         if (body.containsKey("courtReceiveTime")) {
             caseInfo.setCourtReceiveTime((String) body.get("courtReceiveTime"));
@@ -1899,6 +1917,40 @@ public class CaseInfoController {
             caseCloseExtMapper.insert(entity);
         } else {
             caseCloseExtMapper.updateById(entity);
+        }
+    }
+
+    /**
+     * 校验案件来源与归属地的包含关系。
+     * 规则：
+     * - 上城法院本部 -> 本部
+     * - 九堡法庭 -> 九堡、彭埠
+     * - 笕桥法庭 -> 笕桥
+     * - 综治中心 -> 四季青、闸弄口、凯旋街道、九堡、彭埠、笕桥、丁兰
+     */
+    private void validateCaseSourceLocation(String caseSource, String caseLocation) {
+        String src = caseSource == null ? "" : caseSource.trim();
+        String loc = caseLocation == null ? "" : caseLocation.trim();
+
+        if (!StringUtils.hasText(src)) {
+            throw new IllegalArgumentException("案件来源不能为空");
+        }
+        if (!StringUtils.hasText(loc)) {
+            throw new IllegalArgumentException("案件归属地不能为空");
+        }
+
+        final Map<String, Set<String>> rules = new HashMap<>();
+        rules.put("上城法院本部", new HashSet<>(Collections.singletonList("本部")));
+        rules.put("九堡法庭", new HashSet<>(Arrays.asList("九堡", "彭埠")));
+        rules.put("笕桥法庭", new HashSet<>(Collections.singletonList("笕桥")));
+        rules.put("综治中心", new HashSet<>(Arrays.asList("四季青", "闸弄口", "凯旋街道", "九堡", "彭埠", "笕桥", "丁兰")));
+
+        Set<String> allowed = rules.get(src);
+        if (allowed == null) {
+            throw new IllegalArgumentException("案件来源不合法：" + src);
+        }
+        if (!allowed.contains(loc)) {
+            throw new IllegalArgumentException("案件来源【" + src + "】不包含归属地【" + loc + "】");
         }
     }
 
