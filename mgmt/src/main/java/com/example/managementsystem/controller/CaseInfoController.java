@@ -1947,4 +1947,47 @@ public class CaseInfoController {
         }
     }
 
+    /**
+     * 下载案件导入模板（与前端导入解析 expected 表头保持一致）
+     */
+    @GetMapping("/import-template")
+    public void downloadCaseImportTemplate(HttpServletResponse response) {
+        String[] headers = {"案件号", "案件归属地", "案件来源", "法院收案时间", "原告", "被告", "案由", "标的额", "助理", "法官"};
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("案件导入模板");
+
+            // 表头
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+
+            // 可选：示例/说明行（方便用户理解格式）。导入逻辑会从第2行开始读数据，所以不影响。
+            Row exampleRow = sheet.createRow(1);
+            exampleRow.createCell(0).setCellValue("可为空(自动生成) / 或填写已有案件号");
+            exampleRow.createCell(1).setCellValue("如：九堡/彭埠/本部/四季青/笕桥/凯旋街道/闸弄口/丁兰");
+            exampleRow.createCell(2).setCellValue("如：上城法院本部/九堡法庭/笕桥法庭/综治中心");
+            exampleRow.createCell(3).setCellValue("格式：2025.8.15 或 8.15");
+            exampleRow.createCell(7).setCellValue("数字，如：10000.00");
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            String filename = "案件导入模板_" + java.time.LocalDate.now() + ".xlsx";
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(filename, "UTF-8"));
+            workbook.write(response.getOutputStream());
+            response.flushBuffer();
+        } catch (Exception e) {
+            // 下载接口失败时尽量返回 500
+            try {
+                response.reset();
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            } catch (Exception ignored) {
+            }
+        }
+    }
 }

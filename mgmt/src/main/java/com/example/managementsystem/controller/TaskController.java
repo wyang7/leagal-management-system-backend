@@ -187,12 +187,33 @@ public class TaskController {
         if (auth != null) {
             return auth;
         }
+        if (task == null || task.getTaskName() == null || task.getTaskName().trim().isEmpty()) {
+            return Result.fail("案件包名不能为空");
+        }
+
         // 新增案件包默认状态为"待发布"
         if (task.getStatus() == null || task.getStatus().isEmpty()) {
             task.setStatus("待发布");
         }
-        boolean success = taskService.save(task);
-        return success ? Result.success() : Result.fail("新增案件包失败");
+
+        try {
+            boolean success = taskService.save(task);
+            return success ? Result.success() : Result.fail("新增案件包失败");
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // UK: task.uk_task_name
+            return Result.fail("案件包名重复");
+        } catch (com.baomidou.mybatisplus.core.exceptions.MybatisPlusException e) {
+            // 兼容部分驱动/方言把唯一键异常包在 MybatisPlusException 中
+            Throwable root = e;
+            while (root.getCause() != null && root.getCause() != root) {
+                root = root.getCause();
+            }
+            String msg = root.getMessage();
+            if (msg != null && (msg.contains("uk_task_name") || msg.toLowerCase().contains("duplicate") || msg.contains("Duplicate"))) {
+                return Result.fail("案件包名重复");
+            }
+            throw e;
+        }
     }
 
     /**

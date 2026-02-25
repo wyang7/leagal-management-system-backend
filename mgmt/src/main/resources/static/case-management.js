@@ -181,6 +181,9 @@ function loadCaseManagementPage(station, status) {
                     <button class="ant-btn" onclick="document.getElementById('excelFileInput').click()">
                         <i class="fa fa-upload me-1"></i> 导入Excel
                     </button>
+                    <button class="ant-btn" onclick="downloadCaseImportTemplate()">
+                        <i class="fa fa-file-excel-o me-1"></i> 导入模板下载
+                    </button>
                     <button class="ant-btn" onclick="exportCases()">
                         <i class="fa fa-download me-1"></i> 导出案件
                     </button>
@@ -2437,3 +2440,13 @@ async function submitNewPaymentFlowMgmt() {
      }
 }
 
+// 下载案件导入模板
+async function downloadCaseImportTemplate() {
+    try {
+        const baseUrl = window.baseUrl || '';
+        // 直接触发浏览器下载
+        window.location.href = baseUrl + '/case/import-template';
+    } catch (e) {
+        alert('下载模板失败');
+    }
+}
