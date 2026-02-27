@@ -940,7 +940,7 @@ function renderCaseTable(cases) {
             <td>${caseInfo.caseLocation || '-'}</td>
             <td>${caseInfo.plaintiffName || '-'}</td>
             <td>${caseInfo.defendantName || '-'}</td>
-            <td>${caseInfo.courtReceiveTime || ''}</td>
+            <td>${(currentFilterStatus === '调解失败' || currentFilterStatus === '结案') ? (caseInfo.returnCourtTime || '') : (caseInfo.courtReceiveTime || '')}</td>
             <td>${caseInfo.assistantName || '-'}</td>
             <td>${caseInfo.username || '-'}</td>
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
@@ -978,6 +978,8 @@ function renderCaseTable(cases) {
 function renderCaseTableHeader() {
     const thead = document.querySelector('.ant-table-thead');
     if (!thead) return;
+    const isReturnCourtMode = (currentFilterStatus === '调解失败' || currentFilterStatus === '结案');
+    const timeColLabel = isReturnCourtMode ? '退回法院时间' : '法院收案时间';
     thead.innerHTML = `
         <tr>
             <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases" onclick="toggleSelectAllCases()"></th>
@@ -988,7 +990,7 @@ function renderCaseTableHeader() {
             <th style="white-space:nowrap;" title="案件归属地">归属地</th>
             <th style="white-space:nowrap;">原告</th>
             <th style="white-space:nowrap;">被告</th>
-            <th style="white-space:nowrap;">法院收案时间</th>
+            <th style="white-space:nowrap;">${timeColLabel}</th>
             <th style="white-space:nowrap;">案件助理</th>
             <th style="white-space:nowrap;">处理人</th>
             <th style="white-space:nowrap;">状态</th>
