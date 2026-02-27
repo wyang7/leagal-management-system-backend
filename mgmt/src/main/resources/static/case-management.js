@@ -867,6 +867,11 @@ async function filterCases(status, pageNum = 1, customPageSize = pageSize) {
 
         currentPage = pageNum;
         currentFilterStatus = status;
+        // 切换到非调解失败/结案状态时，重置退回法院时间的排序
+        if (currentSortField === 'returnCourtTime' && status !== '调解失败' && status !== '结案') {
+            currentSortField = '';
+            currentSortOrder = 'asc';
+        }
         updateBatchReturnCourtTimeBtnVisibility();
         updateBatchFailedBtnVisibility();
         updateBatchCloseCaseBtnVisibility();
@@ -980,6 +985,20 @@ function renderCaseTableHeader() {
     if (!thead) return;
     const isReturnCourtMode = (currentFilterStatus === '调解失败' || currentFilterStatus === '结案');
     const timeColLabel = isReturnCourtMode ? '退回法院时间' : '法院收案时间';
+
+    // 生成退回法院时间列的排序图标（仅在调解失败/结案模式下显示）
+    let timeColContent;
+    if (isReturnCourtMode) {
+        const isSortingByReturnCourtTime = currentSortField === 'returnCourtTime';
+        const sortIconClass = isSortingByReturnCourtTime
+            ? (currentSortOrder === 'asc' ? 'fa-sort-asc' : 'fa-sort-desc')
+            : 'fa-sort';
+        const sortIconColor = isSortingByReturnCourtTime ? '#1890ff' : '#bfbfbf';
+        timeColContent = `${timeColLabel}&nbsp;<i class="fa ${sortIconClass}" style="cursor:pointer;color:${sortIconColor};font-size:13px;" onclick="toggleSort('returnCourtTime')" title="按退回法院时间排序"></i>`;
+    } else {
+        timeColContent = timeColLabel;
+    }
+
     thead.innerHTML = `
         <tr>
             <th style="white-space:nowrap;"><input type="checkbox" id="selectAllCases" onclick="toggleSelectAllCases()"></th>
@@ -990,7 +1009,7 @@ function renderCaseTableHeader() {
             <th style="white-space:nowrap;" title="案件归属地">归属地</th>
             <th style="white-space:nowrap;">原告</th>
             <th style="white-space:nowrap;">被告</th>
-            <th style="white-space:nowrap;">${timeColLabel}</th>
+            <th style="white-space:nowrap;">${timeColContent}</th>
             <th style="white-space:nowrap;">案件助理</th>
             <th style="white-space:nowrap;">处理人</th>
             <th style="white-space:nowrap;">状态</th>
