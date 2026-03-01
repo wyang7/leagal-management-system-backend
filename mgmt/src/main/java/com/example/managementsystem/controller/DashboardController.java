@@ -37,7 +37,7 @@ public class DashboardController {
 
     /**
      * 管理员大盘聚合
-     * @param stations 逗号分隔驻点，例如 九堡,彭埠,本部,笕桥
+     * @param stations 逗号分隔驻点，例如 九堡,彭埠,本部,笕桥,丁兰
      * @param days 退回趋势天数（默认7）
      */
     @GetMapping("/admin")

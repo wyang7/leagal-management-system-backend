@@ -60,9 +60,6 @@ public class CaseAutoReturnTask {
             long daysSinceReceived = ChronoUnit.DAYS.between(caseInfo.getReceiveTime(), now);
 
             if (daysSinceReceived > 10) {
-                if ("笕桥".equals(caseInfo.getCaseLocation())&& daysSinceReceived<15){
-                    continue; // 笕桥地点的案件小于15天不自动退回
-                }
                 String beforeStatus = caseInfo.getStatus();
                 caseInfo.setStatus("退回");
                 String reason = "系统自动退回：被分派案件超过10天未操作（当前状态：" + beforeStatus + "）";

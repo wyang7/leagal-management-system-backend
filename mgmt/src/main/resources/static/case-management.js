@@ -1,6 +1,6 @@
 /**
  * 加载案件管理页面，接收驻点参数
- * @param {string} station 驻点名称（九堡、彭埠、本部、笕桥、四季青、凯旋街道、闸弄口）
+ * @param {string} station 驻点名称（九堡、彭埠、本部、笕桥、丁兰、四季青、凯旋街道、闸弄口）
  */
 
 let currentStation= '';
@@ -1344,6 +1344,7 @@ function createCaseModal(taskOptions, assistantOptions) {
                                     <option value="九堡">九堡</option>
                                     <option value="彭埠">彭埠</option>
                                     <option value="笕桥">笕桥</option>
+                                    <option value="丁兰">丁兰</option>
                                     <option value="本部">本部</option>
                                     <option value="四季青">四季青</option>
                                     <option value="闸弄口">闸弄口</option>

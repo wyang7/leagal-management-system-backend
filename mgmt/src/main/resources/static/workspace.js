@@ -50,7 +50,7 @@ async function getAdminStations(userInfo) {
         }
         const role = await request(`/role/${firstRoleId}`);
         const station = role.station;
-        const allStations = ['九堡','彭埠','本部','笕桥','四季青','凯旋街道','闸弄口'];
+        const allStations = ['九堡','彭埠','本部','笕桥','丁兰','四季青','凯旋街道','闸弄口'];
         if (!station || station === '总部') {
             // 总部管理员显示全部驻点
             return allStations;

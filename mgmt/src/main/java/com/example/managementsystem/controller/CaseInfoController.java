@@ -1935,7 +1935,7 @@ public class CaseInfoController {
         final Map<String, Set<String>> rules = new HashMap<>();
         rules.put("上城法院本部", new HashSet<>(Collections.singletonList("本部")));
         rules.put("九堡法庭", new HashSet<>(Arrays.asList("九堡", "彭埠")));
-        rules.put("笕桥法庭", new HashSet<>(Collections.singletonList("笕桥")));
+        rules.put("笕桥法庭", new HashSet<>(Arrays.asList("笕桥","丁兰")));
         rules.put("综治中心", new HashSet<>(Arrays.asList("四季青", "闸弄口", "凯旋街道", "九堡", "彭埠", "笕桥", "丁兰")));
 
         Set<String> allowed = rules.get(src);
