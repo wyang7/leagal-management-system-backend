@@ -1916,8 +1916,12 @@ public class CaseInfoController {
                     flow.setChannel(pf.getChannel());
                     if (pf.getPayTime() != null && !pf.getPayTime().isEmpty()) {
                         try {
+                            String payTimeStr = pf.getPayTime().replace('T', ' ');
+                            if (payTimeStr.length() == 16) {
+                                payTimeStr += ":00";
+                            }
                             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            flow.setPayTime(sdf.parse(pf.getPayTime()));
+                            flow.setPayTime(sdf.parse(payTimeStr));
                         } catch (Exception ignore) {}
                     }
                     flow.setAmount(pf.getAmount());

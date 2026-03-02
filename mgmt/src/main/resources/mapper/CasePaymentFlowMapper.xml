@@ -24,5 +24,8 @@
     <delete id="deleteByCaseId" parameterType="long">
         DELETE FROM case_payment_flow WHERE case_id = #{caseId}
     </delete>
-</mapper>
 
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM case_payment_flow WHERE id = #{id}
+    </delete>
+</mapper>

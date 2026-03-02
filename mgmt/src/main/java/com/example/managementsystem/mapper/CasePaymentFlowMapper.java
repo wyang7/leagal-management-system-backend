@@ -11,5 +11,5 @@ public interface CasePaymentFlowMapper {
     int insert(CasePaymentFlow flow);
     List<CasePaymentFlow> selectByCaseId(@Param("caseId") Long caseId);
     int deleteByCaseId(@Param("caseId") Long caseId);
+    int deleteById(@Param("id") Long id);
 }
-

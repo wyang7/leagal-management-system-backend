@@ -38,5 +38,16 @@ public class CasePaymentFlowServiceImpl implements ICasePaymentFlowService {
     public void deleteByCaseId(Long caseId) {
         casePaymentFlowMapper.deleteByCaseId(caseId);
     }
-}
 
+    @Override
+    @Transactional
+    public void deleteByCaseIdAndIndex(Long caseId, int index) {
+        List<CasePaymentFlow> flows = casePaymentFlowMapper.selectByCaseId(caseId);
+        if (flows != null && index >= 0 && index < flows.size()) {
+            Long id = flows.get(index).getId();
+            if (id != null) {
+                casePaymentFlowMapper.deleteById(id);
+            }
+        }
+    }
+}
