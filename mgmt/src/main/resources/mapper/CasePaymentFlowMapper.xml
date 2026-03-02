@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.managementsystem.mapper.CasePaymentFlowMapper">
+    <insert id="insert" parameterType="com.example.managementsystem.entity.CasePaymentFlow">
+        INSERT INTO case_payment_flow
+        (case_id, screenshot_url, screenshot_url_type, channel, pay_time, amount, created_time, updated_time)
+        VALUES
+        (#{caseId}, #{screenshotUrl}, #{screenshotUrlType}, #{channel}, #{payTime}, #{amount}, NOW(), NOW())
+    </insert>
+
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO case_payment_flow
+        (case_id, screenshot_url, screenshot_url_type, channel, pay_time, amount, created_time, updated_time)
+        VALUES
+        <foreach collection="flows" item="item" separator=",">
+            (#{item.caseId}, #{item.screenshotUrl}, #{item.screenshotUrlType}, #{item.channel}, #{item.payTime}, #{item.amount}, NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <select id="selectByCaseId" parameterType="long" resultType="com.example.managementsystem.entity.CasePaymentFlow">
+        SELECT * FROM case_payment_flow WHERE case_id = #{caseId} ORDER BY pay_time ASC
+    </select>
+
+    <delete id="deleteByCaseId" parameterType="long">
+        DELETE FROM case_payment_flow WHERE case_id = #{caseId}
+    </delete>
+</mapper>
+

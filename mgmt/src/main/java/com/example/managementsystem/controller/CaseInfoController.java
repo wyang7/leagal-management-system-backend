@@ -10,6 +10,8 @@ import com.example.managementsystem.service.ICaseFlowHistoryService;
 import com.example.managementsystem.service.ICaseInfoService;
 import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
+import com.example.managementsystem.service.ICasePaymentFlowService;
+import com.example.managementsystem.entity.CasePaymentFlow;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.util.StringUtil;
@@ -68,6 +70,9 @@ public class CaseInfoController {
 
     @Autowired
     private CaseCloseExtMapper caseCloseExtMapper;
+
+    @Autowired
+    private ICasePaymentFlowService casePaymentFlowService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -1898,6 +1903,35 @@ public class CaseInfoController {
             // 不影响主流程
             log.warn("syncCaseCloseExtToNewTable: paymentFlows 序列化失败 caseId={}", caseId);
         }
+
+        // --- 新增：同步写入case_payment_flow新表 ---
+        try {
+            if (dto.getPaymentFlows() != null && !dto.getPaymentFlows().isEmpty()) {
+                List<CasePaymentFlow> flows = new java.util.ArrayList<>();
+                for (CaseCloseExtDTO.PaymentFlow pf : dto.getPaymentFlows()) {
+                    CasePaymentFlow flow = new CasePaymentFlow();
+                    flow.setCaseId(caseId);
+                    flow.setScreenshotUrl(pf.getScreenshotUrl());
+                    flow.setScreenshotUrlType(pf.getScreenshotUrlType());
+                    flow.setChannel(pf.getChannel());
+                    if (pf.getPayTime() != null && !pf.getPayTime().isEmpty()) {
+                        try {
+                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            flow.setPayTime(sdf.parse(pf.getPayTime()));
+                        } catch (Exception ignore) {}
+                    }
+                    flow.setAmount(pf.getAmount());
+                    flows.add(flow);
+                }
+                casePaymentFlowService.savePaymentFlows(caseId, flows);
+            } else {
+                // 若无付款流水，清空新表对应caseId数据
+                casePaymentFlowService.deleteByCaseId(caseId);
+            }
+        } catch (Exception e) {
+            log.warn("syncCaseCloseExtToNewTable: paymentFlows双写新表失败 caseId={}", caseId);
+        }
+        // --- end ---
 
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         if (existing == null) {
