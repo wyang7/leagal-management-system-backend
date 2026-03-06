@@ -22,11 +22,48 @@ public class CasePaymentFlowServiceImpl implements ICasePaymentFlowService {
     @Override
     @Transactional
     public void savePaymentFlows(Long caseId, List<CasePaymentFlow> flows) {
-        if (caseId != null) {
-            casePaymentFlowMapper.deleteByCaseId(caseId);
+        // 原逻辑是：先根据 caseId 全量删除，再批量重新插入，会导致 ID 变化，
+        // 对依赖 CasePaymentFlow.id 的外键或业务关联有破坏性，这里改为按主键做 upsert + 删除多余记录。
+        if (caseId == null) {
+            return;
         }
+
+        // 1. 查询当前已存在的流水
+        List<CasePaymentFlow> existing = casePaymentFlowMapper.selectByCaseId(caseId);
+
+        // 2. 计算需要删除的旧记录（在新列表中已不存在的）
+        if (existing != null && !existing.isEmpty()) {
+            // 用于快速判断哪些 id 仍被保留
+            java.util.Set<Long> keepIds = new java.util.HashSet<>();
+            if (flows != null) {
+                for (CasePaymentFlow f : flows) {
+                    if (f.getId() != null) {
+                        keepIds.add(f.getId());
+                    }
+                }
+            }
+            for (CasePaymentFlow old : existing) {
+                Long oldId = old.getId();
+                if (oldId != null && (keepIds.isEmpty() || !keepIds.contains(oldId))) {
+                    // 新列表中不再包含该 id，则删除这条记录
+                    casePaymentFlowMapper.deleteById(oldId);
+                }
+            }
+        }
+
+        // 3. 逐条保存：有 id 的走更新 / 覆盖（此处简化为先删后插，保持单条语义，不再全量删），无 id 的走插入
         if (flows != null && !flows.isEmpty()) {
-            casePaymentFlowMapper.insertBatch(flows);
+            for (CasePaymentFlow flow : flows) {
+                flow.setCaseId(caseId);
+                if (flow.getId() == null) {
+                    // 新增记录
+                    casePaymentFlowMapper.insert(flow);
+                } else {
+                    // 已有记录，使用最简单的方式：按 id 先删再插，避免批量全删导致其他记录 ID 变动
+                    casePaymentFlowMapper.deleteById(flow.getId());
+                    casePaymentFlowMapper.insert(flow);
+                }
+            }
         }
     }
 
@@ -72,5 +109,10 @@ public class CasePaymentFlowServiceImpl implements ICasePaymentFlowService {
                 casePaymentFlowMapper.deleteById(id);
             }
         }
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        casePaymentFlowMapper.deleteById(id);
     }
 }

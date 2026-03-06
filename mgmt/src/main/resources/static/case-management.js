@@ -2295,7 +2295,7 @@ function showPaymentFlowsModal(caseId) {
                     </div>
                     <hr/>
                     <div class="mb-2 fw-bold">新增付款流水</div>
-                    <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 渠道 + 时间 + 金额），只能新增和删除，不允许修改。</div>
+                    <div class="mb-2 text-muted">一次填写为一次付款流水（截图 + 渠道 + 时间 + 金额），只新增和删除，不允许修改。</div>
                     <div class="row g-2 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label">付款截图 (jpg/jpeg/png)</label>
@@ -2303,7 +2303,7 @@ function showPaymentFlowsModal(caseId) {
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">付款渠道</label>
-                            <select id="paymentChannelSelectMgmt" class="form-select">
+                            <select id="paymentChannelSelect" class="form-select">
                                 <option value="">请选择</option>
                                 <option value="青枫">青枫</option>
                                 <option value="澎和助力">澎和助力</option>
@@ -2319,7 +2319,7 @@ function showPaymentFlowsModal(caseId) {
                             <input type="number" step="0.01" id="paymentAmountInput" class="form-control" />
                         </div>
                         <div class="col-md-1 d-grid">
-                            <button type="button" class="btn btn-primary" onclick="submitNewPaymentFlowMgmt()">添加</button>
+                            <button type="button" class="btn btn-primary" onclick="submitNewPaymentFlow()">添加</button>
                         </div>
                     </div>
                     <div class="text-danger mt-2" id="paymentFlowsError" style="display:none;"></div>
@@ -2330,66 +2330,55 @@ function showPaymentFlowsModal(caseId) {
             </div>
         </div>
     </div>`;
-
     const modal = new bootstrap.Modal(document.getElementById('paymentFlowsModal'));
     modal.show();
-    loadPaymentFlowsMgmt(caseId);
+    loadPaymentFlows(caseId);
 }
 
-async function loadPaymentFlowsMgmt(caseId) {
+async function loadPaymentFlows(caseId) {
     const listEl = document.getElementById('paymentFlowsList');
     const errEl = document.getElementById('paymentFlowsError');
     if (!listEl) return;
     listEl.innerHTML = '<div class="text-muted">加载中...</div>';
     if (errEl) errEl.style.display = 'none';
-
     try {
-        const caseInfoResp = await request(`/case/detail/${caseId}`);
-        const caseInfo = caseInfoResp && caseInfoResp.case ? caseInfoResp.case : caseInfoResp;
-        if (!caseInfo || !caseInfo.caseCloseExt) {
-            listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
-            return;
-        }
-        let ext;
-        try { ext = JSON.parse(caseInfo.caseCloseExt); } catch(e) { ext = null; }
-        const flows = (ext && Array.isArray(ext.paymentFlows)) ? ext.paymentFlows : [];
+        const resp = await request(`/case/case-payment-flow/list?caseId=${caseId}`, 'GET');
+        const flows = Array.isArray(resp) ? resp : (resp && Array.isArray(resp.data) ? resp.data : []);
         if (!flows.length) {
             listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
             return;
         }
         const fmtAmt = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
-
-        listEl.innerHTML = flows.map((f, idx) => {
+        listEl.innerHTML = flows.map(f => {
             const imgSrc = buildPaymentScreenshotSrc(f);
-            // 兼容：旧的静态路径需要加 /api
             const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
             const channel = f.channel || '-';
+            const payTime = f.payTime ? formatDateTime(f.payTime) : '-';
             return `
             <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
-                    <div>序号：${idx+1}</div>
+                    <div>流水ID：${f.id}</div>
                     <div>渠道：${channel}</div>
-                    <div>时间：${f.payTime||'-'}</div>
+                    <div>时间：${payTime}</div>
                     <div>金额：${fmtAmt(f.amount)}</div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    ${finalImgSrc ? `<img src="${finalImgSrc}" alt="付款截图${idx+1}" class="payment-screenshot" data-url="${finalImgSrc}" style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">` : '<span class="text-muted">无截图</span>'}
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlowMgmt(${idx})">删除</button>
+                    ${finalImgSrc ? `<img src="${finalImgSrc}" alt="付款截图${f.id}" class="payment-screenshot" data-url="${finalImgSrc}" style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">` : '<span class="text-muted">无截图</span>'}
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlowById(${f.id})">删除</button>
                 </div>
             </div>`;
         }).join('');
     } catch (e) {
-        console.error(e);
         listEl.innerHTML = '<div class="text-danger">加载付款流水失败</div>';
     }
 }
 
-async function submitNewPaymentFlowMgmt() {
+async function submitNewPaymentFlow() {
     const caseId = document.getElementById('paymentFlowsCaseId').value;
     const fileInput = document.getElementById('paymentScreenshotFile');
     const payTimeInput = document.getElementById('paymentTimeInput');
     const amountInput = document.getElementById('paymentAmountInput');
-    const channelSelect = document.getElementById('paymentChannelSelectMgmt');
+    const channelSelect = document.getElementById('paymentChannelSelect');
     const errEl = document.getElementById('paymentFlowsError');
     if (errEl) errEl.style.display = 'none';
 
@@ -2423,12 +2412,10 @@ async function submitNewPaymentFlowMgmt() {
     }
 
     try {
-        // 1) 关闭当前上传浮窗
         const modalEl = document.getElementById('paymentFlowsModal');
         const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
         if (modal) modal.hide();
 
-        // 2) 上传截图到 OSS
         const formData = new FormData();
         formData.append('file', file);
         const uploadResp = await fetch('/api/case/upload-payment-screenshot', { method: 'POST', body: formData });
@@ -2436,34 +2423,45 @@ async function submitNewPaymentFlowMgmt() {
         if (!uploadResp.ok || uploadJson.code !== 200) {
             throw new Error(uploadJson.msg || '上传失败');
         }
-
         alert('上传成功');
+        const screenshotUrl = uploadJson.data; // payment/xxx.png
 
-         const screenshotUrl = uploadJson.data; // payment/xxx.png
+        await request('/case/case-payment-flow/add', 'POST', {
+            caseId,
+            screenshotUrl,
+            payTime,
+            amount: amountRaw,
+            channel
+        });
 
-         // 3) 新增流水（后端会自动写 screenshotUrlType = Oss）
-         await request('/case/payment-flows', 'POST', {
-             caseId,
-             action: 'add',
-             screenshotUrl,
-             payTime,
-             amount: amountRaw,
-             channel
-         });
+        if (fileInput) fileInput.value = '';
+        if (payTimeInput) payTimeInput.value = '';
+        if (amountInput) amountInput.value = '';
+        if (channelSelect) channelSelect.value = '';
 
-        // 4) 刷新
-         if (fileInput) fileInput.value = '';
-         if (payTimeInput) payTimeInput.value = '';
-         if (amountInput) amountInput.value = '';
-         if (channelSelect) channelSelect.value = '';
-         loadPaymentFlowsMgmt(caseId);
+        loadPaymentFlows(caseId);
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = '保存付款流水失败：' + (e.message || '未知错误');
+            errEl.style.display = 'block';
+        }
+    }
+}
 
-     } catch (e) {
-         if (errEl) {
-             errEl.textContent = '保存付款流水失败：' + (e.message || '未知错误');
-             errEl.style.display = 'block';
-         }
-     }
+async function removePaymentFlowById(id) {
+    const caseId = document.getElementById('paymentFlowsCaseId').value;
+    const errEl = document.getElementById('paymentFlowsError');
+    if (errEl) errEl.style.display = 'none';
+    if (!confirm('确定要删除该条付款流水吗？')) return;
+    try {
+        await request('/case/case-payment-flow/delete', 'POST', { id });
+        loadPaymentFlows(caseId);
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = '删除付款流水失败';
+            errEl.style.display = 'block';
+        }
+    }
 }
 
 // 下载案件导入模板

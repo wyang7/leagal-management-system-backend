@@ -2030,7 +2030,7 @@ public class CaseInfoController {
     }
 
     /**
-     * 查询案件的付款流水列表（用于案件流水申请弹窗）
+     * 查询案件的付款流水列表（用于案件流水申请弹窗）——基于 case_payment_flow 表
      */
     @GetMapping("/case-payment-flow/list")
     public Result<List<CasePaymentFlow>> listPaymentFlows(@RequestParam Long caseId, HttpSession session) {
@@ -2045,8 +2045,98 @@ public class CaseInfoController {
         CaseInfo caseInfo = caseInfoService.getById(caseId);
         if (caseInfo == null) {
             return Result.fail("案件不存在");
-        }
-        List<CasePaymentFlow> flows = casePaymentFlowService.getByCaseId(caseId);
+        }List<CasePaymentFlow> flows = casePaymentFlowService.getByCaseId(caseId);
         return Result.success(flows);
+    }
+
+    /**
+     * 新增一条案件付款流水（仅操作 case_payment_flow 表）
+     */
+    @PostMapping("/case-payment-flow/add")
+    public Result<CasePaymentFlow> addCasePaymentFlow(@RequestBody Map<String, Object> params, HttpSession session) {
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return Result.fail("未登录");
+        }
+        Object caseIdObj = params.get("caseId");
+        if (caseIdObj == null) {
+            return Result.fail("缺少案件ID");
+        }
+        Long caseId;
+        try {
+            caseId = Long.parseLong(caseIdObj.toString());
+        } catch (NumberFormatException e) {
+            return Result.fail("案件ID格式错误");
+        }
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+        CasePaymentFlow flow = new CasePaymentFlow();
+        flow.setCaseId(caseId);
+        Object screenshotUrl = params.get("screenshotUrl");
+        if (screenshotUrl != null) {
+            flow.setScreenshotUrl(screenshotUrl.toString());
+            if (screenshotUrl.toString().startsWith("payment/")) {
+                flow.setScreenshotUrlType("Oss");
+            }
+        }
+        Object screenshotUrlType = params.get("screenshotUrlType");
+        if (screenshotUrlType != null) {
+            flow.setScreenshotUrlType(screenshotUrlType.toString());
+        }
+        Object channel = params.get("channel");
+        if (channel != null) {
+            flow.setChannel(channel.toString());
+        }
+        Object payTimeObj = params.get("payTime");
+        if (payTimeObj != null) {
+            String payTimeStr = payTimeObj.toString();
+            if (!payTimeStr.isEmpty()) {
+                try {
+                    String normalized = payTimeStr.replace('T', ' ');
+                    if (normalized.length() == 16) {
+                        normalized += ":00";
+                    }
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    flow.setPayTime(sdf.parse(normalized));
+                } catch (Exception e) {
+                    return Result.fail("付款时间格式错误，应为yyyy-MM-dd HH:mm或yyyy-MM-dd HH:mm:ss");
+                }
+            }
+        }
+        Object amountObj = params.get("amount");
+        if (amountObj != null) {
+            try {
+                flow.setAmount(new java.math.BigDecimal(amountObj.toString()));
+            } catch (Exception e) {
+                return Result.fail("金额格式错误");
+            }
+        }
+        casePaymentFlowService.savePaymentFlow(flow);
+        return Result.success(flow);
+    }
+
+    /**
+     * 删除一条案件付款流水（仅操作 case_payment_flow 表）
+     */
+    @PostMapping("/case-payment-flow/delete")
+    public Result<?> deleteCasePaymentFlow(@RequestBody Map<String, Object> params, HttpSession session) {
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return Result.fail("未登录");
+        }
+        Object idObj = params.get("id");
+        if (idObj == null) {
+            return Result.fail("缺少流水ID");
+        }
+        Long id;
+        try {
+            id = Long.parseLong(idObj.toString());
+        } catch (NumberFormatException e) {
+            return Result.fail("流水ID格式错误");
+        }
+        casePaymentFlowService.deleteById(id);
+        return Result.success();
     }
 }

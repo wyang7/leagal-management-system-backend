@@ -13,4 +13,7 @@ public interface ICasePaymentFlowService {
      * 删除指定案件下指定索引的付款流水（按pay_time排序）
      */
     void deleteByCaseIdAndIndex(Long caseId, int index);
+
+    /** 按主键删除一条付款流水 */
+    void deleteById(Long id);
 }

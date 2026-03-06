@@ -190,14 +190,18 @@ function createMyCaseDetailModalContainer() {
  */
 async function showmyCaseDetailModal(caseId) {
     try {
-        const [caseInfoResponse, historyList] = await Promise.all([
+        const modalContainer = document.getElementById('myCaseDetailModalContainer');
+        if (!modalContainer) return;
+
+        const [caseInfoResponse, historyList, paymentFlowsResp] = await Promise.all([
             request(`/case/detail/${caseId}`),
-            request(`/case/history/${caseId}`).catch(()=>[])
+            request(`/case/history/${caseId}`).catch(() => []),
+            request(`/case/case-payment-flow/list?caseId=${caseId}`, 'GET')
         ]);
-        const caseInfo=caseInfoResponse.case;
-        // 新增金额格式化函数
-        const formatAmount = (v)=> (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
-        // 新增动作图标映射
+
+        const caseInfoResponseSafe = caseInfoResponse || {};
+        const caseInfo = caseInfoResponseSafe.case || caseInfoResponseSafe;
+
         const actionIconMap = {
           '领取案件': {icon:'fa-handshake-o',color:'#1890ff'},
           '案件反馈': {icon:'fa-comments',color:'#722ed1'},
@@ -208,26 +212,14 @@ async function showmyCaseDetailModal(caseId) {
           '批量调解失败': {icon:'fa-flag-checkered',color:'#ff4d4f'},
           '结案': {icon:'fa-check-circle',color:'#52c41a'}
         };
+
+        // 结案扩展信息（不再从 ext.paymentFlows 读具体流水，只展示金额/开票等）
         let extHtml='';
         if(caseInfo.caseCloseExt){
-            try{ const ext=JSON.parse(caseInfo.caseCloseExt); const flows = Array.isArray(ext.paymentFlows)?ext.paymentFlows:[]; const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00'; const flowsHtml = flows.length
-                ? flows.map((f,idx)=>{
-                    const imgSrc = buildPaymentScreenshotSrc(f);
-                    return `<div class='border rounded p-2 mb-2 d-flex justify-content-between align-items-center'>
-                              <div>
-                                <div><span class='text-muted'>序号：</span>${idx+1}</div>
-                                <div><span class='text-muted'>时间：</span>${f.payTime||'-'}</div>
-                                <div><span class='text-muted'>金额：</span>${fmtAmount(f.amount)}</div>
-                                <div><span class='text-muted'>渠道：</span>${f.channel||'-'}</div>
-                              </div>
-                              <div class='d-flex align-items-center gap-2'>
-                                ${imgSrc? `<img src="${imgSrc}" alt="付款截图${idx+1}" class="payment-screenshot" data-url="${imgSrc}" style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">` : '<span class="text-muted">无截图</span>'}
-                              </div>
-                            </div>`;
-                }).join('')
-                : `<div class='text-muted'>暂无付款流水</div>`;
+            try{
+                const ext = JSON.parse(caseInfo.caseCloseExt);
+                const fmtAmount=v=> (v!=null && v!=='' && !isNaN(v))?Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'0.00';
 
-                // 发票信息（PDF）
                 const invoicePdf = ext.invoicePdf;
                 const invoicePdfHtml = invoicePdf
                     ? `<a href="/api/case/invoice-pdf?objectName=${encodeURIComponent(invoicePdf)}" target="_blank" rel="noopener">点击查看/下载发票PDF</a>`
@@ -243,27 +235,56 @@ async function showmyCaseDetailModal(caseId) {
                         <div class='col-md-6'><span class='text-muted'>是否已付款：</span>${ext.paid===true?'是':(ext.paid===false?'否':'-')}</div>
                         <div class='col-12'><span class='text-muted'>开票信息：</span>${ext.invoiceInfo?String(ext.invoiceInfo).replace(/\n/g,'<br>'):'-'}</div>
                         <div class='col-12'>
-                            <div class='fw-bold mt-2'>付款流水</div>
-                            <div>${flowsHtml}</div>
-                        </div>
-                        <div class='col-12'>
                             <div class='fw-bold mt-2'>发票信息</div>
                             <div>${invoicePdfHtml}</div>
                         </div>
-                    </div>`; }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
+                    </div>`;
+            }catch(e){ extHtml='<div class="text-danger">结案扩展信息解析失败</div>'; }
         } else { extHtml='<div class="text-muted">暂无结案扩展信息</div>'; }
-        // 新增：结案编号展示（澎和/青枫案件号在前，收款单号在后）
-        const pengheLabel = (caseInfoResponse.label === null || caseInfoResponse.label === undefined)
+
+        // ===== 从 CasePaymentFlow 表获取付款流水列表用于展示 =====
+        const paymentFlows = Array.isArray(paymentFlowsResp)
+            ? paymentFlowsResp
+            : (paymentFlowsResp && Array.isArray(paymentFlowsResp.data) ? paymentFlowsResp.data : []);
+        const fmtAmount = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
+        let flowsHtml;
+        if (!paymentFlows.length) {
+            flowsHtml = `<div class='text-muted'>暂无付款流水</div>`;
+        } else {
+            flowsHtml = paymentFlows.map((f,idx)=>{
+                const imgSrc = buildPaymentScreenshotSrc(f);
+                const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
+                const channel = f.channel || '-';
+                const payTime = f.payTime ? new Date(f.payTime).toLocaleString() : '-';
+                const boundInfo = f.bankFlowNo ? `<div><span class='text-muted'>绑定银行流水号：</span>${f.bankFlowNo}</div>` : '';
+                const statusInfo = f.bankFlowStatus ? `<div><span class='text-muted'>当前状态：</span>${f.bankFlowStatus}</div>` : '';
+                return `<div class='border rounded p-2 mb-2 d-flex justify-content-between align-items-center'>
+                          <div>
+                            <div><span class='text-muted'>序号：</span>${idx+1}</div>
+                            <div><span class='text-muted'>时间：</span>${payTime}</div>
+                            <div><span class='text-muted'>金额：</span>${fmtAmount(f.amount)}</div>
+                            <div><span class='text-muted'>渠道：</span>${channel}</div>
+                            ${boundInfo}
+                            ${statusInfo}
+                          </div>
+                          <div class='d-flex align-items-center gap-2'>
+                            ${finalImgSrc? `<img src="${finalImgSrc}" alt="付款截图${idx+1}" class="payment-screenshot" data-url="${finalImgSrc}" style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">` : '<span class="text-muted">无截图</span>'}
+                          </div>
+                        </div>`;
+            }).join('');
+        }
+
+        // 结案编号展示
+        const pengheLabel = (caseInfoResponseSafe.label === null || caseInfoResponseSafe.label === undefined)
             ? '澎和案件号：'
-            : caseInfoResponse.label;
+            : caseInfoResponseSafe.label;
         const settlementNumbersHtml = `<div class='row g-2 mb-3'>
-            <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfoResponse.number!=null?caseInfoResponse.number:'-'}</div>
+            <div class='col-md-6'><span class='text-muted'>${pengheLabel}</span>${caseInfoResponseSafe.number!=null?caseInfoResponseSafe.number:'-'}</div>
             <div class='col-md-6'><span class='text-muted'>收款单号：</span>${caseInfo.receiptNumber!=null?caseInfo.receiptNumber:'-'}</div>
             <div class='col-md-6'><span class='text-muted'>人调号：</span>${caseInfo.mediateCaseNumber!=null?caseInfo.mediateCaseNumber:'-'}</div>
          </div>`;
-        const modalContainer = document.getElementById('myCaseDetailModalContainer');
+
         const formatDate = (dateStr) => !dateStr?'-':(/\d{4}-\d{2}-\d{2}/.test(dateStr)? dateStr : new Date(dateStr).toLocaleString());
-        // 历史渲染带图标
         let historyHtml = '';
         if(historyList && historyList.length){
             historyHtml = historyList.map(h=>{ const meta = actionIconMap[h.action]||{icon:'fa-info-circle',color:'#8c8c8c'}; return `<div class='timeline-item mb-2 p-2 rounded border position-relative'>
@@ -283,7 +304,7 @@ async function showmyCaseDetailModal(caseId) {
         const returnBlock = `<div class='mb-2'><span class='text-muted'>退回情况：</span><div class='p-2 bg-light rounded border small'>${caseInfo.returnReason? caseInfo.returnReason.replace(/\n/g,'<br>'):'无'}</div></div>`;
         const completionBlock = `<div class='mb-2'><span class='text-muted'>完成情况：</span><div class='p-2 bg-light rounded border small'>${caseInfo.completionNotes? caseInfo.completionNotes.replace(/\n/g,'<br>'):'无'}</div></div>`;
         const failRemarkBlock = `<div class='mb-2'><span class='text-muted'>调解失败备注：</span><div class='p-2 bg-light rounded border small'>${caseInfo.completionRemark? caseInfo.completionRemark.replace(/\n/g,'<br>'):'无'}</div></div>`;
-        // 基本详情：移除案件ID、收款单号、澎和案件号
+
         const basicHtml = `<div class='row g-2'>
             <div class='col-md-6'><span class='text-muted'>案件号：</span><span class='fw-bold'>${caseInfo.caseNumber||'-'}</span></div>
             <div class='col-md-6'><span class='text-muted'>案由：</span>${caseInfo.caseName||'-'}</div>
@@ -300,8 +321,9 @@ async function showmyCaseDetailModal(caseId) {
             <div class='col-md-6'><span class='text-muted'>关联案件包：</span>${caseInfo.taskName||'-'}</div>
             <div class='col-md-6'><span class='text-muted'>状态：</span><span class='badge bg-info text-dark'>${caseInfo.status||'-'}</span></div>
         </div>`;
+
         const modalHtml = `
-        <div class=\"modal fade\" id=\"myCaseDetailModal\" tabindex=\"-1\" aria-hidden=\"true\">\n            <div class=\"modal-dialog modal-xl\">\n                <div class=\"modal-content\" style=\"border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);\">\n                    <div class=\"modal-header\" style=\"background:linear-gradient(90deg,#4096ff,#69c0ff);color:#fff;border-bottom:none;\">\n                        <h5 class=\"modal-title d-flex align-items-center\"><i class=\"fa fa-file-text-o me-2\"></i>案件详情</h5>\n                        <button type=\"button\" class=\"btn-close btn-close-white\" data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>\n                    </div>\n                    <div class=\"modal-body p-0\" style=\"background:#f5f8fa;\">\n                        <ul class=\"nav nav-tabs small px-3 pt-3\" id=\"caseDetailTabs\" role=\"tablist\" style=\"border-bottom:1px solid #e1e5eb;\">\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link active\" id=\"tab-basic\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-basic\" type=\"button\" role=\"tab\">基本详情</button>\n                          </li>\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link\" id=\"tab-flow\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-flow\" type=\"button\" role=\"tab\">流转信息</button>\n                          </li>\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link\" id=\"tab-close\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-close\" type=\"button\" role=\"tab\">结案信息</button>\n                          </li>\n                        </ul>\n                        <div class=\"tab-content p-3\" style=\"max-height:70vh;overflow-y:auto;\">\n                          <div class=\"tab-pane fade show active\" id=\"panel-basic\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-body\">${basicHtml}</div>\n                            </div>\n                          </div>\n                          <div class=\"tab-pane fade\" id=\"panel-flow\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">反馈 / 退回 / 延期</div>\n                              <div class=\"card-body\">${feedbackBlock}${returnBlock}${delayBlock}</div>\n                            </div>\n                            <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">历史流转记录</div>\n                              <div class=\"card-body\" style=\"background:#fcfdff;\">${historyHtml}</div>\n                            </div>\n                          </div>\n                          <div class=\"tab-pane fade\" id=\"panel-close\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">完成 / 失败备注</div>\n                              <div class=\"card-body\">${completionBlock}${failRemarkBlock}</div>\n                            </div>\n                            <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">结案扩展信息</div>\n                              <div class=\"card-body\">${settlementNumbersHtml}${extHtml}</div>\n                            </div>\n                          </div>\n                        </div>\n                    </div>\n                    <div class=\"modal-footer\" style=\"border-top:1px solid #e1e5eb;background:#fff;border-radius:0 0 12px 12px;\">\n                        <button type=\"button\" class=\"btn btn-outline-secondary\" data-bs-dismiss=\"modal\">关闭</button>\n                    </div>\n                </div>\n            </div>\n        </div>`;
+        <div class=\"modal fade\" id=\"myCaseDetailModal\" tabindex=\"-1\" aria-hidden=\"true\">\n            <div class=\"modal-dialog modal-xl\">\n                <div class=\"modal-content\" style=\"border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);\">\n                    <div class=\"modal-header\" style=\"background:linear-gradient(90deg,#4096ff,#69c0ff);color:#fff;border-bottom:none;\">\n                        <h5 class=\"modal-title d-flex align-items-center\"><i class=\"fa fa-file-text-o me-2\"></i>案件详情</h5>\n                        <button type=\"button\" class=\"btn-close btn-close-white\" data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>\n                    </div>\n                    <div class=\"modal-body p-0\" style=\"background:#f5f8fa;\">\n                        <ul class=\"nav nav-tabs small px-3 pt-3\" id=\"caseDetailTabs\" role=\"tablist\" style=\"border-bottom:1px solid #e1e5eb;\">\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link active\" id=\"tab-basic\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-basic\" type=\"button\" role=\"tab\">基本详情</button>\n                          </li>\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link\" id=\"tab-flow\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-flow\" type=\"button\" role=\"tab\">流转信息</button>\n                          </li>\n                          <li class=\"nav-item\" role=\"presentation\">\n                            <button class=\"nav-link\" id=\"tab-close\" data-bs-toggle=\"tab\" data-bs-target=\"#panel-close\" type=\"button\" role=\"tab\">结案信息</button>\n                          </li>\n                        </ul>\n                        <div class=\"tab-content p-3\" style=\"max-height:70vh;overflow-y:auto;\">\n                          <div class=\"tab-pane fade show active\" id=\"panel-basic\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-body\">${basicHtml}</div>\n                            </div>\n                          </div>\n                          <div class=\"tab-pane fade\" id=\"panel-flow\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">反馈 / 退回 / 延期</div>\n                              <div class=\"card-body\">${feedbackBlock}${returnBlock}${delayBlock}</div>\n                            </div>\n                            <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">历史流转记录</div>\n                              <div class=\"card-body\" style=\"background:#fcfdff;\">${historyHtml}</div>\n                            </div>\n                          </div>\n                          <div class=\"tab-pane fade\" id=\"panel-close\" role=\"tabpanel\">\n                            <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">完成 / 失败备注</div>\n                              <div class=\"card-body\">${completionBlock}${failRemarkBlock}</div>\n                            </div>\n                            <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                              <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">结案扩展信息</div>\n                              <div class=\"card-body\">${settlementNumbersHtml}<div class='fw-bold mt-3 mb-1'>案件付款流水</div>${flowsHtml}<div class='fw-bold mt-3 mb-1'>发票/结算信息</div>${extHtml}</div>\n                            </div>\n                          </div>\n                        </div>\n                    </div>\n                    <div class=\"modal-footer\" style=\"border-top:1px solid #e1e5eb;background:#fff;border-radius:0 0 12px 12px;\">\n                        <button type=\"button\" class=\"btn btn-outline-secondary\" data-bs-dismiss=\"modal\">关闭</button>\n                    </div>\n                </div>\n            </div>\n        </div>`;
         modalContainer.innerHTML = modalHtml;
         new bootstrap.Modal(document.getElementById('myCaseDetailModal')).show();
     } catch (error) {
@@ -310,317 +332,73 @@ async function showmyCaseDetailModal(caseId) {
     }
 }
 
-
-
-/**
- * 获取当前登录用户ID（实际项目中需从登录信息中获取）
- */
-async function getCurrentUserId() {
+// 在“申请开票”预览中展示付款流水：也改成从 CasePaymentFlow 表查询
+async function refreshApplyInvoiceFlowsPreview(caseId) {
+    const el = document.getElementById('applyInvoiceFlowsPreview');
+    if (!el) return;
+    el.innerHTML = '<div class="text-muted">加载中...</div>';
     try {
-        // 复用用项目中已有的的获取当前用户信息接口
-        const userInfo = await request('/auth/currentUser');
-        if (userInfo && userInfo.userId) {
-            return userInfo.userId; // 确保返回有效的userId
-        }
-        // 获取失败时跳转登录页
-        window.location.href = 'login.html';
-        return null;
-    } catch (error) {
-        console.error('获取当前用户ID失败:', error);
-        window.location.href = 'login.html';
-        return null;
-    }
-}/**
- * 获取当前登录用户ID（实际项目中需从登录信息中获取）
- */
-async function getCurrentUserName() {
-    try {
-        // 复用用项目中已有的的获取当前用户信息接口
-        const userInfo = await request('/auth/currentUser');
-        if (userInfo && userInfo.username) {
-            return userInfo.username; // 确保返回有效的userId
-        }
-        // 获取失败时跳转登录页
-        window.location.href = 'login.html';
-        return null;
-    } catch (error) {
-        console.error('获取当前用户名失败:', error);
-        window.location.href = 'login.html';
-        return null;
-    }
-}
-
-/**
- * 加载我的案件列表
- */
-async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
-    try {
-        const username = await getCurrentUserName();
-        const tableBodyEl = document.getElementById('myCaseTableBody');
-        if (!tableBodyEl) { return; }
-        if (!username) {
-            tableBodyEl.innerHTML = `<tr><td colspan="12" class="text-center text-danger">未获取到用户信息</td></tr>`;
+        const paymentFlowsResp = await request(`/case/case-payment-flow/list?caseId=${caseId}`, 'GET');
+        const flows = Array.isArray(paymentFlowsResp)
+            ? paymentFlowsResp
+            : (paymentFlowsResp && Array.isArray(paymentFlowsResp.data) ? paymentFlowsResp.data : []);
+        if (!flows.length) {
+            el.innerHTML = '<div class="text-muted">暂无付款流水</div>';
             return;
         }
-        const caseName = document.getElementById('myCaseSearchInput')?.value.trim() || '';
-        const station = document.getElementById('myCaseStationSelect')?.value.trim() || '';
-        const plaintiff = document.getElementById('myCasePlaintiffInput')?.value.trim() || '';
-        const defendant = document.getElementById('myCaseDefendantInput')?.value.trim() || '';
-        const assistant = document.getElementById('myCaseAssistantInput')?.value.trim() || '';
-        const keyword = document.getElementById('keywordSearchInput')?.value.trim() || '';
-        const statusValue = currentMyFilterStatus !== 'all' ? currentMyFilterStatus : '我的案件';
-        const payload = {
-            pageNum,
-            pageSize,
-            caseName: caseName || undefined,
-            userName: username || undefined,
-            status: statusValue,
-            station: station || undefined,
-            plaintiff: plaintiff || undefined,
-            defendant: defendant || undefined,
-            assistant: assistant || undefined,
-            timeout: timeout || undefined,
-            keyword: keyword || undefined
-        };
-        const response = await request('/case/page', 'POST', payload);
-        if (tableBodyEl) { renderMyCaseTable(response.records); }
-        renderMyPagination({ total: response.total, pageNum: response.pageNum, pageSize: response.pageSize });
-    } catch (error) {
-        const body = document.getElementById('myCaseTableBody');
-        if (body) { body.innerHTML = `<tr><td colspan="12" class="text-center text-danger">加载案件失败</td></tr>`; }
-    }
-}
-
-/**
- * 导出我的案件
- */
-async function exportMyCases() {
-    try {
-        // 获取当前用户ID（假设App.user.userId已全局可用）
-        const userId = App.user.userId;
-        const url = '/api/case/export-my-cases';
-        const fetchOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId })
-        };
-        const response = await fetch(url, fetchOptions);
-        if (!response.ok) throw new Error('导出失败');
-        const blob = await response.blob();
-        const filename = '我的案件_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = filename;
-        link.click();
+        const fmtAmt = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
+        el.innerHTML = flows.map((f,idx)=>{
+            const imgSrc = buildPaymentScreenshotSrc(f);
+            const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
+            const payTime = f.payTime ? new Date(f.payTime).toLocaleString() : '-';
+            return `<div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-center">
+            <div>
+              <div>序号：${idx+1}</div>
+              <div>时间：${payTime}</div>
+              <div>金额：${fmtAmt(f.amount)}</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              ${finalImgSrc? `<img src="${finalImgSrc}"
+                              alt="付款截图${idx+1}"
+                              class="payment-screenshot"
+                              data-url="${finalImgSrc}"
+                              style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
+                      : '<span class="text-muted">无截图</span>'}
+            </div>
+        </div>`;
+        }).join('');
     } catch (e) {
-        alert('导出失败，请重试');
+        el.innerHTML = '<div class="text-danger">加载付款流水失败</div>';
     }
 }
 
-/**
- * 渲染分页组件
- * @param {Object} pageInfo 分页信息对象，包含total、pageNum、pageSize、pages等
- */
-function renderMyPagination(pageInfo) {
-    const { total, pageNum, pageSize } = pageInfo;
-    const pages= Math.ceil(total / pageSize);
-    if (pages <= 1) {
-        // 只有一页时不显示分页
-        const myPaginationContainer = document.getElementById('myPaginationContainer');
-        if (myPaginationContainer) {
-            myPaginationContainer.innerHTML = `
-                <div class="d-flex justify-content-center mt-2 text-secondary">
-                    共 ${total} 条记录
-                </div>
-            `;
-        }
-        return;
+async function submitApplyInvoice() {
+    const errEl = document.getElementById('applyInvoiceError');
+    if (errEl) errEl.style.display = 'none';
+
+    const caseId = document.getElementById('applyInvoiceCaseId')?.value;
+    const paidStr = document.getElementById('applyInvoicePaid')?.value;
+    const invoiceInfo = document.getElementById('applyInvoiceInfo')?.value || '';
+
+    if (!caseId) return;
+
+    const payload = {
+        caseId,
+        invoiceInfo: invoiceInfo.trim() || undefined
+    };
+    if (paidStr === 'true') payload.paid = true;
+    if (paidStr === 'false') payload.paid = false;
+
+    try {
+        await request('/case/apply-invoice', 'POST', payload);
+        const modalEl = document.getElementById('applyInvoiceModal');
+        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (modal) modal.hide();
+        loadMyCases(currentMyCasePage, currentMyCasePageSize);
+        alert('开票信息已提交');
+    } catch (e) {
+        if (errEl) { errEl.textContent = '提交失败，请稍后重试'; errEl.style.display = 'block'; }
     }
-
-    // 创建分页容器（如果不存在）
-    let myPaginationContainer = document.getElementById('myPaginationContainer');
-    if (!myPaginationContainer) {
-        myPaginationContainer = document.createElement('div');
-        myPaginationContainer.id = 'myPaginationContainer';
-        myPaginationContainer.className = 'd-flex justify-content-center mt-4';
-        // 插入到表格下方
-        document.querySelector('.table-responsive').after(myPaginationContainer);
-    }
-
-    // 计算显示的页码范围
-    let startPage = Math.max(1, pageNum - 2);
-    let endPage = Math.min(pages, startPage + 4);
-
-    // 调整页码范围，确保显示5个页码
-    if (endPage - startPage < 4) {
-        startPage = Math.max(1, endPage - 4);
-    }
-
-    let paginationHtml = `
-    <div class="d-flex justify-content-center mb-2 text-secondary">
-        共 ${total} 条记录，当前第 ${pageNum}/${pages} 页
-    </div>
-    <nav aria-label="案件列表分页">
-        <ul class="pagination">
-            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadMyCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-            </li>
-    `;
-
-
-
-    // 添加第一页按钮（当当前页不在前5页时）
-    if (startPage > 1) {
-        paginationHtml += `
-            <li class="page-item"><a class="page-link" href="#" onclick="loadMyCases(1, ${pageSize})">1</a></li>
-            ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
-        `;
-    }
-
-    // 添加中间页码
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHtml += `
-            <li class="page-item ${i === pageNum ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="loadMyCases(${i}, ${pageSize})">${i}</a>
-            </li>
-        `;
-    }
-
-    // 添加最后一页按钮（当当前页不在后5页时）
-    if (endPage < pages) {
-        paginationHtml += `
-            ${endPage < pages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
-            <li class="page-item"><a class="page-link" href="#" onclick="loadMyCases(${pages}, ${pageSize})">${pages}</a></li>
-        `;
-    }
-
-    // 下一页按钮
-    paginationHtml += `
-            <li class="page-item ${pageNum === pages ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="loadMyCases(${pageNum + 1}, ${pageSize})" aria-label="下一页">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
-    `;
-
-    myPaginationContainer.innerHTML = paginationHtml;
-}
-
-
-/**
- * 根据状态筛选我的案件
- */
-async function filterMyCases(status, pageNum = 1, pageSize = 10) {
-
-    const allButtons = document.querySelectorAll('.btn-group .btn.btn-outline-primary');
-    allButtons.forEach(button => {
-        button.classList.remove('active');
-    });
-
-    const currentButton = document.querySelector(`.btn-group .btn[onclick="filterMyCases('${status}')"]`);
-    if (currentButton) {
-        currentButton.classList.add('active');
-    }
-    currentMyCasePage = pageNum;
-    currentMyFilterStatus = status;
-    loadMyCases(currentMyCasePage,currentMyCasePageSize);
-    // 更新按钮样式（保持不变）
-    document.querySelectorAll('.btn-group .btn').forEach(btn => {
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-outline-primary');
-    });
-}
-
-/**
- * 渲染我的案件表格
- * @param {Array} cases 案件数组
- */
-function renderMyCaseTable(cases) {
-    const tableBody = document.getElementById('myCaseTableBody');
-    if (!cases || cases.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">没有找到案件数据</td></tr>`;
-        return;
-    }
-    let html = '';
-    const now = new Date();
-    cases.forEach((caseInfo) => {
-        let statusClass = '';
-        switch (caseInfo.status) {
-            case '待领取': statusClass = 'status-pending-receive'; break;
-            case '已领取': statusClass = 'status-received'; break;
-            case '反馈': statusClass = 'status-pre-feedback'; break;
-            case '延期': statusClass = 'status-delayed'; break;
-            case '待结案': statusClass = 'status-completed'; break;
-            case '退回': statusClass = 'status-returned'; break;
-            case '调解失败': statusClass = 'status-failed'; break;
-            case '结案': statusClass = 'status-closed'; break;
-        }
-        let remindHtml = '';
-        if (caseInfo.receiveTime) {
-            const receiveDate = new Date(Date.parse(caseInfo.receiveTime));
-            const daysSinceReceived = Math.floor((now - receiveDate) / (1000 * 60 * 60 * 24));
-            if (caseInfo.receiveType === 'self_receive') {
-                if (caseInfo.status === '已领取' && daysSinceReceived > 0 && daysSinceReceived <= 3) {
-                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
-                }
-                if (caseInfo.status === '反馈' && daysSinceReceived >= 12 && daysSinceReceived <= 15) {
-                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
-                }
-            }
-            if (caseInfo.receiveType === 'assign' && (caseInfo.status === '已领取' || caseInfo.status === '反馈')) {
-                if (daysSinceReceived >= 7 && daysSinceReceived <= 10) {
-                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
-                }
-            }
-        }
-        html += `
-        <tr>
-            <td>${caseInfo.caseNumber}</td>
-            <td>${caseInfo.caseName}</td>
-            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
-            <td>${caseInfo.caseSource || ''}</td>
-            <td>${caseInfo.caseLocation || ''}</td>
-            <td>${caseInfo.plaintiffName || ''}</td>
-            <td>${caseInfo.defendantName || ''}</td>
-            <td>${caseInfo.judge || ''}</td>
-            <td>${caseInfo.assistantName || ''}</td>
-            <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : ''}</td>
-            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span>${remindHtml}</td>
-            <td>
-                <div class="d-flex flex-column gap-2">
-                  <button class="btn btn-sm btn-info" type="button" onclick="showmyCaseDetailModal(${caseInfo.caseId})">案件详情</button>
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">
-                      案件操作
-                    </button>
-                    <ul class="dropdown-menu" style="display:none;">
-                      ${(caseInfo.status === '已领取' || caseInfo.status === '反馈' || caseInfo.status === '延期') ? `
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})"><i class="fa fa-comment"></i> 反馈</a></li>
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})"><i class="fa fa-clock-o"></i> 延期</a></li>
-                      ` : ''}
-                      ${(caseInfo.status === '待结案' || caseInfo.status === '结案') ? `
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId}, true)"><i class="fa fa-credit-card"></i> 补充付款流水</a></li>
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 修改结案信息</a></li>
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showApplyInvoiceModal(${caseInfo.caseId})"><i class="fa fa-file-text-o"></i> 申请开票</a></li>
-                      ` : `
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 提交结案审核</a></li>
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
-                      `}
-                      ${(caseInfo.status === '待结案') ? `
-                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
-                      ` : ''}
-                    </ul>
-                  </div>
-                </div>
-            </td>
-        </tr>`;
-    });
-    tableBody.innerHTML = html;
-    bindFixedDropdownMenus();
 }
 
 // 付款流水弹窗（复用管理端逻辑，增加 isMyCases 标记控制接口前缀）
@@ -1519,79 +1297,5 @@ async function showApplyInvoiceModal(caseId) {
 
     new bootstrap.Modal(document.getElementById('applyInvoiceModal')).show();
     await refreshApplyInvoiceFlowsPreview(caseId);
-}
-
-async function refreshApplyInvoiceFlowsPreview(caseId) {
-    const el = document.getElementById('applyInvoiceFlowsPreview');
-    if (!el) return;
-    el.innerHTML = '<div class="text-muted">加载中...</div>';
-    try {
-        const resp = await request(`/case/detail/${caseId}`);
-        const caseInfo = (resp && resp.case) ? resp.case : resp;
-        let ext = {};
-        if (caseInfo && caseInfo.caseCloseExt) {
-            try {
-                ext = (typeof caseInfo.caseCloseExt === 'string') ? (JSON.parse(caseInfo.caseCloseExt) || {}) : (caseInfo.caseCloseExt || {});
-            } catch (e) {
-                ext = {};
-            }
-        }
-        const flows = Array.isArray(ext.paymentFlows) ? ext.paymentFlows : [];
-        if (!flows.length) {
-            el.innerHTML = '<div class="text-muted">暂无付款流水</div>';
-            return;
-        }
-        const fmtAmt = v => (v!=null && v!=='' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0.00';
-        el.innerHTML = flows.map((f,idx)=>{
-            const imgSrc = buildPaymentScreenshotSrc(f);
-            const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
-            return `<div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-center">
-            <div>
-              <div>序号：${idx+1}</div>
-              <div>时间：${f.payTime||'-'}</div>
-              <div>金额：${fmtAmt(f.amount)}</div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              ${finalImgSrc? `<img src="${finalImgSrc}"
-                              alt="付款截图${idx+1}"
-                              class="payment-screenshot"
-                              data-url="${finalImgSrc}"
-                              style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
-                      : '<span class="text-muted">无截图</span>'}
-            </div>
-        </div>`;
-        }).join('');
-    } catch (e) {
-        el.innerHTML = '<div class="text-danger">加载付款流水失败</div>';
-    }
-}
-
-async function submitApplyInvoice() {
-    const errEl = document.getElementById('applyInvoiceError');
-    if (errEl) errEl.style.display = 'none';
-
-    const caseId = document.getElementById('applyInvoiceCaseId')?.value;
-    const paidStr = document.getElementById('applyInvoicePaid')?.value;
-    const invoiceInfo = document.getElementById('applyInvoiceInfo')?.value || '';
-
-    if (!caseId) return;
-
-    const payload = {
-        caseId,
-        invoiceInfo: invoiceInfo.trim() || undefined
-    };
-    if (paidStr === 'true') payload.paid = true;
-    if (paidStr === 'false') payload.paid = false;
-
-    try {
-        await request('/case/apply-invoice', 'POST', payload);
-        const modalEl = document.getElementById('applyInvoiceModal');
-        const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
-        if (modal) modal.hide();
-        loadMyCases(currentMyCasePage, currentMyCasePageSize);
-        alert('开票信息已提交');
-    } catch (e) {
-        if (errEl) { errEl.textContent = '提交失败，请稍后重试'; errEl.style.display = 'block'; }
-    }
 }
 
