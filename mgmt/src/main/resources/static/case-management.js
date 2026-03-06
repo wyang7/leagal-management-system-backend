@@ -2738,30 +2738,12 @@ async function refreshCaseFlowApplicationModal() {
             ? unboundBankFlowsResp
             : (unboundBankFlowsResp && Array.isArray(unboundBankFlowsResp.data) ? unboundBankFlowsResp.data : []);
 
-        // 重新获取案件的付款流水
+        // 重新获取案件的付款流水（后端已在 getByCaseId 中填充 bankFlowId/bankFlowNo/bankFlowStatus）
         const paymentFlowsResp = await request('/case/case-payment-flow/list?caseId=' + currentCaseIdForFlowApp, 'GET');
         const paymentFlows = Array.isArray(paymentFlowsResp)
             ? paymentFlowsResp
             : (paymentFlowsResp && Array.isArray(paymentFlowsResp.data) ? paymentFlowsResp.data : []);
 
-        // 为每个付款流水查询是否已绑定银行流水，并带上流水号和状态
-        for (const flow of paymentFlows) {
-            try {
-                const bankFlowResp = await request('/bank-flow/detail?id=' + flow.id, 'GET');
-                const bf = bankFlowResp && bankFlowResp.data ? bankFlowResp.data : bankFlowResp;
-                if (bf && bf.casePaymentId === flow.id) {
-                    flow.bankFlowId = bf.id;
-                    flow.bankFlowNo = bf.flowNo;
-                    flow.bankFlowStatus = bf.flowStatus; // 流水状态：待案件匹配/申请结算/已结算/申请退费/已退费
-                } else {
-                    flow.bankFlowId = null;
-                    flow.bankFlowNo = null;
-                    flow.bankFlowStatus = null;
-                }
-            } catch (e) {
-                // 忽略单条错误，继续处理其他流水
-            }
-        }
 
         currentCasePaymentFlows = paymentFlows;
         renderCaseFlowApplicationModal();

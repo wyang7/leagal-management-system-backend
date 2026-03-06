@@ -2,7 +2,10 @@ package com.example.managementsystem.service.impl;
 
 import com.example.managementsystem.dto.BankFlowPageRequest;
 import com.example.managementsystem.entity.BankFlow;
+import com.example.managementsystem.entity.CasePaymentFlow;
 import com.example.managementsystem.mapper.BankFlowMapper;
+import com.example.managementsystem.mapper.CasePaymentFlowMapper;
+import com.example.managementsystem.mapper.CaseInfoMapper;
 import com.example.managementsystem.service.IBankFlowService;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -22,6 +25,12 @@ public class BankFlowServiceImpl implements IBankFlowService {
 
     @Autowired
     private BankFlowMapper bankFlowMapper;
+
+    @Autowired
+    private CasePaymentFlowMapper casePaymentFlowMapper;
+
+    @Autowired
+    private CaseInfoMapper caseInfoMapper;
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -259,13 +268,30 @@ public class BankFlowServiceImpl implements IBankFlowService {
             throw new IllegalArgumentException("该案件付款记录已绑定其他银行流水");
         }
 
-        // 更新银行流水
+        // 1) 查询案件付款流水金额，并与银行流水金额做必要校验：案件流水金额不能大于银行流水金额
+        CasePaymentFlow casePaymentFlow = casePaymentFlowMapper.selectById(casePaymentId);
+        if (casePaymentFlow == null) {
+            throw new IllegalArgumentException("案件付款流水记录不存在");
+        }
+        BigDecimal payAmount = casePaymentFlow.getAmount();
+        BigDecimal bankAmount = existing.getTradeAmount();
+        if (payAmount != null && bankAmount != null && payAmount.compareTo(bankAmount) > 0) {
+            throw new IllegalArgumentException("案件流水金额不能大于银行流水金额");
+        }
+
+        // 2) 查出案件号并写入银行流水的 caseNumber 字段（便于后续检索和对账）
+        String caseNumber = caseInfoMapper.selectCaseNumberByCaseId(casePaymentFlow.getCaseId());
+        if (StringUtils.hasText(caseNumber)) {
+            existing.setCaseNumber(caseNumber);
+        }
+
+        // 更新银行流水的绑定信息与状态
         existing.setCasePaymentId(casePaymentId);
         existing.setFlowStatus(flowStatus);
         existing.setUpdatedTime(LocalDateTime.now().format(TS));
         bankFlowMapper.updateById(existing);
 
-        return bankFlowMapper.selectById(bankFlowId);
+        return existing;
     }
 
     private String normalizePayee(String raw) {

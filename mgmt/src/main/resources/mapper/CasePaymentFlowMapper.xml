@@ -28,4 +28,8 @@
     <delete id="deleteById" parameterType="long">
         DELETE FROM case_payment_flow WHERE id = #{id}
     </delete>
+
+    <select id="selectById" parameterType="long" resultType="com.example.managementsystem.entity.CasePaymentFlow">
+        SELECT * FROM case_payment_flow WHERE id = #{id}
+    </select>
 </mapper>

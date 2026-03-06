@@ -464,4 +464,8 @@
         FOR UPDATE
     </select>
 
+    <select id="selectCaseNumberByCaseId" parameterType="long" resultType="java.lang.String">
+        SELECT case_number FROM case_info WHERE case_id = #{caseId}
+    </select>
+
 </mapper>

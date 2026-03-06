@@ -193,4 +193,6 @@ public interface CaseInfoMapper extends BaseMapper<CaseInfo> {
      * 根据任务ID列表查询案件，联表任务和用户信息，用于案件包导出
      */
     List<CaseInfo> selectByTaskIdsWithTaskInfo(@org.apache.ibatis.annotations.Param("taskIds") List<Long> taskIds);
+
+    String selectCaseNumberByCaseId(@Param("caseId") Long caseId);
 }
