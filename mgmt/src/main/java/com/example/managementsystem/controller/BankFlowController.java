@@ -172,4 +172,50 @@ public class BankFlowController {
             response.setStatus(500);
         }
     }
+
+    /**
+     * 查询所有未绑定案件付款的银行流水（状态为"待案件匹配"）
+     */
+    @GetMapping("/unbound")
+    public Result<List<BankFlow>> listUnboundFlows(HttpSession session) {
+        if (!canAccess(session)) {
+            return Result.fail("无权限");
+        }
+        return Result.success(bankFlowService.listUnboundFlows());
+    }
+
+    /**
+     * 根据ID查询银行流水
+     */
+    @GetMapping("/detail")
+    public Result<BankFlow> getById(@RequestParam Long id, HttpSession session) {
+        if (!canAccess(session)) {
+            return Result.fail("无权限");
+        }
+        BankFlow flow = bankFlowService.getById(id);
+        if (flow == null) {
+            return Result.fail("记录不存在");
+        }
+        return Result.success(flow);
+    }
+
+    /**
+     * 提交案件流水申请（更新银行流水状态和案件付款ID）
+     */
+    @PostMapping("/submit-application")
+    public Result<BankFlow> submitCaseFlowApplication(@RequestBody Map<String, Object> params, HttpSession session) {
+        if (!canAccess(session)) {
+            return Result.fail("无权限");
+        }
+        Long bankFlowId = params.get("bankFlowId") != null ? Long.valueOf(params.get("bankFlowId").toString()) : null;
+        Long casePaymentId = params.get("casePaymentId") != null ? Long.valueOf(params.get("casePaymentId").toString()) : null;
+        String flowStatus = params.get("flowStatus") != null ? params.get("flowStatus").toString() : null;
+
+        try {
+            BankFlow updated = bankFlowService.submitCaseFlowApplication(bankFlowId, casePaymentId, flowStatus);
+            return Result.success(updated);
+        } catch (IllegalArgumentException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
 }

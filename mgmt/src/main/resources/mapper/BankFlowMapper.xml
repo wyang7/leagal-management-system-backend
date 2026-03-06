@@ -32,6 +32,8 @@
             bf.channel,
             bf.payee_account AS payeeAccount,
             bf.case_number AS caseNumber,
+            bf.flow_status AS flowStatus,
+            bf.case_payment_id AS casePaymentId,
             bf.created_time AS createdTime,
             bf.updated_time AS updatedTime
         FROM bank_flow bf
@@ -64,11 +66,54 @@
             bf.channel,
             bf.payee_account AS payeeAccount,
             bf.case_number AS caseNumber,
+            bf.flow_status AS flowStatus,
+            bf.case_payment_id AS casePaymentId,
             bf.created_time AS createdTime,
             bf.updated_time AS updatedTime
         FROM bank_flow bf
         WHERE bf.flow_no = #{flowNo}
         LIMIT 1
+    </select>
+
+    <select id="selectByCasePaymentId" resultType="com.example.managementsystem.entity.BankFlow">
+        SELECT
+            bf.id,
+            bf.flow_no AS flowNo,
+            bf.trade_time AS tradeTime,
+            bf.trade_amount AS tradeAmount,
+            bf.payer,
+            bf.payee,
+            bf.channel,
+            bf.payee_account AS payeeAccount,
+            bf.case_number AS caseNumber,
+            bf.flow_status AS flowStatus,
+            bf.case_payment_id AS casePaymentId,
+            bf.created_time AS createdTime,
+            bf.updated_time AS updatedTime
+        FROM bank_flow bf
+        WHERE bf.case_payment_id = #{casePaymentId}
+        LIMIT 1
+    </select>
+
+    <select id="selectUnboundFlows" resultType="com.example.managementsystem.entity.BankFlow">
+        SELECT
+            bf.id,
+            bf.flow_no AS flowNo,
+            bf.trade_time AS tradeTime,
+            bf.trade_amount AS tradeAmount,
+            bf.payer,
+            bf.payee,
+            bf.channel,
+            bf.payee_account AS payeeAccount,
+            bf.case_number AS caseNumber,
+            bf.flow_status AS flowStatus,
+            bf.case_payment_id AS casePaymentId,
+            bf.created_time AS createdTime,
+            bf.updated_time AS updatedTime
+        FROM bank_flow bf
+        WHERE bf.flow_status = '待案件匹配'
+           OR bf.flow_status IS NULL
+        ORDER BY bf.trade_time DESC, bf.id DESC
     </select>
 
 </mapper>

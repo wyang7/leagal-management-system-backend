@@ -58,11 +58,12 @@ function loadBankFlowManagementPage() {
                                 <th>交易渠道</th>
                                 <th>收款账号</th>
                                 <th>案件号</th>
+                                <th>流水状态</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="bankFlowTableBody">
-                            <tr><td colspan="9" class="text-center">加载中...</td></tr>
+                            <tr><td colspan="10" class="text-center">加载中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -99,7 +100,7 @@ async function loadBankFlows(pageNum = 1, pageSize = 10) {
 
     const tbody = document.getElementById('bankFlowTableBody');
     if (!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center">加载中...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="text-center">加载中...</td></tr>`;
 
     const keyword = document.getElementById('bankFlowKeywordInput')?.value?.trim() || '';
     const caseNumber = document.getElementById('bankFlowCaseNumberInput')?.value?.trim() || '';
@@ -114,7 +115,7 @@ async function loadBankFlows(pageNum = 1, pageSize = 10) {
         renderBankFlowTable(resp.records || []);
         renderBankFlowPagination(resp.total || 0, resp.pageNum || pageNum, resp.pageSize || pageSize);
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">加载失败</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">加载失败</td></tr>`;
     }
 }
 
@@ -123,7 +124,7 @@ function renderBankFlowTable(list) {
     if (!tbody) return;
 
     if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center">没有找到数据</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center">没有找到数据</td></tr>`;
         return;
     }
 
@@ -137,6 +138,7 @@ function renderBankFlowTable(list) {
             <td>${r.channel || '-'}</td>
             <td>${r.payeeAccount || '-'}</td>
             <td>${r.caseNumber || '-'}</td>
+            <td>${getFlowStatusTag(r.flowStatus)}</td>
             <td>
                 <div class="d-flex gap-2 flex-wrap">
                     <button class="btn btn-sm btn-primary" onclick='showBankFlowModal(${JSON.stringify(r).replace(/'/g, "&#39;")})'>编辑</button>
@@ -145,6 +147,18 @@ function renderBankFlowTable(list) {
             </td>
         </tr>
     `).join('');
+}
+
+function getFlowStatusTag(status) {
+    if (!status) return '<span class="badge bg-secondary">待案件匹配</span>';
+    const statusMap = {
+        '待案件匹配': '<span class="badge bg-secondary">待案件匹配</span>',
+        '申请结算': '<span class="badge bg-warning text-dark">申请结算</span>',
+        '已结算': '<span class="badge bg-success">已结算</span>',
+        '申请退费': '<span class="badge bg-info text-dark">申请退费</span>',
+        '已退费': '<span class="badge bg-primary">已退费</span>'
+    };
+    return statusMap[status] || `<span class="badge bg-secondary">${status}</span>`;
 }
 
 function renderBankFlowPagination(total, pageNum, pageSize) {

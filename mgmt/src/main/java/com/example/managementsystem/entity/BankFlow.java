@@ -49,6 +49,14 @@ public class BankFlow {
     @TableField("case_number")
     private String caseNumber;
 
+    /** 流水状态：待案件匹配/申请结算/已结算/申请退费/已退费 */
+    @TableField("flow_status")
+    private String flowStatus;
+
+    /** 案件付款ID（关联case_payment_flow表的ID） */
+    @TableField("case_payment_id")
+    private Long casePaymentId;
+
     @TableField("created_time")
     private String createdTime;
 

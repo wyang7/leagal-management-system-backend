@@ -28,5 +28,25 @@ public interface IBankFlowService {
      * 导出（按筛选条件），返回导出用的列表
      */
     List<BankFlow> listForExport(String keyword, String caseNumber);
+
+    /**
+     * 查询所有未绑定案件付款的银行流水（状态为"待案件匹配"）
+     */
+    List<BankFlow> listUnboundFlows();
+
+    /**
+     * 根据案件付款ID查询银行流水
+     */
+    BankFlow getByCasePaymentId(Long casePaymentId);
+
+    /**
+     * 提交案件流水申请（更新银行流水状态和案件付款ID）
+     *
+     * @param bankFlowId     银行流水ID
+     * @param casePaymentId  案件付款ID
+     * @param flowStatus     申请状态（申请结算/申请退费）
+     * @return 更新后的银行流水
+     */
+    BankFlow submitCaseFlowApplication(Long bankFlowId, Long casePaymentId, String flowStatus);
 }
 

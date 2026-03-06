@@ -15,6 +15,11 @@ let currentFilterStatus = 'all';
 let currentSortField = '';
 let currentSortOrder = 'asc'; // 'asc' or 'desc'
 
+// 工具函数：格式化金额
+function fmtAmount(v) {
+    return (v != null && v !== '' && !isNaN(v)) ? Number(v).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00';
+}
+
 // 工具函数：从勾选框中读取选中的状态列表
 function getSelectedStatusesFromCheckboxes() {
     const container = document.getElementById('statusCheckboxGroup');
@@ -960,6 +965,7 @@ function renderCaseTable(cases) {
                       ${caseInfo.status !== '结案' ? ((App.user.roleType === '管理员' || (App.user.roleType && App.user.roleType.indexOf('管理员') !== -1)) && App.user.station && App.user.station.indexOf('总部') !== -1 ? `<li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})"><i class="fa fa-trash"></i> 删除</a></li>` : '') : ''}
                       ${caseInfo.status !== '结案' ? `
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReceiveCaseModal(${caseInfo.caseId})"><i class="fa fa-handshake-o"></i> 分派案件</a></li>
+                      ${caseInfo.status === '待结案' ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="showCaseFlowApplicationModal(${caseInfo.caseId})"><i class="fa fa-exchange"></i> 案件流水申请</a></li>` : ''}
                       ${caseInfo.status === '待结案' ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="closeCase(${caseInfo.caseId})"><i class="fa fa-check"></i> 结案</a></li>` : ''}
                       ${(caseInfo.status !== '失败' && caseInfo.status !== '待领取') ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="showFinishCaseModal(${caseInfo.caseId})"><i class="fa fa-flag-checkered"></i> 调解失败</a></li>` : ''}
                       ` : ''}
@@ -1717,8 +1723,7 @@ function showReceiveCaseModal(caseId) {
                 </div>
             </div>
         </div>
-    </div>
-    `;
+    </div>`;
 
     // 添加到页面
     const tempContainer = document.createElement('div');
@@ -1940,8 +1945,7 @@ async function showCaseHistoryModal(caseId) {
                     </div>
                 </div>
             </div>
-        </div>
-        `;
+        </div>`;
         const historyModal = new bootstrap.Modal(document.getElementById('caseHistoryModal'));
         historyModal.show();
     } catch (error) {
@@ -2471,4 +2475,314 @@ async function downloadCaseImportTemplate() {
     } catch (e) {
         alert('下载模板失败');
     }
+}
+
+// ========== 案件流水申请功能 ==========
+
+let currentCasePaymentFlows = [];
+let currentUnboundBankFlows = [];
+let currentCaseIdForFlowApp = null;
+
+/**
+ * 显示案件流水申请弹窗
+ * @param {number} caseId 案件ID
+ */
+async function showCaseFlowApplicationModal(caseId) {
+    currentCaseIdForFlowApp = caseId;
+
+    // 创建弹窗容器
+    let container = document.getElementById('caseFlowApplicationModalContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'caseFlowApplicationModalContainer';
+        document.body.appendChild(container);
+    }
+
+    // 外层 Modal 结构固定，只用它来承载内容
+    container.innerHTML = `
+        <div class="modal fade" id="caseFlowApplicationModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content ant-card ant-card-bordered" style="border-radius:10px;box-shadow:0 4px 16px #e6f7ff;">
+                    <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                        <h5 class="modal-title"><i class="fa fa-exchange text-primary me-2"></i>案件流水申请</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="caseFlowApplicationModalBody" style="background:#fafcff;max-height:70vh;overflow-y:auto;">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    const modalEl = document.getElementById('caseFlowApplicationModal');
+    const modalInstance = new bootstrap.Modal(modalEl);
+    modalInstance.show();
+
+    try {
+        // 并行获取案件付款流水和未绑定的银行流水
+        const [paymentFlowsResp, unboundBankFlowsResp] = await Promise.all([
+            request('/case/case-payment-flow/list?caseId=' + caseId, 'GET'),
+            request('/bank-flow/unbound', 'GET')
+        ]);
+
+        // 兼容后端返回 Result 包装或直接数组
+        const flowsData = Array.isArray(paymentFlowsResp)
+            ? paymentFlowsResp
+            : (paymentFlowsResp && Array.isArray(paymentFlowsResp.data) ? paymentFlowsResp.data : []);
+
+        const unboundData = Array.isArray(unboundBankFlowsResp)
+            ? unboundBankFlowsResp
+            : (unboundBankFlowsResp && Array.isArray(unboundBankFlowsResp.data) ? unboundBankFlowsResp.data : []);
+
+        currentCasePaymentFlows = flowsData;
+        currentUnboundBankFlows = unboundData;
+
+        // 只更新 body 内容，不动外层 Modal 结构
+        renderCaseFlowApplicationModal();
+    } catch (e) {
+        const bodyEl = document.getElementById('caseFlowApplicationModalBody');
+        if (bodyEl) {
+            bodyEl.innerHTML = `
+                <div class="alert alert-danger">加载失败：${e.message || '未知错误'}</div>
+            `;
+        }
+    }
+}
+
+/**
+ * 渲染案件流水申请弹窗内容（只更新 body 内部）
+ */
+function renderCaseFlowApplicationModal() {
+    const bodyEl = document.getElementById('caseFlowApplicationModalBody');
+    if (!bodyEl) return;
+
+    const flows = Array.isArray(currentCasePaymentFlows) ? currentCasePaymentFlows : [];
+
+    if (flows.length === 0) {
+        bodyEl.innerHTML = `
+            <div class="alert alert-info">该案件暂无付款流水记录</div>
+        `;
+        return;
+    }
+
+    let flowsHtml = '';
+    flows.forEach((flow, index) => {
+        // 判断是否已绑定银行流水（后端刷新逻辑会填充 bankFlowId/bankFlowNo/bankFlowStatus）
+        const isBound = flow.bankFlowId != null;
+        const boundStatusBadge = (() => {
+            const status = flow.bankFlowStatus || '';
+            if (status === '申请结算') return '<span class="badge bg-warning text-dark">申请结算</span>';
+            if (status === '已结算') return '<span class="badge bg-success">已结算</span>';
+            if (status === '申请退费') return '<span class="badge bg-warning text-dark">申请退费</span>';
+            if (status === '已退费') return '<span class="badge bg-secondary">已退费</span>';
+            return '<span class="badge bg-secondary">已绑定</span>';
+        })();
+
+        const headerStatus = isBound
+            ? `<span class="badge bg-success me-1">已绑定</span>${boundStatusBadge}`
+            : `<span class="badge bg-warning text-dark">未绑定</span>`;
+
+        // 查找默认匹配的银行流水（仅用于未绑定时的下拉默认选中）
+        const defaultBankFlow = !isBound ? findDefaultMatchingBankFlow(flow) : null;
+
+        let bankFlowOptions = '<option value="">请选择银行流水</option>';
+        if (!isBound) {
+            currentUnboundBankFlows.forEach(bf => {
+                const selected = defaultBankFlow && bf.id === defaultBankFlow.id ? 'selected' : '';
+                bankFlowOptions += `<option value="${bf.id}" ${selected}>${bf.flowNo} - ${bf.tradeTime} - ${fmtAmount(bf.tradeAmount)}元</option>`;
+            });
+        }
+
+        // 已绑定的付款流水：展示绑定信息 + 不允许再次申请
+        const operationHtml = isBound ? `
+            <div class="p-2 border rounded bg-light small">
+                <div class="mb-1"><span class="text-muted">已绑定银行流水号：</span>${flow.bankFlowNo || '-'}</div>
+                <div><span class="text-muted">当前状态：</span>${flow.bankFlowStatus || '已绑定'}</div>
+                <div class="mt-1 text-muted">该付款流水已与银行流水绑定，不可重复提交申请。</div>
+            </div>
+        ` : `
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label small">选择银行流水</label>
+                    <select class="form-select form-select-sm" id="bankFlowSelect_${flow.id}">
+                        ${bankFlowOptions}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">申请动作</label>
+                    <select class="form-select form-select-sm" id="actionSelect_${flow.id}">
+                        <option value="">请选择</option>
+                        <option value="申请结算">申请结算</option>
+                        <option value="申请退费">申请退费</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-2">
+                <button class="btn btn-sm btn-primary" onclick="submitCaseFlowApplication(${flow.id})">提交申请</button>
+            </div>
+        `;
+
+        flowsHtml += `
+            <div class="card mb-3 ${isBound ? 'border-success' : 'border-warning'}" style="border-left:4px solid;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="badge bg-secondary me-2">流水 ${index + 1}</span>
+                            ${headerStatus}
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-primary">${fmtAmount(flow.amount)}元</div>
+                            <div class="small text-muted">${flow.channel || '-'}</div>
+                        </div>
+                    </div>
+                    <div class="row small text-muted mb-2">
+                        <div class="col-md-6">付款时间：${flow.payTime ? formatDateTime(flow.payTime) : '-'}</div>
+                    </div>
+                    ${operationHtml}
+                </div>
+            </div>
+        `;
+    });
+
+    bodyEl.innerHTML = `
+        <div class="alert alert-info">
+            <i class="fa fa-info-circle me-1"></i>
+            请为未绑定的付款流水选择对应的银行流水并提交申请。
+            <span class="small text-muted">（系统会自动匹配金额和时间相近的银行流水作为默认值；已绑定且有状态的流水仅展示信息，不可再次申请）</span>
+        </div>
+        ${flowsHtml}
+    `;
+}
+
+/**
+ * 查找默认匹配的银行流水
+ * 匹配逻辑：1) 银行流水付款时间和案件流水的付款时间相近（误差在5分钟之内）
+ *          2) 案件流水的金额要和银行流水的金额相同
+ * 两个条件需同时满足
+ */
+function findDefaultMatchingBankFlow(paymentFlow) {
+    if (!paymentFlow.amount || !paymentFlow.payTime) return null;
+
+    const flowAmount = parseFloat(paymentFlow.amount);
+    const flowTime = new Date(paymentFlow.payTime).getTime();
+
+    for (const bankFlow of currentUnboundBankFlows) {
+        if (!bankFlow.tradeAmount || !bankFlow.tradeTime) continue;
+
+        // 检查金额是否相同
+        const bankAmount = parseFloat(bankFlow.tradeAmount);
+        if (Math.abs(bankAmount - flowAmount) > 0.01) continue;
+
+        // 检查时间是否在5分钟之内
+        const bankTime = new Date(bankFlow.tradeTime.replace(/-/g, '/')).getTime();
+        const timeDiff = Math.abs(bankTime - flowTime);
+        const fiveMinutes = 5 * 60 * 1000; // 5分钟的毫秒数
+
+        if (timeDiff <= fiveMinutes) {
+            return bankFlow;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * 提交案件流水申请
+ * @param {number} casePaymentId 案件付款流水ID
+ */
+async function submitCaseFlowApplication(casePaymentId) {
+    const bankFlowSelect = document.getElementById(`bankFlowSelect_${casePaymentId}`);
+    const actionSelect = document.getElementById(`actionSelect_${casePaymentId}`);
+
+    const bankFlowId = bankFlowSelect ? bankFlowSelect.value : '';
+    const flowStatus = actionSelect ? actionSelect.value : '';
+
+    if (!bankFlowId) {
+        alert('请选择银行流水');
+        return;
+    }
+    if (!flowStatus) {
+        alert('请选择申请动作');
+        return;
+    }
+
+    try {
+        await request('/bank-flow/submit-application', 'POST', {
+            bankFlowId: bankFlowId,
+            casePaymentId: casePaymentId,
+            flowStatus: flowStatus
+        });
+
+        alert('申请提交成功');
+
+        // 刷新弹窗内容
+        await refreshCaseFlowApplicationModal();
+    } catch (e) {
+        alert('申请提交失败：' + (e.message || '未知错误'));
+    }
+}
+
+/**
+ * 刷新案件流水申请弹窗
+ */
+async function refreshCaseFlowApplicationModal() {
+    if (!currentCaseIdForFlowApp) return;
+
+    try {
+        // 重新获取未绑定的银行流水
+        const unboundBankFlowsResp = await request('/bank-flow/unbound', 'GET');
+        currentUnboundBankFlows = Array.isArray(unboundBankFlowsResp)
+            ? unboundBankFlowsResp
+            : (unboundBankFlowsResp && Array.isArray(unboundBankFlowsResp.data) ? unboundBankFlowsResp.data : []);
+
+        // 重新获取案件的付款流水
+        const paymentFlowsResp = await request('/case/case-payment-flow/list?caseId=' + currentCaseIdForFlowApp, 'GET');
+        const paymentFlows = Array.isArray(paymentFlowsResp)
+            ? paymentFlowsResp
+            : (paymentFlowsResp && Array.isArray(paymentFlowsResp.data) ? paymentFlowsResp.data : []);
+
+        // 为每个付款流水查询是否已绑定银行流水，并带上流水号和状态
+        for (const flow of paymentFlows) {
+            try {
+                const bankFlowResp = await request('/bank-flow/detail?id=' + flow.id, 'GET');
+                const bf = bankFlowResp && bankFlowResp.data ? bankFlowResp.data : bankFlowResp;
+                if (bf && bf.casePaymentId === flow.id) {
+                    flow.bankFlowId = bf.id;
+                    flow.bankFlowNo = bf.flowNo;
+                    flow.bankFlowStatus = bf.flowStatus; // 流水状态：待案件匹配/申请结算/已结算/申请退费/已退费
+                } else {
+                    flow.bankFlowId = null;
+                    flow.bankFlowNo = null;
+                    flow.bankFlowStatus = null;
+                }
+            } catch (e) {
+                // 忽略单条错误，继续处理其他流水
+            }
+        }
+
+        currentCasePaymentFlows = paymentFlows;
+        renderCaseFlowApplicationModal();
+    } catch (e) {
+        console.error('刷新失败:', e);
+    }
+}
+
+/**
+ * 格式化日期时间
+ */
+function formatDateTime(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
 }

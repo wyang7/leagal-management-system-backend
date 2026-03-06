@@ -19,5 +19,15 @@ public interface BankFlowMapper extends BaseMapper<BankFlow> {
                                    @Param("caseNumber") String caseNumber);
 
     BankFlow selectByFlowNo(@Param("flowNo") String flowNo);
+
+    /**
+     * 根据案件付款ID查询银行流水（用于判断是否已绑定）
+     */
+    BankFlow selectByCasePaymentId(@Param("casePaymentId") Long casePaymentId);
+
+    /**
+     * 查询所有未绑定案件付款的银行流水（状态为"待案件匹配"）
+     */
+    List<BankFlow> selectUnboundFlows();
 }
 

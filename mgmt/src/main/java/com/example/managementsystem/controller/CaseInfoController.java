@@ -2028,4 +2028,25 @@ public class CaseInfoController {
             }
         }
     }
+
+    /**
+     * 查询案件的付款流水列表（用于案件流水申请弹窗）
+     */
+    @GetMapping("/case-payment-flow/list")
+    public Result<List<CasePaymentFlow>> listPaymentFlows(@RequestParam Long caseId, HttpSession session) {
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return Result.fail("未登录");
+        }
+        if (caseId == null) {
+            return Result.fail("案件ID不能为空");
+        }
+        // 验证案件是否存在
+        CaseInfo caseInfo = caseInfoService.getById(caseId);
+        if (caseInfo == null) {
+            return Result.fail("案件不存在");
+        }
+        List<CasePaymentFlow> flows = casePaymentFlowService.getByCaseId(caseId);
+        return Result.success(flows);
+    }
 }

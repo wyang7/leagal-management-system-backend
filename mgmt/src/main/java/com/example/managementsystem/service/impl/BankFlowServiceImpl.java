@@ -62,6 +62,10 @@ public class BankFlowServiceImpl implements IBankFlowService {
         String now = LocalDateTime.now().format(TS);
         flow.setCreatedTime(now);
         flow.setUpdatedTime(now);
+        // 默认状态为"待案件匹配"
+        if (!StringUtils.hasText(flow.getFlowStatus())) {
+            flow.setFlowStatus("待案件匹配");
+        }
         bankFlowMapper.insert(flow);
         return flow;
     }
@@ -173,14 +177,20 @@ public class BankFlowServiceImpl implements IBankFlowService {
                     if (exists == null) {
                         bf.setCreatedTime(now);
                         bf.setUpdatedTime(now);
+                        // 默认状态为"待案件匹配"
+                        if (!StringUtils.hasText(bf.getFlowStatus())) {
+                            bf.setFlowStatus("待案件匹配");
+                        }
                         bankFlowMapper.insert(bf);
                     } else {
                         bf.setId(exists.getId());
                         bf.setCreatedTime(exists.getCreatedTime());
                         bf.setUpdatedTime(now);
-                        // 保留旧字段（历史数据）：收款账号/案件号（新模板不维护）
+                        // 保留旧字段（历史数据）：收款账号/案件号/状态（新模板不维护）
                         bf.setPayeeAccount(exists.getPayeeAccount());
                         bf.setCaseNumber(exists.getCaseNumber());
+                        bf.setFlowStatus(exists.getFlowStatus());
+                        bf.setCasePaymentId(exists.getCasePaymentId());
                         bankFlowMapper.updateById(bf);
                     }
                     success++;
@@ -204,6 +214,58 @@ public class BankFlowServiceImpl implements IBankFlowService {
     public List<BankFlow> listForExport(String keyword, String caseNumber) {
         // 直接拉取最多 10000 条（足够覆盖目前场景）
         return bankFlowMapper.selectBankFlows(0, 10000, keyword, caseNumber);
+    }
+
+    @Override
+    public List<BankFlow> listUnboundFlows() {
+        return bankFlowMapper.selectUnboundFlows();
+    }
+
+    @Override
+    public BankFlow getByCasePaymentId(Long casePaymentId) {
+        if (casePaymentId == null) return null;
+        return bankFlowMapper.selectByCasePaymentId(casePaymentId);
+    }
+
+    @Override
+    public BankFlow submitCaseFlowApplication(Long bankFlowId, Long casePaymentId, String flowStatus) {
+        if (bankFlowId == null) {
+            throw new IllegalArgumentException("银行流水ID不能为空");
+        }
+        if (casePaymentId == null) {
+            throw new IllegalArgumentException("案件付款ID不能为空");
+        }
+        if (!StringUtils.hasText(flowStatus)) {
+            throw new IllegalArgumentException("申请状态不能为空");
+        }
+        // 验证状态值
+        if (!"申请结算".equals(flowStatus) && !"申请退费".equals(flowStatus)) {
+            throw new IllegalArgumentException("申请状态只能是'申请结算'或'申请退费'");
+        }
+
+        BankFlow existing = bankFlowMapper.selectById(bankFlowId);
+        if (existing == null) {
+            throw new IllegalArgumentException("银行流水记录不存在");
+        }
+
+        // 检查该银行流水是否已经被绑定
+        if (existing.getCasePaymentId() != null && !existing.getCasePaymentId().equals(casePaymentId)) {
+            throw new IllegalArgumentException("该银行流水已绑定其他案件付款记录");
+        }
+
+        // 检查该案件付款ID是否已经被其他银行流水绑定
+        BankFlow boundFlow = bankFlowMapper.selectByCasePaymentId(casePaymentId);
+        if (boundFlow != null && !boundFlow.getId().equals(bankFlowId)) {
+            throw new IllegalArgumentException("该案件付款记录已绑定其他银行流水");
+        }
+
+        // 更新银行流水
+        existing.setCasePaymentId(casePaymentId);
+        existing.setFlowStatus(flowStatus);
+        existing.setUpdatedTime(LocalDateTime.now().format(TS));
+        bankFlowMapper.updateById(existing);
+
+        return bankFlowMapper.selectById(bankFlowId);
     }
 
     private String normalizePayee(String raw) {
