@@ -268,30 +268,55 @@ public class BankFlowServiceImpl implements IBankFlowService {
             throw new IllegalArgumentException("该案件付款记录已绑定其他银行流水");
         }
 
-        // 1) 查询案件付款流水金额，并与银行流水金额做必要校验：案件流水金额不能大于银行流水金额
+        // 1) 查询案件付款流水金额，并与银行流水剩余金额做必要校验：案件流水金额不能大于银行流水remaining_amount
         CasePaymentFlow casePaymentFlow = casePaymentFlowMapper.selectById(casePaymentId);
         if (casePaymentFlow == null) {
             throw new IllegalArgumentException("案件付款流水记录不存在");
         }
         BigDecimal payAmount = casePaymentFlow.getAmount();
-        BigDecimal bankAmount = existing.getTradeAmount();
-        if (payAmount != null && bankAmount != null && payAmount.compareTo(bankAmount) > 0) {
-            throw new IllegalArgumentException("案件流水金额不能大于银行流水金额");
+        BigDecimal remainingAmount = existing.getRemainingAmount();
+        if (payAmount != null && remainingAmount != null && payAmount.compareTo(remainingAmount) > 0) {
+            throw new IllegalArgumentException("案件流水金额不能大于银行流水剩余金额");
         }
 
-        // 2) 查出案件号并写入银行流水的 caseNumber 字段（便于后续检索和对账）
-        String caseNumber = caseInfoMapper.selectCaseNumberByCaseId(casePaymentFlow.getCaseId());
-        if (StringUtils.hasText(caseNumber)) {
-            existing.setCaseNumber(caseNumber);
+        // 2) 拆分逻辑：如果案件流水金额小于银行流水剩余金额，则拆分出一条新流水，原流水remaining_amount减少，拆分出的流水绑定案件流水
+        if (payAmount != null && remainingAmount != null && payAmount.compareTo(remainingAmount) < 0) {
+            // 拆分出一条新流水
+            BankFlow split = new BankFlow();
+            split.setFlowNo(existing.getFlowNo() + "-S" + System.currentTimeMillis());
+            split.setTradeTime(existing.getTradeTime());
+            split.setTradeAmount(payAmount);
+            split.setRemainingAmount(payAmount);
+            split.setPayer(existing.getPayer());
+            split.setPayee(existing.getPayee());
+            split.setChannel(existing.getChannel());
+            split.setPayeeAccount(existing.getPayeeAccount());
+            split.setCaseNumber(existing.getCaseNumber());
+            split.setFlowStatus(flowStatus);
+            split.setCasePaymentId(casePaymentId);
+            split.setCreatedTime(LocalDateTime.now().format(TS));
+            split.setUpdatedTime(LocalDateTime.now().format(TS));
+            bankFlowMapper.insert(split);
+
+            // 原流水剩余金额减少
+            existing.setRemainingAmount(remainingAmount.subtract(payAmount));
+            existing.setUpdatedTime(LocalDateTime.now().format(TS));
+            bankFlowMapper.updateById(existing);
+            return split;
+        } else {
+            // 直接绑定
+            // 查出案件号并写入银行流水的 caseNumber 字段（便于后续检索和对账）
+            String caseNumber = caseInfoMapper.selectCaseNumberByCaseId(casePaymentFlow.getCaseId());
+            if (StringUtils.hasText(caseNumber)) {
+                existing.setCaseNumber(caseNumber);
+            }
+            existing.setCasePaymentId(casePaymentId);
+            existing.setFlowStatus(flowStatus);
+            existing.setRemainingAmount(BigDecimal.ZERO); // 绑定后剩余金额为0
+            existing.setUpdatedTime(LocalDateTime.now().format(TS));
+            bankFlowMapper.updateById(existing);
+            return existing;
         }
-
-        // 更新银行流水的绑定信息与状态
-        existing.setCasePaymentId(casePaymentId);
-        existing.setFlowStatus(flowStatus);
-        existing.setUpdatedTime(LocalDateTime.now().format(TS));
-        bankFlowMapper.updateById(existing);
-
-        return existing;
     }
 
     private String normalizePayee(String raw) {

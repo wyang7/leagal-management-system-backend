@@ -57,10 +57,13 @@ public class BankFlow {
     @TableField("case_payment_id")
     private Long casePaymentId;
 
+    /** 当前可用/剩余金额（用于拆分后记录剩余部分），默认等于trade_amount */
+    @TableField("remaining_amount")
+    private BigDecimal remainingAmount;
+
     @TableField("created_time")
     private String createdTime;
 
     @TableField("updated_time")
     private String updatedTime;
 }
-

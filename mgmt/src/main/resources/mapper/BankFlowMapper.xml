@@ -27,6 +27,7 @@
             bf.flow_no AS flowNo,
             bf.trade_time AS tradeTime,
             bf.trade_amount AS tradeAmount,
+            bf.remaining_amount AS remainingAmount,
             bf.payer,
             bf.payee,
             bf.channel,
@@ -61,6 +62,7 @@
             bf.flow_no AS flowNo,
             bf.trade_time AS tradeTime,
             bf.trade_amount AS tradeAmount,
+            bf.remaining_amount AS remainingAmount,
             bf.payer,
             bf.payee,
             bf.channel,
@@ -81,6 +83,7 @@
             bf.flow_no AS flowNo,
             bf.trade_time AS tradeTime,
             bf.trade_amount AS tradeAmount,
+            bf.remaining_amount AS remainingAmount,
             bf.payer,
             bf.payee,
             bf.channel,
@@ -101,6 +104,7 @@
             bf.flow_no AS flowNo,
             bf.trade_time AS tradeTime,
             bf.trade_amount AS tradeAmount,
+            bf.remaining_amount AS remainingAmount,
             bf.payer,
             bf.payee,
             bf.channel,
@@ -117,4 +121,3 @@
     </select>
 
 </mapper>
-
