@@ -12,9 +12,7 @@ import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
 import com.example.managementsystem.service.ICasePaymentFlowService;
 import com.example.managementsystem.entity.CasePaymentFlow;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +36,7 @@ import com.example.managementsystem.dto.CasePageRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.managementsystem.dto.CaseCloseExtDTO;
 import com.example.managementsystem.entity.CaseCloseExt;
+import com.example.managementsystem.service.ICaseCloseExtService;
 import com.example.managementsystem.mapper.CaseCloseExtMapper;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.managementsystem.controller.support.CaseCloseExtCompatHelper;
@@ -73,6 +72,9 @@ public class CaseInfoController {
 
     @Autowired
     private ICasePaymentFlowService casePaymentFlowService;
+
+    @Autowired
+    private ICaseCloseExtService caseCloseExtService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -486,48 +488,7 @@ public class CaseInfoController {
             }
         }
 
-        // 合并结案扩展信息（调解费/支付方/是否开票）
-        Object extJsonObj2 = body.get("caseCloseExtJson");
-        if (extJsonObj2 != null) {
-            try {
-                String extJsonStr = extJsonObj2.toString();
-                if (!extJsonStr.isEmpty()) {
-                    CaseCloseExtDTO ext = null;
-                    try {
-                        if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
-                            ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
-                        }
-                    } catch (Exception ignored) {}
-                    if (ext == null) {
-                        ext = new CaseCloseExtDTO();
-                    }
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> extPatch = objectMapper.readValue(extJsonStr, Map.class);
-                    if (extPatch != null) {
-                        if (extPatch.containsKey("mediationFee")) {
-                            Object v = extPatch.get("mediationFee");
-                            if (v == null || "".equals(v)) {
-                                ext.setMediationFee(null);
-                            } else {
-                                try { ext.setMediationFee(new BigDecimal(v.toString())); } catch (NumberFormatException ignored) {}
-                            }
-                        }
-                        if (extPatch.containsKey("payer")) {
-                            Object v = extPatch.get("payer");
-                            ext.setPayer(v == null ? null : v.toString());
-                        }
-                        // 开票相关字段不再在“提交结案审核/修改结案信息”中维护，统一走独立的申请开票接口。
-                    }
-                    caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-                }
-            } catch (Exception e) {
-                log.error("解析/合并结案扩展信息失败", e);
-            }
-        }
-
-        // 双写到新表（读取仍走旧字段）
-        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
-
+        // 不再解析/合并 caseCloseExtJson，也不再调用 syncCaseCloseExtToNewTable
         boolean success = caseInfoService.updateById(caseInfo);
         return success ? Result.success() : Result.fail("更新案件失败");
     }
@@ -887,14 +848,12 @@ public class CaseInfoController {
         Long caseId = Long.parseLong(params.get("caseId").toString());
         String notes = params.get("notes").toString();
         Boolean isMediateCase = params.get("isMediateCase") == null ? null : Boolean.valueOf(params.get("isMediateCase").toString());
-        // 扩展字段提取
         String signDate = (String) params.getOrDefault("signDate", null);
         Object adjustedAmountObj = params.get("adjustedAmount");
         Object mediationFeeObj = params.get("mediationFee");
         Object plaintiffMediationFeeObj = params.get("plaintiffMediationFee");
         Object defendantMediationFeeObj = params.get("defendantMediationFee");
         String payer = (String) params.getOrDefault("payer", null);
-        // invoiced / invoiceInfo 当前端仍会传，但后端不再在此处维护，避免未使用变量
         CaseInfo caseInfo = caseInfoService.getById(caseId);
         if (caseInfo == null) {
             return Result.fail("案件不存在");
@@ -905,7 +864,6 @@ public class CaseInfoController {
         }
         Long operatorId = currentUser.getUserId();
         String operatorName = currentUser.getUsername();
-        // 状态校验：已领取/反馈/延期 可提交结案审核；结案状态允许补充结案信息
         String before = caseInfo.getStatus();
         boolean isSubmitForReview = ("已领取".equals(before) || "反馈".equals(before) || "延期".equals(before) || "待结案".equals(before));
         boolean isSupplementAfterClosed = "结案".equals(before);
@@ -977,59 +935,49 @@ public class CaseInfoController {
             }
             caseInfo.setPengheCaseNumber(nextNumberStr);
         }
-        // 构造扩展 DTO
-        CaseCloseExtDTO ext;
-        if (StringUtil.isNotBlank(caseInfo.getCaseCloseExt())){
-            try {
-                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
-            } catch (JsonProcessingException e) {
-                ext = new CaseCloseExtDTO();
-            }
-        }else {
-            ext = new CaseCloseExtDTO();
+        // ========== 结案扩展信息：改为直接写 case_close_ext ==========
+        CaseCloseExt extEntity = caseCloseExtService.getByCaseId(caseId);
+        if (extEntity == null) {
+            extEntity = new CaseCloseExt();
         }
-        // 结案方式：同步写入 case_close_ext 新表（以及 case_info.case_close_ext JSON）
-        ext.setCompletionNotes(notes);
-        ext.setSignDate(signDate);
+        // 结案方式 & 签字时间
+        extEntity.setCompletionNotes(notes);
+        extEntity.setSignDate(signDate);
         try {
             if (adjustedAmountObj != null) {
-                ext.setAdjustedAmount(new java.math.BigDecimal(adjustedAmountObj.toString()));
+                extEntity.setAdjustedAmount(new java.math.BigDecimal(adjustedAmountObj.toString()));
             } else if (caseInfo.getAmount() != null) {
-                ext.setAdjustedAmount(caseInfo.getAmount());
+                extEntity.setAdjustedAmount(caseInfo.getAmount());
             }
             if (mediationFeeObj != null) {
-                ext.setMediationFee(new java.math.BigDecimal(mediationFeeObj.toString()));
+                extEntity.setMediationFee(new java.math.BigDecimal(mediationFeeObj.toString()));
             }
             if (plaintiffMediationFeeObj != null) {
-                ext.setPlaintiffMediationFee(new java.math.BigDecimal(plaintiffMediationFeeObj.toString()));
+                extEntity.setPlaintiffMediationFee(new java.math.BigDecimal(plaintiffMediationFeeObj.toString()));
             }
             if (defendantMediationFeeObj != null) {
-                ext.setDefendantMediationFee(new java.math.BigDecimal(defendantMediationFeeObj.toString()));
+                extEntity.setDefendantMediationFee(new java.math.BigDecimal(defendantMediationFeeObj.toString()));
             }
         } catch (NumberFormatException e) {
             return Result.fail("金额格式错误");
         }
-        // 计算用于生成收款单号的调解费总额
-        BigDecimal mediationFeeForReceipt = ext.getMediationFee();
-        if (mediationFeeForReceipt == null && ext.getPlaintiffMediationFee() != null && ext.getDefendantMediationFee() != null) {
-            mediationFeeForReceipt = ext.getPlaintiffMediationFee().add(ext.getDefendantMediationFee());
+        java.math.BigDecimal mediationFeeForReceipt = extEntity.getMediationFee();
+        if (mediationFeeForReceipt == null && extEntity.getPlaintiffMediationFee() != null && extEntity.getDefendantMediationFee() != null) {
+            mediationFeeForReceipt = extEntity.getPlaintiffMediationFee().add(extEntity.getDefendantMediationFee());
         }
-        // 自动生成收款单号（若为空，且总调解费>0）
+        // ========== 按原规则生成收款单号（仍然写在 caseInfo 上） ==========
         if (caseInfo.getReceiptNumber() == null && mediationFeeForReceipt != null && mediationFeeForReceipt.intValue() > 0) {
             String caseLocation = caseInfo.getCaseLocation();
             int currentYear = java.time.LocalDate.now().getYear();
             String yearPrefix = currentYear + "-";
             if ("本部".equals(caseLocation) || "四季青".equals(caseLocation)) {
-                // 本部 + 四季青：按年份生成 yyyy-S0XX 序列
                 String maxReceipt = caseInfoService.getMaxReceiptNumberForBenbuYear(yearPrefix);
                 String nextReceipt;
                 if (maxReceipt == null || !maxReceipt.startsWith(yearPrefix + "S0")) {
-                    // 本年首次，从 S070 开始
                     nextReceipt = yearPrefix + "S001";
                 } else {
-                    // 形如 2026-S071
-                    String body = maxReceipt.substring(yearPrefix.length()); // S071
-                    String numPart = body.substring(1); // 071
+                    String body = maxReceipt.substring(yearPrefix.length());
+                    String numPart = body.substring(1);
                     int num;
                     try {
                         num = Integer.parseInt(numPart);
@@ -1040,15 +988,13 @@ public class CaseInfoController {
                 }
                 caseInfo.setReceiptNumber(nextReceipt);
             } else if ("凯旋街道".equals(caseLocation)) {
-                // 凯旋街道：按年份生成 yyyy-KXX 序列
                 String maxK = caseInfoService.getMaxReceiptNumberForKaixuanYear(yearPrefix);
                 String nextK;
                 if (maxK == null || !maxK.startsWith(yearPrefix + "K")) {
                     nextK = yearPrefix + "K001";
                 } else {
-                    // 形如 2026-K01
-                    String body = maxK.substring(yearPrefix.length()); // K001
-                    String numPart = body.substring(1); // 001
+                    String body = maxK.substring(yearPrefix.length());
+                    String numPart = body.substring(1);
                     int num;
                     try {
                         num = Integer.parseInt(numPart);
@@ -1059,15 +1005,13 @@ public class CaseInfoController {
                 }
                 caseInfo.setReceiptNumber(nextK);
             } else if ("闸弄口".equals(caseLocation)) {
-                // 闸弄口：按年份生成 yyyy-ZXX 序列
                 String maxZ = caseInfoService.getMaxReceiptNumberForZhanongkouYear(yearPrefix);
                 String nextZ;
                 if (maxZ == null || !maxZ.startsWith(yearPrefix + "Z")) {
                     nextZ = yearPrefix + "Z001";
                 } else {
-                    // 形如 2026-Z01
-                    String body = maxZ.substring(yearPrefix.length()); // Z001
-                    String numPart = body.substring(1); // 001
+                    String body = maxZ.substring(yearPrefix.length());
+                    String numPart = body.substring(1);
                     int num;
                     try {
                         num = Integer.parseInt(numPart);
@@ -1078,14 +1022,13 @@ public class CaseInfoController {
                 }
                 caseInfo.setReceiptNumber(nextZ);
             } else {
-                // 其他驻点：按年份生成 yyyy-XXX 的纯数字序列，从 070 起
                 String maxReceipt = caseInfoService.getMaxReceiptNumberForOthersYear(yearPrefix);
                 String nextReceipt;
-                int baseStart = 001;
+                int baseStart = 1;
                 if (maxReceipt == null || !maxReceipt.startsWith(yearPrefix)) {
                     nextReceipt = String.format("%s%03d", yearPrefix, baseStart);
                 } else {
-                    String seqPart = maxReceipt.substring(yearPrefix.length()); // 如 070
+                    String seqPart = maxReceipt.substring(yearPrefix.length());
                     int seq;
                     try {
                         seq = Integer.parseInt(seqPart);
@@ -1097,23 +1040,13 @@ public class CaseInfoController {
                 caseInfo.setReceiptNumber(nextReceipt);
             }
         }
-        ext.setPayer(payer);
-        // 不再设置 ext.invoiced / ext.invoiceInfo，改由补充结案信息接口维护
-        try {
-            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-        } catch (Exception e) {
-            return Result.fail("结案扩展信息序列化失败");
-        }
-
-        // 双写到新表（读取仍走旧字段）
-        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
-
-        // 更新状态与完成情况
+        extEntity.setPayer(payer);
+        // 保存/更新 case_close_ext 表
+        caseCloseExtService.saveOrUpdateByCaseId(caseId, extEntity);
+        // ========== 结案状态 & completionNotes 仍然写在 case_info 表 ==========
         if (isSubmitForReview) {
-            // 正常流程：提交结案审核 -> 待结案
             caseInfo.setStatus("待结案");
         } else {
-            // 已结案补录：保持结案状态不变
             caseInfo.setStatus("结案");
         }
         String finalNotes = buildAccumulatedRemark(caseInfo.getCompletionNotes(), notes, operatorId);
@@ -1579,7 +1512,6 @@ public class CaseInfoController {
         if (caseInfo == null) {
             return Result.fail("案件不存在");
         }
-        // 待结案/结案 均允许补充付款流水（结案后补录不改变案件状态）
         if (!("待结案".equals(caseInfo.getStatus()) || "结案".equals(caseInfo.getStatus()))) {
             return Result.fail("仅待结案或结案状态的案件可以补充付款流水");
         }
@@ -1587,161 +1519,14 @@ public class CaseInfoController {
         if (currentUser == null || currentUser.getUserId() == null) {
             return Result.fail("未登录或会话已过期，请重新登录");
         }
-
-        // 解析现有 ext
-        CaseCloseExtDTO ext = null;
-        try {
-            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
-                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
-            }
-        } catch (Exception e) {
-            log.error("解析结案扩展信息失败", e);
-        }
-        if (ext == null) {
-            ext = new CaseCloseExtDTO();
-        }
-        if (ext.getPaymentFlows() == null) {
-            ext.setPaymentFlows(new java.util.ArrayList<>());
-        }
-
-        String action = (String) params.getOrDefault("action", "add");
-        if ("add".equals(action)) {
-            // 新增一条流水：screenshotUrl, payTime, amount, channel
-            String screenshotUrl = (String) params.get("screenshotUrl");
-            String payTime = (String) params.get("payTime");
-            Object amountObj = params.get("amount");
-            String channel = params.get("channel") == null ? null : params.get("channel").toString();
-            if (screenshotUrl == null || screenshotUrl.isEmpty() || payTime == null || payTime.isEmpty() || amountObj == null) {
-                return Result.fail("付款截图、付款时间和付款金额不能为空");
-            }
-            // 可选：对付款渠道做简单校验（仅允许三种枚举或为空）
-            if (channel != null && !channel.isEmpty()) {
-                if (!("青枫".equals(channel) || "澎和助力".equals(channel) || "澎和信息".equals(channel))) {
-                    return Result.fail("付款渠道不合法");
-                }
-            }
-            java.math.BigDecimal amount;
-            try {
-                amount = new java.math.BigDecimal(amountObj.toString());
-            } catch (NumberFormatException e) {
-                return Result.fail("付款金额格式错误");
-            }
-            if (amount.compareTo(java.math.BigDecimal.ZERO) < 0) {
-                return Result.fail("付款金额不能为负");
-            }
-
-            CaseCloseExtDTO.PaymentFlow flow = new CaseCloseExtDTO.PaymentFlow();
-            flow.setScreenshotUrl(screenshotUrl);
-            // 新上传接口返回 oss objectName: payment/xxx.png
-            if (screenshotUrl.startsWith("payment/")) {
-                flow.setScreenshotUrlType("Oss");
-            }
-            flow.setPayTime(payTime);
-            flow.setAmount(amount);
-            flow.setChannel(channel);
-            ext.getPaymentFlows().add(flow);
-
-        } else if ("remove".equals(action)) {
-            // 按索引删除一条流水
-            Object idxObj = params.get("index");
-            if (idxObj == null) {
-                return Result.fail("缺少要删除的流水索引");
-            }
-            int idx;
-            try {
-                idx = Integer.parseInt(idxObj.toString());
-            } catch (NumberFormatException e) {
-                return Result.fail("流水索引格式错误");
-            }
-            java.util.List<CaseCloseExtDTO.PaymentFlow> list = ext.getPaymentFlows();
-            if (idx < 0 || idx >= list.size()) {
-                return Result.fail("流水索引超出范围");
-            }
-            list.remove(idx);
-        } else {
-            return Result.fail("不支持的操作类型");
-        }
-
-        try {
-            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-        } catch (Exception e) {
-            log.error("序列化结案扩展信息失败", e);
-            return Result.fail("保存付款流水失败");
-        }
-
-        // 双写到新表（读取仍走旧字段）
-        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
-
-        caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        boolean ok = caseInfoService.updateById(caseInfo);
-        return ok ? Result.success(ext.getPaymentFlows()) : Result.fail("保存付款流水失败");
+        // 直接提示前端改用新接口
+        return Result.fail("该接口已废弃，请使用 /case/case-payment-flow/add 和 /case/case-payment-flow/delete 维护付款流水");
     }
 
-    /**
-     * 从案件结案扩展信息中删除一条付款流水（给案件详情页使用）
-     */
     @PostMapping("/payment-flows/delete")
     public Result<?> deletePaymentFlow(@RequestBody Map<String, Object> params, HttpSession session) {
-        Object caseIdObj = params.get("caseId");
-        Object idxObj = params.get("index");
-        if (caseIdObj == null || idxObj == null) {
-            return Result.fail("缺少参数 caseId 或 index");
-        }
-
-        Long caseId;
-        int idx;
-        try {
-            caseId = Long.parseLong(caseIdObj.toString());
-            idx = Integer.parseInt(idxObj.toString());
-        } catch (NumberFormatException e) {
-            return Result.fail("参数格式错误");
-        }
-
-        CaseInfo caseInfo = caseInfoService.getById(caseId);
-        if (caseInfo == null) {
-            return Result.fail("案件不存在");
-        }
-        // 这里沿用 payment-flows 的逻辑：待结案/结案 可维护流水
-        if (!("待结案".equals(caseInfo.getStatus()) || "结案".equals(caseInfo.getStatus()))) {
-            return Result.fail("仅待结案或结案状态的案件可以删除付款流水");
-        }
-
-        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
-        if (currentUser == null || currentUser.getUserId() == null) {
-            return Result.fail("未登录或会话已过期，请重新登录");
-        }
-
-        // 解析现有 ext
-        CaseCloseExtDTO ext = null;
-        try {
-            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
-                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
-            }
-        } catch (Exception e) {
-            log.error("解析结案扩展信息失败", e);
-        }
-        if (ext == null || ext.getPaymentFlows() == null) {
-            return Result.fail("暂无付款流水可删除");
-        }
-
-        if (idx < 0 || idx >= ext.getPaymentFlows().size()) {
-            return Result.fail("付款流水索引超出范围");
-        }
-        ext.getPaymentFlows().remove(idx);
-
-        try {
-            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-        } catch (Exception e) {
-            log.error("序列化结案扩展信息失败", e);
-            return Result.fail("保存失败");
-        }
-
-        // 双写到新表（读取仍走旧字段）
-        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
-
-        caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        boolean ok = caseInfoService.updateById(caseInfo);
-        return ok ? Result.success(ext.getPaymentFlows()) : Result.fail("删除付款流水失败");
+        // 同上，提示前端改用新接口
+        return Result.fail("该接口已废弃，请使用 /case/case-payment-flow/delete 删除付款流水");
     }
 
     /**
@@ -1767,7 +1552,6 @@ public class CaseInfoController {
         } catch (NumberFormatException e) {
             return Result.fail("案件ID格式错误");
         }
-
         CaseInfo caseInfo = caseInfoService.getById(caseId);
         if (caseInfo == null) {
             return Result.fail("案件不存在");
@@ -1775,31 +1559,23 @@ public class CaseInfoController {
         if (!"待结案".equals(caseInfo.getStatus()) && !"结案".equals(caseInfo.getStatus())) {
             return Result.fail("仅待结案和结案状态的案件可以申请开票");
         }
-
         UserSession currentUser = (UserSession) session.getAttribute("currentUser");
         if (currentUser == null || currentUser.getUserId() == null) {
             return Result.fail("未登录或会话已过期，请重新登录");
         }
 
-        // 新流程：申请开票不允许前端指定状态。
-        // 业务规则：只能在“暂未申请开票”（或未设置）时发起申请，申请后自动流转为“待开票”。
-        CaseCloseExtDTO ext = null;
-        try {
-            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
-                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
-            }
-        } catch (Exception e) {
-            log.error("解析结案扩展信息失败", e);
+        // 从新表读取/创建 CaseCloseExt 实体
+        CaseCloseExt extEntity = caseCloseExtService.getByCaseId(caseId);
+        if (extEntity == null) {
+            extEntity = new CaseCloseExt();
         }
-        if (ext == null) {
-            ext = new CaseCloseExtDTO();
-        }
-        String currentInvoiceStatus = ext.getInvoiceStatus();
-        if (currentInvoiceStatus != null && !currentInvoiceStatus.trim().isEmpty() && !"暂未申请开票".equals(currentInvoiceStatus)
+        String currentInvoiceStatus = extEntity.getInvoiceStatus();
+        if (currentInvoiceStatus != null && !currentInvoiceStatus.trim().isEmpty()
+                && !"暂未申请开票".equals(currentInvoiceStatus)
                 && !"开票被打回".equals(currentInvoiceStatus)) {
             return Result.fail("当前开票状态为：" + currentInvoiceStatus + "，不可重复申请开票");
         }
-        ext.setInvoiceStatus("待开票");
+        extEntity.setInvoiceStatus("待开票");
 
         Boolean paid = null;
         if (params.containsKey("paid")) {
@@ -1812,28 +1588,13 @@ public class CaseInfoController {
         }
 
         String invoiceInfo = params.get("invoiceInfo") == null ? null : params.get("invoiceInfo").toString();
-        ext.setPaid(paid);
-        ext.setInvoiceInfo(invoiceInfo);
+        extEntity.setPaid(paid);
+        extEntity.setInvoiceInfo(invoiceInfo);
+        caseCloseExtService.saveOrUpdateByCaseId(caseId, extEntity);
 
-        try {
-            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-        } catch (Exception e) {
-            log.error("序列化结案扩展信息失败", e);
-            return Result.fail("保存开票信息失败");
-        }
-
-        // 双写到新表（读取仍走旧字段）
-        syncCaseCloseExtToNewTable(caseInfo.getCaseId(), caseInfo.getCaseCloseExt());
-
-        caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        boolean ok = caseInfoService.updateById(caseInfo);
-        if (!ok) {
-            return Result.fail("保存开票信息失败");
-        }
-
-        // 写入案件历史：申请开票
+        // 写案件历史
         Long operatorId = currentUser.getUserId();
-        String afterStatus = caseInfo.getStatus(); // 申请开票不改变案件主状态
+        String afterStatus = caseInfo.getStatus();
         String remark = invoiceInfo;
         if (remark != null && remark.length() > 200) {
             remark = remark.substring(0, 200) + "...";
@@ -1843,147 +1604,6 @@ public class CaseInfoController {
         return Result.success();
     }
 
-    /**
-     * 双写工具：把旧字段 case_info.case_close_ext(JSON) 同步到新表 case_close_ext。
-     *
-     * 说明：当前阶段“读仍走旧字段”，所以这里不做反向覆盖，只做 upsert。
-     *
-     * @param caseId 案件ID
-     * @param caseCloseExtJson case_info.case_close_ext 的 JSON 字符串（允许为 null/空）
-     */
-    private void syncCaseCloseExtToNewTable(Long caseId, String caseCloseExtJson) {
-        if (caseId == null) {
-            return;
-        }
-        if (caseCloseExtJson == null || caseCloseExtJson.trim().isEmpty()) {
-            // 旧字段无数据则不强制写新表，避免把新表清空。
-            return;
-        }
-
-        CaseCloseExtDTO dto;
-        try {
-            dto = objectMapper.readValue(caseCloseExtJson, CaseCloseExtDTO.class);
-        } catch (Exception e) {
-            log.warn("syncCaseCloseExtToNewTable: JSON 解析失败 caseId={}, json={}", caseId, caseCloseExtJson);
-            return;
-        }
-        if (dto == null) {
-            return;
-        }
-
-        // 查询是否已有记录
-        CaseCloseExt existing = caseCloseExtMapper.selectByCaseId(caseId);
-        CaseCloseExt entity = (existing != null) ? existing : new CaseCloseExt();
-        entity.setCaseId(caseId);
-
-        // DTO -> Entity
-        entity.setCompletionNotes(dto.getCompletionNotes());
-        entity.setSignDate(dto.getSignDate());
-        entity.setAdjustedAmount(dto.getAdjustedAmount());
-        entity.setMediationFee(dto.getMediationFee());
-        entity.setPlaintiffMediationFee(dto.getPlaintiffMediationFee());
-        entity.setDefendantMediationFee(dto.getDefendantMediationFee());
-        entity.setPayer(dto.getPayer());
-
-        // 新字段
-        entity.setInvoiceStatus(dto.getInvoiceStatus());
-        entity.setPaid(dto.getPaid());
-
-        // 历史字段兼容（新流程忽略）
-        entity.setInvoiced(dto.getInvoiced());
-        entity.setInvoiceInfo(dto.getInvoiceInfo());
-
-        // 发票PDF
-        entity.setInvoicePdf(dto.getInvoicePdf());
-
-        // paymentFlows 以 JSON 形式存到新表字段 payment_flows
-        try {
-            entity.setPaymentFlows(dto.getPaymentFlows() == null ? null : objectMapper.writeValueAsString(dto.getPaymentFlows()));
-        } catch (Exception e) {
-            // 不影响主流程
-            log.warn("syncCaseCloseExtToNewTable: paymentFlows 序列化失败 caseId={}", caseId);
-        }
-
-        // --- 新增：同步写入case_payment_flow新表 ---
-        try {
-            if (dto.getPaymentFlows() != null && !dto.getPaymentFlows().isEmpty()) {
-                List<CasePaymentFlow> flows = new java.util.ArrayList<>();
-                for (CaseCloseExtDTO.PaymentFlow pf : dto.getPaymentFlows()) {
-                    CasePaymentFlow flow = new CasePaymentFlow();
-                    flow.setCaseId(caseId);
-                    flow.setScreenshotUrl(pf.getScreenshotUrl());
-                    flow.setScreenshotUrlType(pf.getScreenshotUrlType());
-                    flow.setChannel(pf.getChannel());
-                    if (pf.getPayTime() != null && !pf.getPayTime().isEmpty()) {
-                        try {
-                            String payTimeStr = pf.getPayTime().replace('T', ' ');
-                            if (payTimeStr.length() == 16) {
-                                payTimeStr += ":00";
-                            }
-                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            flow.setPayTime(sdf.parse(payTimeStr));
-                        } catch (Exception ignore) {}
-                    }
-                    flow.setAmount(pf.getAmount());
-                    flows.add(flow);
-                }
-                casePaymentFlowService.savePaymentFlows(caseId, flows);
-            } else {
-                // 若无付款流水，清空新表对应caseId数据
-                casePaymentFlowService.deleteByCaseId(caseId);
-            }
-        } catch (Exception e) {
-            log.warn("syncCaseCloseExtToNewTable: paymentFlows双写新表失败 caseId={}", caseId);
-        }
-        // --- end ---
-
-        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        if (existing == null) {
-            entity.setCreatedTime(now);
-        }
-        entity.setUpdatedTime(now);
-
-        // upsert
-        if (existing == null) {
-            caseCloseExtMapper.insert(entity);
-        } else {
-            caseCloseExtMapper.updateById(entity);
-        }
-    }
-
-    /**
-     * 校验案件来源与归属地的包含关系。
-     * 规则：
-     * - 上城法院本部 -> 本部
-     * - 九堡法庭 -> 九堡、彭埠
-     * - 笕桥法庭 -> 笕桥
-     * - 综治中心 -> 四季青、闸弄口、凯旋街道、九堡、彭埠、笕桥、丁兰
-     */
-    private void validateCaseSourceLocation(String caseSource, String caseLocation) {
-        String src = caseSource == null ? "" : caseSource.trim();
-        String loc = caseLocation == null ? "" : caseLocation.trim();
-
-        if (!StringUtils.hasText(src)) {
-            throw new IllegalArgumentException("案件来源不能为空");
-        }
-        if (!StringUtils.hasText(loc)) {
-            throw new IllegalArgumentException("案件归属地不能为空");
-        }
-
-        final Map<String, Set<String>> rules = new HashMap<>();
-        rules.put("上城法院本部", new HashSet<>(Collections.singletonList("本部")));
-        rules.put("九堡法庭", new HashSet<>(Arrays.asList("九堡", "彭埠")));
-        rules.put("笕桥法庭", new HashSet<>(Arrays.asList("笕桥","丁兰")));
-        rules.put("综治中心", new HashSet<>(Arrays.asList("四季青", "闸弄口", "凯旋街道", "九堡", "彭埠", "笕桥", "丁兰")));
-
-        Set<String> allowed = rules.get(src);
-        if (allowed == null) {
-            throw new IllegalArgumentException("案件来源不合法：" + src);
-        }
-        if (!allowed.contains(loc)) {
-            throw new IllegalArgumentException("案件来源【" + src + "】不包含归属地【" + loc + "】");
-        }
-    }
 
     /**
      * 下载案件导入模板（与前端导入解析 expected 表头保持一致）
@@ -2138,5 +1758,36 @@ public class CaseInfoController {
         }
         casePaymentFlowService.deleteById(id);
         return Result.success();
+    }
+
+    /**
+     * 校验案件来源与归属地的包含关系。
+     * 规则：
+     * - 上城法院本部 -> 本部
+     * - 九堡法庭 -> 九堡、彭埠
+     * - 笕桥法庭 -> 笕桥、丁兰
+     * - 综治中心 -> 四季青、闸弄口、凯旋街道、九堡、彭埠、笕桥、丁兰
+     */
+    private void validateCaseSourceLocation(String caseSource, String caseLocation) {
+        String src = caseSource == null ? "" : caseSource.trim();
+        String loc = caseLocation == null ? "" : caseLocation.trim();
+        if (!StringUtils.hasText(src)) {
+            throw new IllegalArgumentException("案件来源不能为空");
+        }
+        if (!StringUtils.hasText(loc)) {
+            throw new IllegalArgumentException("案件归属地不能为空");
+        }
+        Map<String, Set<String>> rules = new HashMap<>();
+        rules.put("上城法院本部", new HashSet<>(Collections.singletonList("本部")));
+        rules.put("九堡法庭", new HashSet<>(Arrays.asList("九堡", "彭埠")));
+        rules.put("笕桥法庭", new HashSet<>(Arrays.asList("笕桥", "丁兰")));
+        rules.put("综治中心", new HashSet<>(Arrays.asList("四季青", "闸弄口", "凯旋街道", "九堡", "彭埠", "笕桥", "丁兰")));
+        Set<String> allowed = rules.get(src);
+        if (allowed == null) {
+            throw new IllegalArgumentException("案件来源不合法：" + src);
+        }
+        if (!allowed.contains(loc)) {
+            throw new IllegalArgumentException("案件来源【" + src + "】不包含归属地【" + loc + "】");
+        }
     }
 }

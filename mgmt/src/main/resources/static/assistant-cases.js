@@ -187,25 +187,6 @@ async function showAssistantCaseDetailModal(caseId) {
     }
 }
 
-/**
- * 获取当前登录用户ID（实际项目中需从登录信息中获取）
- */
-async function getCurrentUserId() {
-    try {
-        // 复用用项目中已有的的获取当前用户信息接口
-        const userInfo = await request('/auth/currentUser');
-        if (userInfo && userInfo.userId) {
-            return userInfo.userId; // 确保返回有效的userId
-        }
-        // 获取失败时跳转登录页
-        window.location.href = 'login.html';
-        return null;
-    } catch (error) {
-        console.error('获取当前用户ID失败:', error);
-        window.location.href = 'login.html';
-        return null;
-    }
-}
 
 /**
  * 加载我的案件列表

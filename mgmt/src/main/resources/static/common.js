@@ -193,6 +193,25 @@ async function logout() {
     }
 }
 
+/**
+ * 获取当前登录用户ID（从后端 /auth/currentUser 接口获取），用于前端各模块统一调用。
+ * 若获取失败或未登录，则跳转到登录页并返回 null。
+ */
+async function getCurrentUserId() {
+    try {
+        const userInfo = await request('/auth/currentUser');
+        if (userInfo && userInfo.userId) {
+            return userInfo.userId;
+        }
+        // 未获取到有效用户，跳转登录页
+        window.location.href = 'login.html';
+        return null;
+    } catch (error) {
+        console.error('获取当前用户ID失败:', error);
+        window.location.href = 'login.html';
+        return null;
+    }
+}
 
 // 暴露到全局
 if (typeof window !== 'undefined') {

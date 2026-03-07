@@ -285,6 +285,7 @@ async function showmyCaseDetailModal(caseId) {
          </div>`;
 
         const formatDate = (dateStr) => !dateStr?'-':(/\d{4}-\d{2}-\d{2}/.test(dateStr)? dateStr : new Date(dateStr).toLocaleString());
+        const formatAmount = (amount) => amount != null ? Number(amount).toFixed(2) : '0.00';
         let historyHtml = '';
         if(historyList && historyList.length){
             historyHtml = historyList.map(h=>{ const meta = actionIconMap[h.action]||{icon:'fa-info-circle',color:'#8c8c8c'}; return `<div class='timeline-item mb-2 p-2 rounded border position-relative'>
@@ -499,23 +500,12 @@ function showPaymentFlowsModal(caseId, fromMyCases) {
 async function loadPaymentFlows(caseId) {
     const listEl = document.getElementById('paymentFlowsList');
     const errEl = document.getElementById('paymentFlowsError');
+    if (!listEl) return;
     listEl.innerHTML = '<div class="text-muted">加载中...</div>';
-    errEl.style.display = 'none';
+    if (errEl) errEl.style.display = 'none';
     try {
-        const resp = await request(`/case/detail/${caseId}`);
-        // /case/detail/{id} 返回的是 {case: CaseInfo, ...}，这里做兼容
-        const caseInfo = (resp && resp.case) ? resp.case : resp;
-        if (!caseInfo || !caseInfo.caseCloseExt) {
-            listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
-            return;
-        }
-        let ext;
-        try {
-            ext = (typeof caseInfo.caseCloseExt === 'string') ? JSON.parse(caseInfo.caseCloseExt) : caseInfo.caseCloseExt;
-        } catch (e) {
-            ext = null;
-        }
-        const flows = (ext && Array.isArray(ext.paymentFlows)) ? ext.paymentFlows : [];
+        const resp = await request(`/case/case-payment-flow/list?caseId=${caseId}`, 'GET');
+        const flows = Array.isArray(resp) ? resp : (resp && Array.isArray(resp.data) ? resp.data : []);
         if (!flows.length) {
             listEl.innerHTML = '<div class="text-muted">暂无付款流水</div>';
             return;
@@ -525,12 +515,13 @@ async function loadPaymentFlows(caseId) {
             const imgSrc = buildPaymentScreenshotSrc(f);
             const finalImgSrc = imgSrc ? (imgSrc.startsWith('/api') ? imgSrc : '/api' + imgSrc) : '';
             const channel = f.channel || '-';
+            const payTime = f.payTime ? new Date(f.payTime).toLocaleString() : '-';
             return `
     <div class="list-group-item d-flex justify-content-between align-items-center">
         <div>
             <div>序号：${idx+1}</div>
             <div>渠道：${channel}</div>
-            <div>时间：${f.payTime||'-'}</div>
+            <div>时间：${payTime}</div>
             <div>金额：${fmtAmt(f.amount)}</div>
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -540,7 +531,7 @@ async function loadPaymentFlows(caseId) {
                               data-url="${finalImgSrc}"
                               style="width:60px;height:60px;object-fit:cover;cursor:pointer;border-radius:4px;border:1px solid #eee;">`
                       : '<span class="text-muted">无截图</span>'}
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlow(${idx})">删除</button>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentFlow(${f.id})">删除</button>
         </div>
     </div>`;
         }).join('');
@@ -598,10 +589,11 @@ async function submitNewPaymentFlow() {
         alert('上传成功');
 
         const screenshotUrl = uploadJson.data;
-        await request('/case/payment-flows', 'POST', {
+        // 老接口改为调用基于 case_payment_flow 表的新接口
+        await request('/case/case-payment-flow/add', 'POST', {
             caseId,
-            action: 'add',
             screenshotUrl,
+            // 后端会根据 payment/ 前缀自动识别 screenshotUrlType=Oss
             payTime,
             amount: amountRaw,
             channel
@@ -618,21 +610,20 @@ async function submitNewPaymentFlow() {
     }
 }
 
-async function removePaymentFlow(index) {
+async function removePaymentFlow(flowId) {
     const caseId = document.getElementById('paymentFlowsCaseId').value;
     const errEl = document.getElementById('paymentFlowsError');
-    errEl.style.display = 'none';
+    if (errEl) errEl.style.display = 'none';
     if (!confirm('确定要删除该条付款流水吗？')) return;
     try {
-        await request('/case/payment-flows', 'POST', {
-            caseId,
-            action: 'remove',
-            index
-        });
+        // 新接口按 id 删除
+        await request('/case/case-payment-flow/delete', 'POST', { id: flowId });
         loadPaymentFlows(caseId);
     } catch (e) {
-        errEl.textContent = '删除付款流水失败';
-        errEl.style.display = 'block';
+        if (errEl) {
+            errEl.textContent = '删除付款流水失败';
+            errEl.style.display = 'block';
+        }
     }
 }
 
@@ -1215,6 +1206,315 @@ function buildPaymentScreenshotSrc(flow) {
 
     // 旧：本地静态路径，直接访问
     return flow.screenshotUrl;
+}
+
+/**
+ * 获取当前登录用户ID（实际项目中需从登录信息中获取）
+ */
+async function getCurrentUserId() {
+    try {
+        // 复用用项目中已有的的获取当前用户信息接口
+        const userInfo = await request('/auth/currentUser');
+        if (userInfo && userInfo.userId) {
+            return userInfo.userId; // 确保返回有效的userId
+        }
+        // 获取失败时跳转登录页
+        window.location.href = 'login.html';
+        return null;
+    } catch (error) {
+        console.error('获取当前用户ID失败:', error);
+        window.location.href = 'login.html';
+        return null;
+    }
+}
+
+/**
+ * 获取当前登录用户ID（实际项目中需从登录信息中获取）
+ */
+async function getCurrentUserName() {
+    try {
+        // 复用用项目中已有的的获取当前用户信息接口
+        const userInfo = await request('/auth/currentUser');
+        if (userInfo && userInfo.username) {
+            return userInfo.username; // 确保返回有效的userId
+        }
+        // 获取失败时跳转登录页
+        window.location.href = 'login.html';
+        return null;
+    } catch (error) {
+        console.error('获取当前用户名失败:', error);
+        window.location.href = 'login.html';
+        return null;
+    }
+}
+
+/**
+ * 加载我的案件列表
+ */
+async function loadMyCases(pageNum = 1, pageSize = 10, timeout = false) {
+    try {
+        const username = await getCurrentUserName();
+        const tableBodyEl = document.getElementById('myCaseTableBody');
+        if (!tableBodyEl) { return; }
+        if (!username) {
+            tableBodyEl.innerHTML = `<tr><td colspan="12" class="text-center text-danger">未获取到用户信息</td></tr>`;
+            return;
+        }
+        const caseName = document.getElementById('myCaseSearchInput')?.value.trim() || '';
+        const station = document.getElementById('myCaseStationSelect')?.value.trim() || '';
+        const plaintiff = document.getElementById('myCasePlaintiffInput')?.value.trim() || '';
+        const defendant = document.getElementById('myCaseDefendantInput')?.value.trim() || '';
+        const assistant = document.getElementById('myCaseAssistantInput')?.value.trim() || '';
+        const keyword = document.getElementById('keywordSearchInput')?.value.trim() || '';
+        const statusValue = currentMyFilterStatus !== 'all' ? currentMyFilterStatus : '我的案件';
+        const payload = {
+            pageNum,
+            pageSize,
+            caseName: caseName || undefined,
+            userName: username || undefined,
+            status: statusValue,
+            station: station || undefined,
+            plaintiff: plaintiff || undefined,
+            defendant: defendant || undefined,
+            assistant: assistant || undefined,
+            timeout: timeout || undefined,
+            keyword: keyword || undefined
+        };
+        const response = await request('/case/page', 'POST', payload);
+        if (tableBodyEl) { renderMyCaseTable(response.records); }
+        renderMyPagination({ total: response.total, pageNum: response.pageNum, pageSize: response.pageSize });
+    } catch (error) {
+        const body = document.getElementById('myCaseTableBody');
+        if (body) { body.innerHTML = `<tr><td colspan="12" class="text-center text-danger">加载案件失败</td></tr>`; }
+    }
+}
+
+/**
+ * 导出我的案件
+ */
+async function exportMyCases() {
+    try {
+        // 获取当前用户ID（假设App.user.userId已全局可用）
+        const userId = App.user.userId;
+        const url = '/api/case/export-my-cases';
+        const fetchOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        };
+        const response = await fetch(url, fetchOptions);
+        if (!response.ok) throw new Error('导出失败');
+        const blob = await response.blob();
+        const filename = '我的案件_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    } catch (e) {
+        alert('导出失败，请重试');
+    }
+}
+
+/**
+ * 渲染分页组件
+ * @param {Object} pageInfo 分页信息对象，包含total、pageNum、pageSize、pages等
+ */
+function renderMyPagination(pageInfo) {
+    const { total, pageNum, pageSize } = pageInfo;
+    const pages = Math.ceil(total / pageSize);
+    if (pages <= 1) {
+        // 只有一页时不显示分页
+        const myPaginationContainer = document.getElementById('myPaginationContainer');
+        if (myPaginationContainer) {
+            myPaginationContainer.innerHTML = `
+                <div class="d-flex justify-content-center mt-2 text-secondary">
+                    共 ${total} 条记录
+                </div>
+            `;
+        }
+        return;
+    }
+
+    // 创建分页容器（如果不存在）
+    let myPaginationContainer = document.getElementById('myPaginationContainer');
+    if (!myPaginationContainer) {
+        myPaginationContainer = document.createElement('div');
+        myPaginationContainer.id = 'myPaginationContainer';
+        myPaginationContainer.className = 'd-flex justify-content-center mt-4';
+        // 插入到表格下方
+        document.querySelector('.table-responsive').after(myPaginationContainer);
+    }
+
+    // 计算显示的页码范围
+    let startPage = Math.max(1, pageNum - 2);
+    let endPage = Math.min(pages, startPage + 4);
+
+    // 调整页码范围，确保显示5个页码
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    let paginationHtml = `
+    <div class="d-flex justify-content-center mb-2 text-secondary">
+        共 ${total} 条记录，当前第 ${pageNum}/${pages} 页
+    </div>
+    <nav aria-label="案件列表分页">
+        <ul class="pagination">
+            <li class="page-item ${pageNum === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadMyCases(${pageNum - 1}, ${pageSize})" aria-label="上一页">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+    `;
+
+    // 添加第一页按钮（当当前页不在前5页时）
+    if (startPage > 1) {
+        paginationHtml += `
+            <li class="page-item"><a class="page-link" href="#" onclick="loadMyCases(1, ${pageSize})">1</a></li>
+            ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+        `;
+    }
+
+    // 添加中间页码
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `
+            <li class="page-item ${i === pageNum ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadMyCases(${i}, ${pageSize})">${i}</a>
+            </li>
+        `;
+    }
+
+    // 添加最后一页按钮（当当前页不在后5页时）
+    if (endPage < pages) {
+        paginationHtml += `
+            ${endPage < pages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+            <li class="page-item"><a class="page-link" href="#" onclick="loadMyCases(${pages}, ${pageSize})">${pages}</a></li>
+        `;
+    }
+
+    // 下一页按钮
+    paginationHtml += `
+            <li class="page-item ${pageNum === pages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadMyCases(${pageNum + 1}, ${pageSize})" aria-label="下一页">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    `;
+
+    myPaginationContainer.innerHTML = paginationHtml;
+}
+
+/**
+ * 根据状态筛选我的案件
+ */
+async function filterMyCases(status, pageNum = 1, pageSize = 10) {
+    const allButtons = document.querySelectorAll('.btn-group .btn.btn-outline-primary');
+    allButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    const currentButton = document.querySelector(`.btn-group .btn[onclick="filterMyCases('${status}')"]`);
+    if (currentButton) {
+        currentButton.classList.add('active');
+    }
+    currentMyCasePage = pageNum;
+    currentMyFilterStatus = status;
+    loadMyCases(currentMyCasePage, currentMyCasePageSize);
+    // 更新按钮样式（保持不变）
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline-primary');
+    });
+}
+
+/**
+ * 渲染我的案件表格
+ * @param {Array} cases 案件数组
+ */
+function renderMyCaseTable(cases) {
+    const tableBody = document.getElementById('myCaseTableBody');
+    if (!cases || cases.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">没有找到案件数据</td></tr>`;
+        return;
+    }
+    let html = '';
+    const now = new Date();
+    cases.forEach((caseInfo) => {
+        let statusClass = '';
+        switch (caseInfo.status) {
+            case '待领取': statusClass = 'status-pending-receive'; break;
+            case '已领取': statusClass = 'status-received'; break;
+            case '反馈': statusClass = 'status-pre-feedback'; break;
+            case '延期': statusClass = 'status-delayed'; break;
+            case '待结案': statusClass = 'status-completed'; break;
+            case '退回': statusClass = 'status-returned'; break;
+            case '调解失败': statusClass = 'status-failed'; break;
+            case '结案': statusClass = 'status-closed'; break;
+        }
+        let remindHtml = '';
+        if (caseInfo.receiveTime) {
+            const receiveDate = new Date(Date.parse(caseInfo.receiveTime));
+            const daysSinceReceived = Math.floor((now - receiveDate) / (1000 * 60 * 60 * 24));
+            if (caseInfo.receiveType === 'self_receive') {
+                if (caseInfo.status === '已领取' && daysSinceReceived > 0 && daysSinceReceived <= 3) {
+                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
+                }
+                if (caseInfo.status === '反馈' && daysSinceReceived >= 12 && daysSinceReceived <= 15) {
+                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
+                }
+            }
+            if (caseInfo.receiveType === 'assign' && (caseInfo.status === '已领取' || caseInfo.status === '反馈')) {
+                if (daysSinceReceived >= 7 && daysSinceReceived <= 10) {
+                    remindHtml = `<div class="alert alert-danger p-1 mb-1" style="font-size:13px;">即将自动退回，请及时操作！</div>`;
+                }
+            }
+        }
+        html += `
+        <tr>
+            <td>${caseInfo.caseNumber}</td>
+            <td>${caseInfo.caseName}</td>
+            <td>${caseInfo.amount != null ? caseInfo.amount.toFixed(2) : '0.00'}</td>
+            <td>${caseInfo.caseSource || ''}</td>
+            <td>${caseInfo.caseLocation || ''}</td>
+            <td>${caseInfo.plaintiffName || ''}</td>
+            <td>${caseInfo.defendantName || ''}</td>
+            <td>${caseInfo.judge || ''}</td>
+            <td>${caseInfo.assistantName || ''}</td>
+            <td>${caseInfo.receiveTime ? new Date(caseInfo.receiveTime).toLocaleString() : ''}</td>
+            <td><span class="status-badge ${statusClass}">${caseInfo.status}</span>${remindHtml}</td>
+            <td>
+                <div class="d-flex flex-column gap-2">
+                  <button class="btn btn-sm btn-info" type="button" onclick="showmyCaseDetailModal(${caseInfo.caseId})">案件详情</button>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">
+                      案件操作
+                    </button>
+                    <ul class="dropdown-menu" style="display:none;">
+                      ${(caseInfo.status === '已领取' || caseInfo.status === '反馈' || caseInfo.status === '延期') ? `
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPreFeedbackModal(${caseInfo.caseId})"><i class="fa fa-comment"></i> 反馈</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDelayModal(${caseInfo.caseId})"><i class="fa fa-clock-o"></i> 延期</a></li>
+                      ` : ''}
+                      ${(caseInfo.status === '待结案' || caseInfo.status === '结案') ? `
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId}, true)"><i class="fa fa-credit-card"></i> 补充付款流水</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 修改结案信息</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showApplyInvoiceModal(${caseInfo.caseId})"><i class="fa fa-file-text-o"></i> 申请开票</a></li>
+                      ` : `
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showCompleteCaseModal(${caseInfo.caseId})"><i class="fa fa-check"></i> 提交结案审核</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
+                      `}
+                      ${(caseInfo.status === '待结案') ? `
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showReturnCaseModal(${caseInfo.caseId})"><i class="fa fa-undo"></i> 退回</a></li>
+                      ` : ''}
+                    </ul>
+                  </div>
+                </div>
+            </td>
+        </tr>`;
+    });
+    tableBody.innerHTML = html;
+    bindFixedDropdownMenus();
 }
 
 // =========================

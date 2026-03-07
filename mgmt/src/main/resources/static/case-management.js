@@ -602,10 +602,10 @@ async function showCaseDetailModal(caseId) {
 /**
  * 从案件详情弹窗中删除某一条付款流水
  */
-async function deletePaymentFlowFromDetail(caseId, index) {
+async function deletePaymentFlowFromDetail(caseId, flowId) {
     if (!confirm('确定要删除该条付款流水吗？')) return;
     try {
-        await request('/case/payment-flows/delete', 'POST', { caseId, index });
+        await request('/case/case-payment-flow/delete', 'POST', { id: flowId });
         // 删除成功后：关闭付款流水浮窗
         const modalEl = document.getElementById('paymentFlowsModal');
         const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
@@ -613,7 +613,6 @@ async function deletePaymentFlowFromDetail(caseId, index) {
             modal.hide();
         }
 
-        // 防御性：清理所有残留的 Bootstrap 遮罩和 body 状态，避免整页保持灰色
         document.querySelectorAll('.modal-backdrop').forEach(function (el) {
             if (el && el.parentNode) {
                 el.parentNode.removeChild(el);
@@ -622,7 +621,6 @@ async function deletePaymentFlowFromDetail(caseId, index) {
         document.body.classList.remove('modal-open');
         document.body.style.removeProperty('padding-right');
 
-        // 清理付款流水模态容器 DOM，避免重复 id 残留
         const container = document.getElementById('paymentFlowsModalContainer');
         if (container) container.innerHTML = '';
 
@@ -2041,8 +2039,8 @@ function showCloseCaseModal(caseId) {
     const tempContainer = document.createElement('div');
     tempContainer.innerHTML = modalHtml;
     document.body.appendChild(tempContainer);
-    const closeModal = new bootstrap.Modal(document.getElementById('closeCaseModal'));
-    closeModal.show();
+    const modal = new bootstrap.Modal(document.getElementById('closeCaseModal'));
+    modal.show();
     document.getElementById('closeCaseModal').addEventListener('hidden.bs.modal', function() {
         tempContainer.remove();
     });
