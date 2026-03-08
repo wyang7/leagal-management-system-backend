@@ -38,6 +38,9 @@ import com.example.managementsystem.dto.CaseCloseExtDTO;
 import com.example.managementsystem.entity.CaseCloseExt;
 import com.example.managementsystem.service.ICaseCloseExtService;
 import com.example.managementsystem.mapper.CaseCloseExtMapper;
+import com.example.managementsystem.mapper.BankFlowMapper;
+import com.example.managementsystem.mapper.CasePaymentFlowMapper;
+import com.example.managementsystem.entity.BankFlow;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.managementsystem.controller.support.CaseCloseExtCompatHelper;
 
@@ -75,6 +78,12 @@ public class CaseInfoController {
 
     @Autowired
     private ICaseCloseExtService caseCloseExtService;
+
+    @Autowired
+    private BankFlowMapper bankFlowMapper;
+
+    @Autowired
+    private CasePaymentFlowMapper casePaymentFlowMapper;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -609,6 +618,47 @@ public class CaseInfoController {
                     objectMapper
             );
         } catch (Exception ignored) {
+        }
+
+        // 补充：从 case_payment_flow 表读取付款流水并合并到 caseCloseExt
+        try {
+            List<CasePaymentFlow> paymentFlows = casePaymentFlowService.getByCaseId(id);
+            if (paymentFlows != null && !paymentFlows.isEmpty()) {
+                // 解析现有的 caseCloseExt
+                CaseCloseExtDTO extDto = null;
+                String existingExtJson = caseInfo.getCaseCloseExt();
+                if (existingExtJson != null && !existingExtJson.trim().isEmpty()) {
+                    try {
+                        extDto = objectMapper.readValue(existingExtJson, CaseCloseExtDTO.class);
+                    } catch (Exception e) {
+                        // 解析失败则创建新的 DTO
+                        extDto = new CaseCloseExtDTO();
+                    }
+                } else {
+                    extDto = new CaseCloseExtDTO();
+                }
+
+                // 将 CasePaymentFlow 列表转换为 PaymentFlow DTO 列表
+                List<CaseCloseExtDTO.PaymentFlow> flowDtos = paymentFlows.stream().map(flow -> {
+                    CaseCloseExtDTO.PaymentFlow dto = new CaseCloseExtDTO.PaymentFlow();
+                    dto.setScreenshotUrl(flow.getScreenshotUrl());
+                    dto.setScreenshotUrlType(flow.getScreenshotUrlType());
+                    dto.setChannel(flow.getChannel());
+                    // 转换 Date 为 String 格式
+                    if (flow.getPayTime() != null) {
+                        dto.setPayTime(flow.getPayTime().toString());
+                    }
+                    dto.setAmount(flow.getAmount());
+                    return dto;
+                }).collect(Collectors.toList());
+
+                extDto.setPaymentFlows(flowDtos);
+
+                // 重新序列化并设置回 caseInfo
+                caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(extDto));
+            }
+        } catch (Exception e) {
+            log.warn("从 case_payment_flow 表读取付款流水失败: {}", e.getMessage());
         }
 
         // 根据驻点动态返回青枫号/澎和号展示字段
@@ -1876,6 +1926,24 @@ public class CaseInfoController {
         } catch (NumberFormatException e) {
             return Result.fail("流水ID格式错误");
         }
+
+        // 校验：如果付款流水已关联银行流水且处于申请结算/已结算/申请退费/已退费状态，不允许删除
+        CasePaymentFlow paymentFlow = casePaymentFlowMapper.selectById(id);
+        if (paymentFlow == null) {
+            return Result.fail("付款流水不存在");
+        }
+
+        // 查询关联的银行流水
+        BankFlow bankFlow = bankFlowMapper.selectByCasePaymentId(id);
+        if (bankFlow != null && bankFlow.getFlowStatus() != null) {
+            String status = bankFlow.getFlowStatus();
+            // 以下状态不允许删除
+            if ("申请结算".equals(status) || "已结算".equals(status)
+                    || "申请退费".equals(status) || "已退费".equals(status)) {
+                return Result.fail("该流水已" + status + "，不允许删除");
+            }
+        }
+
         casePaymentFlowService.deleteById(id);
         return Result.success();
     }
