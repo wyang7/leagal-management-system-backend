@@ -75,6 +75,10 @@ public class BankFlowServiceImpl implements IBankFlowService {
         if (!StringUtils.hasText(flow.getFlowStatus())) {
             flow.setFlowStatus("待案件匹配");
         }
+        // 剩余金额默认为交易金额
+        if (flow.getRemainingAmount() == null && flow.getTradeAmount() != null) {
+            flow.setRemainingAmount(flow.getTradeAmount());
+        }
         bankFlowMapper.insert(flow);
         return flow;
     }
@@ -170,9 +174,6 @@ public class BankFlowServiceImpl implements IBankFlowService {
                     if (bf.getTradeAmount() == null) {
                         throw new IllegalArgumentException("交易金额为空");
                     }
-                    if (!StringUtils.hasText(bf.getPayer())) {
-                        throw new IllegalArgumentException("付款方为空");
-                    }
                     if (!StringUtils.hasText(bf.getPayee())) {
                         throw new IllegalArgumentException("收款方为空");
                     }
@@ -189,6 +190,10 @@ public class BankFlowServiceImpl implements IBankFlowService {
                         // 默认状态为"待案件匹配"
                         if (!StringUtils.hasText(bf.getFlowStatus())) {
                             bf.setFlowStatus("待案件匹配");
+                        }
+                        // 剩余金额默认为交易金额
+                        if (bf.getRemainingAmount() == null && bf.getTradeAmount() != null) {
+                            bf.setRemainingAmount(bf.getTradeAmount());
                         }
                         bankFlowMapper.insert(bf);
                     } else {
@@ -304,7 +309,7 @@ public class BankFlowServiceImpl implements IBankFlowService {
             bankFlowMapper.updateById(existing);
             return split;
         } else {
-            // 直接绑定
+            // 直接绑定（案件流水金额等于银行流水剩余金额）
             // 查出案件号并写入银行流水的 caseNumber 字段（便于后续检索和对账）
             String caseNumber = caseInfoMapper.selectCaseNumberByCaseId(casePaymentFlow.getCaseId());
             if (StringUtils.hasText(caseNumber)) {
@@ -312,7 +317,7 @@ public class BankFlowServiceImpl implements IBankFlowService {
             }
             existing.setCasePaymentId(casePaymentId);
             existing.setFlowStatus(flowStatus);
-            existing.setRemainingAmount(BigDecimal.ZERO); // 绑定后剩余金额为0
+            existing.setRemainingAmount(payAmount); // 存储案件付款金额，用于列表页展示"案件流水金额"
             existing.setUpdatedTime(LocalDateTime.now().format(TS));
             bankFlowMapper.updateById(existing);
             return existing;
@@ -411,5 +416,35 @@ public class BankFlowServiceImpl implements IBankFlowService {
         } catch (Exception ignored) {
         }
         return null;
+    }
+
+    @Override
+    public BankFlow auditBankFlow(Long bankFlowId, boolean approved) {
+        if (bankFlowId == null) {
+            throw new IllegalArgumentException("银行流水ID不能为空");
+        }
+
+        BankFlow existing = bankFlowMapper.selectById(bankFlowId);
+        if (existing == null) {
+            throw new IllegalArgumentException("银行流水记录不存在");
+        }
+
+        String currentStatus = existing.getFlowStatus();
+        String newStatus;
+
+        // 根据当前状态和审核结果确定新状态
+        if ("申请结算".equals(currentStatus)) {
+            newStatus = approved ? "结算通过" : "结算不通过";
+        } else if ("申请退费".equals(currentStatus)) {
+            newStatus = approved ? "退费通过" : "退费不通过";
+        } else {
+            throw new IllegalArgumentException("当前状态不允许审核：" + currentStatus);
+        }
+
+        existing.setFlowStatus(newStatus);
+        existing.setUpdatedTime(LocalDateTime.now().format(TS));
+        bankFlowMapper.updateById(existing);
+
+        return bankFlowMapper.selectById(bankFlowId);
     }
 }

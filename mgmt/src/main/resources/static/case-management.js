@@ -2571,9 +2571,13 @@ function renderCaseFlowApplicationModal() {
         const boundStatusBadge = (() => {
             const status = flow.bankFlowStatus || '';
             if (status === '申请结算') return '<span class="badge bg-warning text-dark">申请结算</span>';
+            if (status === '结算通过') return '<span class="badge bg-success">结算通过</span>';
+            if (status === '结算不通过') return '<span class="badge bg-danger">结算不通过</span>';
             if (status === '已结算') return '<span class="badge bg-success">已结算</span>';
-            if (status === '申请退费') return '<span class="badge bg-warning text-dark">申请退费</span>';
-            if (status === '已退费') return '<span class="badge bg-secondary">已退费</span>';
+            if (status === '申请退费') return '<span class="badge bg-info text-dark">申请退费</span>';
+            if (status === '退费通过') return '<span class="badge bg-success">退费通过</span>';
+            if (status === '退费不通过') return '<span class="badge bg-danger">退费不通过</span>';
+            if (status === '已退费') return '<span class="badge bg-primary">已退费</span>';
             return '<span class="badge bg-secondary">已绑定</span>';
         })();
 

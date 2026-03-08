@@ -48,5 +48,14 @@ public interface IBankFlowService {
      * @return 更新后的银行流水
      */
     BankFlow submitCaseFlowApplication(Long bankFlowId, Long casePaymentId, String flowStatus);
+
+    /**
+     * 审核银行流水申请
+     *
+     * @param bankFlowId 银行流水ID
+     * @param approved   是否通过（true=通过，false=不通过）
+     * @return 更新后的银行流水
+     */
+    BankFlow auditBankFlow(Long bankFlowId, boolean approved);
 }
 

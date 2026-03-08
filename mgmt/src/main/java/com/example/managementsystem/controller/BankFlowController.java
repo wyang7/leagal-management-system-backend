@@ -28,6 +28,12 @@ public class BankFlowController {
     @Autowired
     private IBankFlowService bankFlowService;
 
+    @Autowired
+    private com.example.managementsystem.mapper.CasePaymentFlowMapper casePaymentFlowMapper;
+
+    @Autowired
+    private com.example.managementsystem.mapper.CaseInfoMapper caseInfoMapper;
+
     private boolean canAccess(HttpSession session) {
         UserSession u = (UserSession) session.getAttribute("currentUser");
         if (u == null || u.getRoleType() == null) return false;
@@ -217,5 +223,68 @@ public class BankFlowController {
         } catch (IllegalArgumentException e) {
             return Result.fail(e.getMessage());
         }
+    }
+
+    /**
+     * 审核银行流水申请
+     */
+    @PostMapping("/audit")
+    public Result<BankFlow> auditBankFlow(@RequestBody Map<String, Object> params, HttpSession session) {
+        if (!canAccess(session)) {
+            return Result.fail("无权限");
+        }
+        Long bankFlowId = params.get("bankFlowId") != null ? Long.valueOf(params.get("bankFlowId").toString()) : null;
+        Boolean approved = params.get("approved") != null ? Boolean.valueOf(params.get("approved").toString()) : null;
+
+        if (bankFlowId == null) {
+            return Result.fail("银行流水ID不能为空");
+        }
+        if (approved == null) {
+            return Result.fail("审核结果不能为空");
+        }
+
+        try {
+            BankFlow updated = bankFlowService.auditBankFlow(bankFlowId, approved);
+            return Result.success(updated);
+        } catch (IllegalArgumentException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取银行流水审核详情（包含案件付款流水和案件基本信息）
+     */
+    @GetMapping("/audit-detail")
+    public Result<Map<String, Object>> getAuditDetail(@RequestParam Long bankFlowId, HttpSession session) {
+        if (!canAccess(session)) {
+            return Result.fail("无权限");
+        }
+        if (bankFlowId == null) {
+            return Result.fail("银行流水ID不能为空");
+        }
+
+        BankFlow bankFlow = bankFlowService.getById(bankFlowId);
+        if (bankFlow == null) {
+            return Result.fail("银行流水记录不存在");
+        }
+
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("bankFlow", bankFlow);
+
+        // 查询关联的案件付款流水
+        if (bankFlow.getCasePaymentId() != null) {
+            com.example.managementsystem.entity.CasePaymentFlow paymentFlow =
+                    casePaymentFlowMapper.selectById(bankFlow.getCasePaymentId());
+            result.put("casePaymentFlow", paymentFlow);
+
+            // 查询案件基本信息
+            if (paymentFlow != null && paymentFlow.getCaseId() != null) {
+                com.example.managementsystem.entity.CaseInfo caseInfo =
+                        caseInfoMapper.selectByCaseId(paymentFlow.getCaseId());
+                result.put("caseInfo", caseInfo);
+            }
+        }
+
+        return Result.success(result);
     }
 }
