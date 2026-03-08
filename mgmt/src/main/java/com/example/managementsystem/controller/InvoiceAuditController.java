@@ -99,13 +99,25 @@ public class InvoiceAuditController {
         }
         String beforeStatus = caseInfo.getStatus();
 
+        // 读切换：优先从新表 case_close_ext 读取
         CaseCloseExtDTO ext = null;
         try {
-            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
-                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+            CaseCloseExt extEntity = caseCloseExtMapper.selectByCaseId(caseId);
+            if (extEntity != null) {
+                ext = CaseCloseExtDTO.fromEntity(extEntity);
             }
         } catch (Exception e) {
-            log.error("解析结案扩展信息失败", e);
+            log.error("从新表读取结案扩展信息失败", e);
+        }
+        // 兼容：新表无数据则尝试解析老表 JSON
+        if (ext == null) {
+            try {
+                if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
+                    ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+                }
+            } catch (Exception e) {
+                log.error("解析老表结案扩展信息失败", e);
+            }
         }
         if (ext == null) {
             ext = new CaseCloseExtDTO();
@@ -129,21 +141,14 @@ public class InvoiceAuditController {
         ext.setInvoicePdf(objectName);
         ext.setInvoiceStatus("已开票");
 
-        try {
-            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-        } catch (Exception e) {
-            log.error("序列化结案扩展信息失败", e);
-            return Result.fail("保存失败");
-        }
-
-        // 更新 case_info
+        // 更新 case_info（不再写入 caseCloseExt JSON 字段，仅保留基础字段更新）
         caseInfo.setUpdatedTime(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         boolean ok = caseInfoService.updateById(caseInfo);
         if (!ok) {
             return Result.fail("保存失败");
         }
 
-        // 双写到新表 case_close_ext
+        // 写切换：写入新表 case_close_ext
         CaseCloseExt existing = caseCloseExtMapper.selectByCaseId(caseId);
         CaseCloseExt entity = existing != null ? existing : new CaseCloseExt();
         entity.setCaseId(caseId);
@@ -219,13 +224,25 @@ public class InvoiceAuditController {
         }
         String beforeStatus = caseInfo.getStatus();
 
+        // 读切换：优先从新表 case_close_ext 读取
         CaseCloseExtDTO ext = null;
         try {
-            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
-                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+            CaseCloseExt extEntity = caseCloseExtMapper.selectByCaseId(caseId);
+            if (extEntity != null) {
+                ext = CaseCloseExtDTO.fromEntity(extEntity);
             }
         } catch (Exception e) {
-            log.error("解析结案扩展信息失败", e);
+            log.error("从新表读取结案扩展信息失败", e);
+        }
+        // 兼容：新表无数据则尝试解析老表 JSON
+        if (ext == null) {
+            try {
+                if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
+                    ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+                }
+            } catch (Exception e) {
+                log.error("解析老表结案扩展信息失败", e);
+            }
         }
         if (ext == null) {
             ext = new CaseCloseExtDTO();
@@ -239,21 +256,15 @@ public class InvoiceAuditController {
         // 仅回退 invoiceStatus，不再写入 completion_notes
         ext.setInvoiceStatus("开票被打回");
 
-        try {
-            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-        } catch (Exception e) {
-            log.error("序列化结案扩展信息失败", e);
-            return Result.fail("保存失败");
-        }
-
         String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        // 更新 case_info（不再写入 caseCloseExt JSON 字段，仅保留基础字段更新）
         caseInfo.setUpdatedTime(now);
         boolean ok = caseInfoService.updateById(caseInfo);
         if (!ok) {
             return Result.fail("保存失败");
         }
 
-        // 双写到 case_close_ext，新 completionNotes 直接来自 ext（未追加打回原因）
+        // 写切换：写入新表 case_close_ext
         CaseCloseExt existing = caseCloseExtMapper.selectByCaseId(caseId);
         CaseCloseExt entity = existing != null ? existing : new CaseCloseExt();
         entity.setCaseId(caseId);
@@ -323,13 +334,25 @@ public class InvoiceAuditController {
         }
         String beforeStatus = caseInfo.getStatus();
 
+        // 读切换：优先从新表 case_close_ext 读取
         CaseCloseExtDTO ext = null;
         try {
-            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
-                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+            CaseCloseExt extEntity = caseCloseExtMapper.selectByCaseId(caseId);
+            if (extEntity != null) {
+                ext = CaseCloseExtDTO.fromEntity(extEntity);
             }
         } catch (Exception e) {
-            log.error("解析结案扩展信息失败", e);
+            log.error("从新表读取结案扩展信息失败", e);
+        }
+        // 兼容：新表无数据则尝试解析老表 JSON
+        if (ext == null) {
+            try {
+                if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
+                    ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+                }
+            } catch (Exception e) {
+                log.error("解析老表结案扩展信息失败", e);
+            }
         }
         if (ext == null) {
             ext = new CaseCloseExtDTO();
@@ -349,19 +372,15 @@ public class InvoiceAuditController {
 
         ext.setInvoicePdf(objectName);
         String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        try {
-            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-        } catch (Exception e) {
-            log.error("序列化结案扩展信息失败", e);
-            return Result.fail("保存失败");
-        }
 
+        // 更新 case_info（不再写入 caseCloseExt JSON 字段，仅保留基础字段更新）
         caseInfo.setUpdatedTime(now);
         boolean ok = caseInfoService.updateById(caseInfo);
         if (!ok) {
             return Result.fail("保存失败");
         }
 
+        // 写切换：写入新表 case_close_ext
         CaseCloseExt existing = caseCloseExtMapper.selectByCaseId(caseId);
         CaseCloseExt entity = existing != null ? existing : new CaseCloseExt();
         entity.setCaseId(caseId);
@@ -429,13 +448,25 @@ public class InvoiceAuditController {
         }
         String beforeStatus = caseInfo.getStatus();
 
+        // 读切换：优先从新表 case_close_ext 读取
         CaseCloseExtDTO ext = null;
         try {
-            if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
-                ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+            CaseCloseExt extEntity = caseCloseExtMapper.selectByCaseId(caseId);
+            if (extEntity != null) {
+                ext = CaseCloseExtDTO.fromEntity(extEntity);
             }
         } catch (Exception e) {
-            log.error("解析结案扩展信息失败", e);
+            log.error("从新表读取结案扩展信息失败", e);
+        }
+        // 兼容：新表无数据则尝试解析老表 JSON
+        if (ext == null) {
+            try {
+                if (caseInfo.getCaseCloseExt() != null && !caseInfo.getCaseCloseExt().isEmpty()) {
+                    ext = objectMapper.readValue(caseInfo.getCaseCloseExt(), CaseCloseExtDTO.class);
+                }
+            } catch (Exception e) {
+                log.error("解析老表结案扩展信息失败", e);
+            }
         }
         if (ext == null) {
             ext = new CaseCloseExtDTO();
@@ -448,19 +479,15 @@ public class InvoiceAuditController {
         // 清空 PDF 字段
         ext.setInvoicePdf(null);
         String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        try {
-            caseInfo.setCaseCloseExt(objectMapper.writeValueAsString(ext));
-        } catch (Exception e) {
-            log.error("序列化结案扩展信息失败", e);
-            return Result.fail("保存失败");
-        }
 
+        // 更新 case_info（不再写入 caseCloseExt JSON 字段，仅保留基础字段更新）
         caseInfo.setUpdatedTime(now);
         boolean ok = caseInfoService.updateById(caseInfo);
         if (!ok) {
             return Result.fail("保存失败");
         }
 
+        // 写切换：写入新表 case_close_ext
         CaseCloseExt existing = caseCloseExtMapper.selectByCaseId(caseId);
         CaseCloseExt entity = existing != null ? existing : new CaseCloseExt();
         entity.setCaseId(caseId);

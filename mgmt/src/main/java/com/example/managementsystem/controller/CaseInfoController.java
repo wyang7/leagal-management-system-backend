@@ -153,11 +153,32 @@ public class CaseInfoController {
      * 分页查询案件列表 (改造为 POST + RequestBody)
      */
     @PostMapping("/page")
+    @SuppressWarnings("unchecked")
     public Result<Map<String, Object>> getCasePage(@RequestBody CasePageRequest request) {
         // 基础分页校验
         if (request.getPageNum() != null && request.getPageNum() < 1) { request.setPageNum(1); }
         if (request.getPageSize() != null && (request.getPageSize() < 1 || request.getPageSize() > 100)) { request.setPageSize(10); }
         Map<String, Object> pageResult = caseInfoService.getCasePage(request);
+
+        // 读切换：对返回的案件列表，优先从新表 case_close_ext 读取扩展信息
+        try {
+            List<CaseInfo> records = (List<CaseInfo>) pageResult.get("records");
+            if (records != null && !records.isEmpty()) {
+                CaseCloseExtCompatHelper.fillCaseCloseExtForReturn(
+                        records,
+                        c -> {
+                            if (c == null || c.getCaseId() == null) {
+                                return null;
+                            }
+                            CaseCloseExt entity = caseCloseExtMapper.selectByCaseId(c.getCaseId());
+                            return entity == null ? null : CaseCloseExtDTO.fromEntity(entity);
+                        },
+                        objectMapper
+                );
+            }
+        } catch (Exception ignored) {
+        }
+
         return Result.success(pageResult);
     }
 
@@ -488,7 +509,69 @@ public class CaseInfoController {
             }
         }
 
-        // 不再解析/合并 caseCloseExtJson，也不再调用 syncCaseCloseExtToNewTable
+        // 写切换：如果前端提交了 caseCloseExtJson，则解析并写入 case_close_ext 新表
+        Object caseCloseExtJsonObj = body.get("caseCloseExtJson");
+        if (caseCloseExtJsonObj != null && !caseCloseExtJsonObj.toString().trim().isEmpty()) {
+            try {
+                CaseCloseExtDTO extDto = objectMapper.readValue(caseCloseExtJsonObj.toString(), CaseCloseExtDTO.class);
+                if (extDto != null) {
+                    CaseCloseExt extEntity = caseCloseExtService.getByCaseId(caseId);
+                    if (extEntity == null) {
+                        extEntity = new CaseCloseExt();
+                        extEntity.setCaseId(caseId);
+                    }
+                    // 只更新前端提交的字段（非空覆盖）
+                    if (extDto.getCompletionNotes() != null) {
+                        extEntity.setCompletionNotes(extDto.getCompletionNotes());
+                    }
+                    if (extDto.getSignDate() != null) {
+                        extEntity.setSignDate(extDto.getSignDate());
+                    }
+                    if (extDto.getAdjustedAmount() != null) {
+                        extEntity.setAdjustedAmount(extDto.getAdjustedAmount());
+                    }
+                    if (extDto.getMediationFee() != null) {
+                        extEntity.setMediationFee(extDto.getMediationFee());
+                    }
+                    if (extDto.getPlaintiffMediationFee() != null) {
+                        extEntity.setPlaintiffMediationFee(extDto.getPlaintiffMediationFee());
+                    }
+                    if (extDto.getDefendantMediationFee() != null) {
+                        extEntity.setDefendantMediationFee(extDto.getDefendantMediationFee());
+                    }
+                    if (extDto.getPayer() != null) {
+                        extEntity.setPayer(extDto.getPayer());
+                    }
+                    if (extDto.getInvoiceStatus() != null) {
+                        extEntity.setInvoiceStatus(extDto.getInvoiceStatus());
+                    }
+                    if (extDto.getPaid() != null) {
+                        extEntity.setPaid(extDto.getPaid());
+                    }
+                    if (extDto.getInvoiced() != null) {
+                        extEntity.setInvoiced(extDto.getInvoiced());
+                    }
+                    if (extDto.getInvoiceInfo() != null) {
+                        extEntity.setInvoiceInfo(extDto.getInvoiceInfo());
+                    }
+                    if (extDto.getInvoicePdf() != null) {
+                        extEntity.setInvoicePdf(extDto.getInvoicePdf());
+                    }
+                    // paymentFlows 列表序列化为 JSON 字符串
+                    if (extDto.getPaymentFlows() != null) {
+                        try {
+                            String flowsJson = objectMapper.writeValueAsString(extDto.getPaymentFlows());
+                            extEntity.setPaymentFlows(flowsJson);
+                        } catch (Exception ignored) {
+                        }
+                    }
+                    caseCloseExtService.saveOrUpdateByCaseId(caseId, extEntity);
+                }
+            } catch (Exception e) {
+                log.warn("解析 caseCloseExtJson 失败，跳过扩展信息更新: {}", e.getMessage());
+            }
+        }
+
         boolean success = caseInfoService.updateById(caseInfo);
         return success ? Result.success() : Result.fail("更新案件失败");
     }
@@ -1155,6 +1238,24 @@ public class CaseInfoController {
                 exportList = (List<CaseInfo>) pageResult.get("records");
             }
 
+            // 读切换：对导出列表，优先从新表 case_close_ext 读取扩展信息
+            try {
+                if (exportList != null && !exportList.isEmpty()) {
+                    CaseCloseExtCompatHelper.fillCaseCloseExtForReturn(
+                            exportList,
+                            c -> {
+                                if (c == null || c.getCaseId() == null) {
+                                    return null;
+                                }
+                                CaseCloseExt entity = caseCloseExtMapper.selectByCaseId(c.getCaseId());
+                                return entity == null ? null : CaseCloseExtDTO.fromEntity(entity);
+                            },
+                            objectMapper
+                    );
+                }
+            } catch (Exception ignored) {
+            }
+
             // 如果状态为“结案”，无论是否勾选案件，都导出结案专用格式
             String status = (String) params.get("status");
             if ("结案".equals(status)) {
@@ -1327,6 +1428,25 @@ public class CaseInfoController {
         myCases = myCases.stream()
                 .filter(c -> !"调解失败".equals(c.getStatus()) && !"退回".equals(c.getStatus()))
                 .collect(Collectors.toList());
+
+        // 读切换：对导出列表，优先从新表 case_close_ext 读取扩展信息
+        try {
+            if (myCases != null && !myCases.isEmpty()) {
+                CaseCloseExtCompatHelper.fillCaseCloseExtForReturn(
+                        myCases,
+                        c -> {
+                            if (c == null || c.getCaseId() == null) {
+                                return null;
+                            }
+                            CaseCloseExt entity = caseCloseExtMapper.selectByCaseId(c.getCaseId());
+                            return entity == null ? null : CaseCloseExtDTO.fromEntity(entity);
+                        },
+                        objectMapper
+                );
+            }
+        } catch (Exception ignored) {
+        }
+
         String[] headers = {
             "案件号", "案由", "标的额", "案件归属地", "原告", "被告", "法官", "案件助理", "领取时间", "退回法院时间",
             "状态", "处理人", "法院收案时间", "反馈情况", "退回情况", "案件完成情况"
