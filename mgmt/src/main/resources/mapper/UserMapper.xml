@@ -20,5 +20,13 @@
         WHERE username = #{username} limit 1
     </select>
 
+    <!-- 查询所有调解员 -->
+    <select id="selectAllMediators" resultType="com.example.managementsystem.entity.User">
+        SELECT u.* FROM user u
+        INNER JOIN role r ON u.role_id = r.role_id
+        WHERE r.role_name LIKE '%调解员%'
+           OR r.role_name = '用户'
+           OR r.role_name LIKE '%助理%'
+    </select>
 
 </mapper>

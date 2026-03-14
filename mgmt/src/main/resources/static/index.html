@@ -406,6 +406,7 @@
 <script src="my-cases.js"></script>
 <script src="workspace.js"></script>
 <script src="system-file.js"></script>
+<script src="mediator-profile.js"></script>
 <script>
     const App = { user: null };
 
@@ -551,6 +552,9 @@
 
             // 案件包管理：所有管理员可见
             items.push({ key: 'task-mgmt', text: '案件包管理', icon: 'fa-tasks', onClick: 'handleRootClick(\'task-mgmt\', loadTaskManagementPage)', cssClass: 'nav-link-root' });
+
+            // 调解员画像：所有管理员可见
+            items.push({ key: 'mediator-profile', text: '调解员画像', icon: 'fa-user-circle', onClick: 'handleRootClick(\'mediator-profile\', loadMediatorProfilePage)', cssClass: 'nav-link-root' });
         }
 
         if (canSeeFinanceMenu) {

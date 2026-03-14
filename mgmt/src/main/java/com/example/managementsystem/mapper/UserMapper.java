@@ -32,4 +32,9 @@ public interface UserMapper extends BaseMapper<User> {
      */
     User selectByUsername(@Param("username") String username);
 
+    /**
+     * 查询所有调解员（角色为调解员的用户）
+     */
+    List<User> selectAllMediators();
+
 }
