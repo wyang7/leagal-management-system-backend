@@ -12,6 +12,8 @@ import com.example.managementsystem.service.IRoleService;
 import com.example.managementsystem.service.IUserService;
 import com.example.managementsystem.service.ICasePaymentFlowService;
 import com.example.managementsystem.entity.CasePaymentFlow;
+import com.example.managementsystem.service.ICaseComplaintFileService;
+import com.example.managementsystem.entity.CaseComplaintFile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -84,6 +86,9 @@ public class CaseInfoController {
 
     @Autowired
     private CasePaymentFlowMapper casePaymentFlowMapper;
+
+    @Autowired
+    private ICaseComplaintFileService caseComplaintFileService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -1977,5 +1982,127 @@ public class CaseInfoController {
         if (!allowed.contains(loc)) {
             throw new IllegalArgumentException("案件来源【" + src + "】不包含归属地【" + loc + "】");
         }
+    }
+
+    // ===================== 案件诉状文件相关接口 =====================
+
+    /**
+     * 上传案件诉状文件（图片格式）
+     * 文件会经过加密后上传到OSS，存储在独立的complaint文件夹中
+     *
+     * @param caseId 案件ID
+     * @param file   上传的图片文件（支持jpg、jpeg、png）
+     * @param remark 备注
+     * @param session HTTP会话
+     * @return 上传结果
+     */
+    @PostMapping("/complaint-file/upload")
+    public Result<CaseComplaintFile> uploadComplaintFile(
+            @RequestParam("caseId") Long caseId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "remark", required = false) String remark,
+            HttpSession session) {
+        UserSession currentUser = (UserSession) session.getAttribute("currentUser");
+        if (currentUser == null || currentUser.getUserId() == null) {
+            return Result.fail("未登录或会话已过期，请重新登录");
+        }
+
+        try {
+            CaseComplaintFile complaintFile = caseComplaintFileService.uploadFile(
+                    caseId,
+                    file,
+                    remark,
+                    currentUser.getUserId(),
+                    currentUser.getUsername()
+            );
+            return Result.success(complaintFile);
+        } catch (IllegalArgumentException e) {
+            return Result.fail(e.getMessage());
+        } catch (Exception e) {
+            log.error("上传诉状文件失败", e);
+            return Result.fail("上传诉状文件失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取案件的诉状文件列表
+     *
+     * @param caseId 案件ID
+     * @return 诉状文件列表
+     */
+    @GetMapping("/complaint-file/list/{caseId}")
+    public Result<List<CaseComplaintFile>> getComplaintFiles(@PathVariable Long caseId) {
+        if (caseId == null) {
+            return Result.fail("案件ID不能为空");
+        }
+        List<CaseComplaintFile> files = caseComplaintFileService.getFilesByCaseId(caseId);
+        return Result.success(files);
+    }
+
+    /**
+     * 下载/预览诉状文件（自动解密）
+     *
+     * @param id 文件ID
+     * @param response HTTP响应
+     */
+    @GetMapping("/complaint-file/download/{id}")
+    public void downloadComplaintFile(@PathVariable Long id, HttpServletResponse response) {
+        if (id == null) {
+            try {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "文件ID不能为空");
+            } catch (IOException e) {
+                log.error("响应错误失败", e);
+            }
+            return;
+        }
+        try {
+            caseComplaintFileService.downloadFile(id, response);
+        } catch (Exception e) {
+            log.error("下载诉状文件失败", e);
+            try {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "下载文件失败：" + e.getMessage());
+            } catch (IOException ex) {
+                log.error("响应错误失败", ex);
+            }
+        }
+    }
+
+    /**
+     * 删除诉状文件
+     *
+     * @param id 文件ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/complaint-file/{id}")
+    public Result<?> deleteComplaintFile(@PathVariable Long id) {
+        if (id == null) {
+            return Result.fail("文件ID不能为空");
+        }
+        boolean success = caseComplaintFileService.deleteFile(id);
+        return success ? Result.success() : Result.fail("删除文件失败");
+    }
+
+    /**
+     * 更新诉状文件备注
+     *
+     * @param params 请求参数（包含id和remark）
+     * @return 更新结果
+     */
+    @PostMapping("/complaint-file/update-remark")
+    public Result<?> updateComplaintFileRemark(@RequestBody Map<String, Object> params) {
+        Object idObj = params.get("id");
+        if (idObj == null) {
+            return Result.fail("文件ID不能为空");
+        }
+        Long id;
+        try {
+            id = Long.parseLong(idObj.toString());
+        } catch (NumberFormatException e) {
+            return Result.fail("文件ID格式错误");
+        }
+
+        String remark = params.getOrDefault("remark", "").toString();
+        boolean success = caseComplaintFileService.updateRemark(id, remark);
+        return success ? Result.success() : Result.fail("更新备注失败");
     }
 }

@@ -218,3 +218,96 @@ if (typeof window !== 'undefined') {
     window.baseUrl = 'http://47.118.19.86:8090/api';
     // window.baseUrl = 'http://localhost:8090/api';
 }
+
+// ===================== 案件诉状文件相关API =====================
+
+/**
+ * 上传案件诉状文件
+ * @param {number} caseId 案件ID
+ * @param {File} file 上传的图片文件（jpg/jpeg/png）
+ * @param {string} remark 备注（可选）
+ * @returns {Promise<object>} 上传后的文件信息
+ */
+async function uploadComplaintFile(caseId, file, remark = '') {
+    if (!caseId || !file) {
+        throw new Error('案件ID和文件不能为空');
+    }
+
+    const formData = new FormData();
+    formData.append('caseId', caseId);
+    formData.append('file', file);
+    if (remark) {
+        formData.append('remark', remark);
+    }
+
+    const response = await fetch(window.baseUrl + '/case/complaint-file/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP错误，状态码: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.code === 200) {
+        return result.data;
+    } else {
+        throw new Error(result.message || '上传失败');
+    }
+}
+
+/**
+ * 获取案件的诉状文件列表
+ * @param {number} caseId 案件ID
+ * @returns {Promise<Array>} 诉状文件列表
+ */
+async function getComplaintFiles(caseId) {
+    if (!caseId) {
+        throw new Error('案件ID不能为空');
+    }
+    return await request(`/case/complaint-file/list/${caseId}`);
+}
+
+/**
+ * 获取诉状文件下载/预览URL
+ * @param {number} fileId 文件ID
+ * @returns {string} 文件下载URL
+ */
+function getComplaintFileUrl(fileId) {
+    if (!fileId) {
+        return '';
+    }
+    return `${window.baseUrl}/case/complaint-file/download/${fileId}`;
+}
+
+/**
+ * 删除诉状文件
+ * @param {number} fileId 文件ID
+ * @returns {Promise<boolean>} 是否删除成功
+ */
+async function deleteComplaintFile(fileId) {
+    if (!fileId) {
+        throw new Error('文件ID不能为空');
+    }
+    await request(`/case/complaint-file/${fileId}`, 'DELETE');
+    return true;
+}
+
+/**
+ * 更新诉状文件备注
+ * @param {number} fileId 文件ID
+ * @param {string} remark 新备注
+ * @returns {Promise<boolean>} 是否更新成功
+ */
+async function updateComplaintFileRemark(fileId, remark) {
+    if (!fileId) {
+        throw new Error('文件ID不能为空');
+    }
+    await request('/case/complaint-file/update-remark', 'POST', {
+        id: fileId,
+        remark: remark
+    });
+    return true;
+}

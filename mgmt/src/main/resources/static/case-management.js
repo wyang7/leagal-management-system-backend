@@ -959,6 +959,7 @@ function renderCaseTable(cases) {
                     <button class="btn btn-sm btn-primary dropdown-toggle my-dropdown-btn" type="button" data-dropdown-type="action" data-case-id="${caseInfo.caseId}">案件操作</button>
                     <ul class="dropdown-menu" style="display:none;">
                       <li><a class="dropdown-item" href="javascript:void(0);" onclick="showEditCaseModal(${caseInfo.caseId})"><i class="fa fa-edit"></i> 编辑</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);" onclick="showComplaintFilesModal(${caseInfo.caseId})"><i class="fa fa-file-image-o"></i> 诉状文件</a></li>
                       ${(caseInfo.status === '待结案' || caseInfo.status === '结案') ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="showPaymentFlowsModal(${caseInfo.caseId})"><i class="fa fa-credit-card"></i> 补充付款流水</a></li>` : ''}
                       ${caseInfo.status !== '结案' ? ((App.user.roleType === '管理员' || (App.user.roleType && App.user.roleType.indexOf('管理员') !== -1)) && App.user.station && App.user.station.indexOf('总部') !== -1 ? `<li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteCase(${caseInfo.caseId})"><i class="fa fa-trash"></i> 删除</a></li>` : '') : ''}
                       ${caseInfo.status !== '结案' ? `
@@ -2767,4 +2768,274 @@ function formatDateTime(dateStr) {
     const minutes = String(date.getMinutes()).padStart(2, '0');
 
     return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+// ===================== 案件诉状文件相关功能 =====================
+
+let currentCaseIdForComplaintFiles = null;
+let currentComplaintFiles = [];
+
+/**
+ * 显示诉状文件管理弹窗
+ * @param {number} caseId 案件ID
+ */
+async function showComplaintFilesModal(caseId) {
+    currentCaseIdForComplaintFiles = caseId;
+
+    // 创建弹窗HTML
+    const modalHtml = `
+    <div class="modal fade" id="complaintFilesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-file-image-o me-2"></i>诉状文件管理</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 上传区域 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <i class="fa fa-upload me-1"></i>上传新文件
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <input type="file" id="complaintFileInput" class="form-control" accept=".jpg,.jpeg,.png" onchange="previewComplaintFile(this)">
+                                    <div class="form-text text-muted">支持 jpg、jpeg、png 格式，最大 10MB</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" id="complaintFileRemark" class="form-control" placeholder="备注（可选）">
+                                </div>
+                            </div>
+                            <div id="complaintFilePreview" class="mt-3 text-center" style="display:none;">
+                                <img id="complaintPreviewImg" src="" alt="预览" style="max-height:200px;max-width:100%;border:1px solid #ddd;border-radius:4px;">
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-primary" onclick="uploadComplaintFileHandler()">
+                                    <i class="fa fa-cloud-upload me-1"></i>确认上传
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文件列表 -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <i class="fa fa-list me-1"></i>已上传文件
+                        </div>
+                        <div class="card-body">
+                            <div id="complaintFilesList" class="row g-3">
+                                <div class="col-12 text-center text-muted py-4">
+                                    <i class="fa fa-spinner fa-spin me-2"></i>加载中...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    // 移除已存在的弹窗
+    const existingModal = document.getElementById('complaintFilesModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 添加到DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // 显示弹窗
+    const modal = new bootstrap.Modal(document.getElementById('complaintFilesModal'));
+    modal.show();
+
+    // 加载文件列表
+    await loadComplaintFilesList();
+}
+
+/**
+ * 预览选中的文件
+ */
+function previewComplaintFile(input) {
+    const previewDiv = document.getElementById('complaintFilePreview');
+    const previewImg = document.getElementById('complaintPreviewImg');
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+
+        // 验证文件类型
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(file.type)) {
+            alert('请选择 jpg、jpeg 或 png 格式的图片文件');
+            input.value = '';
+            previewDiv.style.display = 'none';
+            return;
+        }
+
+        // 验证文件大小（10MB）
+        if (file.size > 10 * 1024 * 1024) {
+            alert('文件大小不能超过 10MB');
+            input.value = '';
+            previewDiv.style.display = 'none';
+            return;
+        }
+
+        // 显示预览
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            previewDiv.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        previewDiv.style.display = 'none';
+    }
+}
+
+/**
+ * 上传文件处理函数
+ */
+async function uploadComplaintFileHandler() {
+    const fileInput = document.getElementById('complaintFileInput');
+    const remarkInput = document.getElementById('complaintFileRemark');
+
+    if (!fileInput.files || !fileInput.files[0]) {
+        alert('请选择要上传的文件');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const remark = remarkInput.value.trim();
+
+    try {
+        // 调用common.js中定义的API
+        await uploadComplaintFile(currentCaseIdForComplaintFiles, file, remark);
+        alert('上传成功');
+
+        // 清空表单
+        fileInput.value = '';
+        remarkInput.value = '';
+        document.getElementById('complaintFilePreview').style.display = 'none';
+
+        // 刷新列表
+        await loadComplaintFilesList();
+    } catch (e) {
+        alert('上传失败：' + (e.message || '未知错误'));
+    }
+}
+
+/**
+ * 加载诉状文件列表
+ */
+async function loadComplaintFilesList() {
+    const listContainer = document.getElementById('complaintFilesList');
+    if (!listContainer) return;
+
+    try {
+        const files = await getComplaintFiles(currentCaseIdForComplaintFiles);
+        currentComplaintFiles = files || [];
+
+        if (currentComplaintFiles.length === 0) {
+            listContainer.innerHTML = `
+                <div class="col-12 text-center text-muted py-4">
+                    <i class="fa fa-inbox me-2"></i>暂无诉状文件
+                </div>
+            `;
+            return;
+        }
+
+        listContainer.innerHTML = currentComplaintFiles.map(file => `
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="position-relative">
+                        <img src="${getComplaintFileUrl(file.id)}" class="card-img-top" alt="${file.originalFileName}"
+                             style="height:150px;object-fit:cover;cursor:pointer;"
+                             onclick="viewComplaintFile(${file.id}, '${file.originalFileName}')">
+                        <div class="position-absolute top-0 end-0 p-2">
+                            <button class="btn btn-sm btn-danger" onclick="deleteComplaintFileHandler(${file.id})" title="删除">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text small text-muted mb-1">
+                            <i class="fa fa-file-o me-1"></i>${file.originalFileName}
+                        </p>
+                        <p class="card-text small text-muted mb-1">
+                            <i class="fa fa-user me-1"></i>${file.uploaderName || '-'}
+                        </p>
+                        <p class="card-text small text-muted mb-1">
+                            <i class="fa fa-clock-o me-1"></i>${formatDateTime(file.uploadTime)}
+                        </p>
+                        ${file.remark ? `<p class="card-text small mb-0"><i class="fa fa-comment-o me-1"></i>${file.remark}</p>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        listContainer.innerHTML = `
+            <div class="col-12 text-center text-danger py-4">
+                <i class="fa fa-exclamation-circle me-2"></i>加载失败：${e.message || '未知错误'}
+            </div>
+        `;
+    }
+}
+
+/**
+ * 查看大图
+ */
+function viewComplaintFile(fileId, fileName) {
+    const imgUrl = getComplaintFileUrl(fileId);
+
+    const modalHtml = `
+    <div class="modal fade" id="viewComplaintFileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">${fileName}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                    <img src="${imgUrl}" class="img-fluid" alt="${fileName}" style="max-height:80vh;">
+                </div>
+                <div class="modal-footer">
+                    <a href="${imgUrl}" download="${fileName}" class="btn btn-primary">
+                        <i class="fa fa-download me-1"></i>下载
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    // 移除已存在的弹窗
+    const existingModal = document.getElementById('viewComplaintFileModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('viewComplaintFileModal'));
+    modal.show();
+}
+
+/**
+ * 删除诉状文件
+ */
+async function deleteComplaintFileHandler(fileId) {
+    if (!confirm('确定要删除这个文件吗？')) {
+        return;
+    }
+
+    try {
+        await deleteComplaintFile(fileId);
+        alert('删除成功');
+        // 刷新列表
+        await loadComplaintFilesList();
+    } catch (e) {
+        alert('删除失败：' + (e.message || '未知错误'));
+    }
 }

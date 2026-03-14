@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.managementsystem.mapper.CaseComplaintFileMapper">
+
+    <insert id="insert" parameterType="com.example.managementsystem.entity.CaseComplaintFile" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO case_complaint_file
+        (case_id, original_file_name, oss_object_name, file_size, file_type, remark, uploader_id, uploader_name, upload_time, update_time)
+        VALUES
+        (#{caseId}, #{originalFileName}, #{ossObjectName}, #{fileSize}, #{fileType}, #{remark}, #{uploaderId}, #{uploaderName}, NOW(), NOW())
+    </insert>
+
+    <select id="selectById" parameterType="long" resultType="com.example.managementsystem.entity.CaseComplaintFile">
+        SELECT * FROM case_complaint_file WHERE id = #{id}
+    </select>
+
+    <select id="selectByCaseId" parameterType="long" resultType="com.example.managementsystem.entity.CaseComplaintFile">
+        SELECT * FROM case_complaint_file WHERE case_id = #{caseId} ORDER BY upload_time DESC
+    </select>
+
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM case_complaint_file WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByCaseId" parameterType="long">
+        DELETE FROM case_complaint_file WHERE case_id = #{caseId}
+    </delete>
+
+    <update id="updateRemark">
+        UPDATE case_complaint_file
+        SET remark = #{remark}, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>
