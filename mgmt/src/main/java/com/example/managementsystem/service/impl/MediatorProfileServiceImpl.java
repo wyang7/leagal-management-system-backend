@@ -49,6 +49,14 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
             "拒绝调解", "调解方案未达成一致", "当事人反悔", "调解技能不足"
     );
 
+    // 不可控的失败原因
+    private static final List<String> UNCONTROLLABLE_FAILURES = Arrays.asList(
+            "联系不上"
+    );
+
+    // 反馈备注前缀
+    private static final String FEEDBACK_PREFIX = "填写反馈备注：";
+
     @Override
     public MediatorProfileDTO getMediatorProfile(Long userId) {
         User user = userMapper.selectById(userId);
@@ -242,21 +250,25 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
                 .filter(c -> !"结案".equals(c.getStatus()) && c.getCompletionRemark() != null)
                 .collect(Collectors.toList());
 
+        // 提取真实的失败原因（从"填写反馈备注："后面提取）
         Map<String, Long> reasonCounts = failedCases.stream()
-                .collect(Collectors.groupingBy(CaseInfo::getCompletionRemark, Collectors.counting()));
+                .map(c -> extractFailureReason(c.getCompletionRemark()))
+                .collect(Collectors.groupingBy(reason -> reason, Collectors.counting()));
 
         int totalFailures = failedCases.size();
         List<MediatorProfileDTO.FailureReasonStat> stats = new ArrayList<>();
 
         for (Map.Entry<String, Long> entry : reasonCounts.entrySet()) {
             MediatorProfileDTO.FailureReasonStat stat = new MediatorProfileDTO.FailureReasonStat();
-            stat.setReason(entry.getKey());
+            String reason = entry.getKey();
+            stat.setReason(reason);
             stat.setCount(entry.getValue().intValue());
             stat.setPercentage(totalFailures > 0
                     ? new BigDecimal(entry.getValue()).multiply(new BigDecimal("100"))
                     .divide(new BigDecimal(totalFailures), 2, RoundingMode.HALF_UP)
                     : BigDecimal.ZERO);
-            stat.setControllable(CONTROLLABLE_FAILURES.contains(entry.getKey()));
+            // 判断是否可控：在可控列表中且不在不可控列表中
+            stat.setControllable(CONTROLLABLE_FAILURES.contains(reason));
             stats.add(stat);
         }
 
@@ -264,6 +276,27 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
         stats.sort(Comparator.comparing(MediatorProfileDTO.FailureReasonStat::getCount).reversed());
 
         return stats;
+    }
+
+    /**
+     * 从备注中提取失败原因
+     * 格式："2025-12-05 10:38:55，郑楚雯，填写反馈备注：拒绝调解"
+     * 提取"填写反馈备注："后面的内容
+     */
+    private String extractFailureReason(String completionRemark) {
+        if (completionRemark == null || completionRemark.isEmpty()) {
+            return "未知原因";
+        }
+
+        int index = completionRemark.indexOf(FEEDBACK_PREFIX);
+        if (index >= 0) {
+            // 提取"填写反馈备注："后面的内容
+            String reason = completionRemark.substring(index + FEEDBACK_PREFIX.length()).trim();
+            return reason.isEmpty() ? "未填写原因" : reason;
+        }
+
+        // 如果没有前缀，返回原始内容
+        return completionRemark;
     }
 
     /**
@@ -275,16 +308,37 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
         // 1. 调解成功率得分 (0-100)
         radar.setSuccessRateScore(profile.getSuccessRate());
 
-        // 2. 调解效率得分（平均天数越少得分越高，基准30天满分，超过60天0分）
+        // 2. 调解效率得分（平均天数越少得分越高，使用平滑曲线）
+        // 20天以内满分100，20-30天缓慢下降(95-100)，30-60天平滑下降，60天以上接近0
         BigDecimal avgDays = profile.getAvgResolutionDays();
         BigDecimal efficiencyScore = BigDecimal.ZERO;
         if (avgDays != null) {
-            efficiencyScore = avgDays.compareTo(new BigDecimal("30")) <= 0
-                    ? new BigDecimal("100")
-                    : (avgDays.compareTo(new BigDecimal("60")) >= 0
-                    ? BigDecimal.ZERO
-                    : new BigDecimal("60").subtract(avgDays.subtract(new BigDecimal("30")))
-                    .multiply(new BigDecimal("100")).divide(new BigDecimal("30"), 2, RoundingMode.HALF_UP));
+            if (avgDays.compareTo(new BigDecimal("20")) <= 0) {
+                // 20天以内：满分
+                efficiencyScore = new BigDecimal("100");
+            } else if (avgDays.compareTo(new BigDecimal("30")) <= 0) {
+                // 20-30天：缓慢下降 100->95
+                BigDecimal daysOver20 = avgDays.subtract(new BigDecimal("20"));
+                efficiencyScore = new BigDecimal("100").subtract(
+                    daysOver20.multiply(new BigDecimal("0.5")));
+            } else if (avgDays.compareTo(new BigDecimal("60")) <= 0) {
+                // 30-60天：平滑指数下降 95->20
+                // 使用指数衰减公式：score = 95 * exp(-0.05 * (days - 30))
+                double daysOver30 = avgDays.doubleValue() - 30;
+                double score = 95 * Math.exp(-0.05 * daysOver30);
+                efficiencyScore = new BigDecimal(score).setScale(2, RoundingMode.HALF_UP);
+            } else if (avgDays.compareTo(new BigDecimal("90")) <= 0) {
+                // 60-90天：缓慢下降至接近0
+                BigDecimal daysOver60 = avgDays.subtract(new BigDecimal("60"));
+                efficiencyScore = new BigDecimal("20").subtract(
+                    daysOver60.multiply(new BigDecimal("0.6")));
+                if (efficiencyScore.compareTo(BigDecimal.ZERO) < 0) {
+                    efficiencyScore = BigDecimal.ZERO;
+                }
+            } else {
+                // 90天以上：0分
+                efficiencyScore = BigDecimal.ZERO;
+            }
         }
         radar.setEfficiencyScore(efficiencyScore);
 
@@ -304,12 +358,10 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
         }
         radar.setComplexityScore(complexityScore.min(new BigDecimal("100")));
 
-        // 4. 案件覆盖度得分（基于案由种类数）
+        // 4. 案件覆盖度得分（基于案由种类数和分布均衡性）
         List<MediatorProfileDTO.CaseTypeStat> caseTypeStats = profile.getCaseTypeStats();
-        int caseTypeCount = caseTypeStats != null ? caseTypeStats.size() : 0;
-        BigDecimal coverageScore = caseTypeCount >= 10 ? new BigDecimal("100")
-                : new BigDecimal(caseTypeCount).multiply(new BigDecimal("10"));
-        radar.setCoverageScore(coverageScore.min(new BigDecimal("100")));
+        BigDecimal coverageScore = calculateCoverageScore(caseTypeStats);
+        radar.setCoverageScore(coverageScore);
 
         // 5. 创收能力得分（平均调解费评级）
         BigDecimal avgFee = profile.getAvgMediationFee();

@@ -440,10 +440,10 @@ function renderAmountRangeChart(amountRangeStats) {
     const option = {
         tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'shadow' }
+            axisPointer: { type: 'cross' }
         },
         legend: {
-            data: ['案件数', '成功数'],
+            data: ['案件数', '成功数', '成功率'],
             bottom: 0
         },
         grid: {
@@ -459,9 +459,22 @@ function renderAmountRangeChart(amountRangeStats) {
                 rotate: 30
             }
         },
-        yAxis: {
-            type: 'value'
-        },
+        yAxis: [
+            {
+                type: 'value',
+                name: '案件数',
+                position: 'left'
+            },
+            {
+                type: 'value',
+                name: '成功率(%)',
+                position: 'right',
+                max: 100,
+                axisLabel: {
+                    formatter: '{value}%'
+                }
+            }
+        ],
         series: [
             {
                 name: '案件数',
@@ -474,6 +487,26 @@ function renderAmountRangeChart(amountRangeStats) {
                 type: 'bar',
                 data: amountRangeStats.map(s => s.successCount),
                 itemStyle: { color: '#52c41a' }
+            },
+            {
+                name: '成功率',
+                type: 'line',
+                yAxisIndex: 1,
+                data: amountRangeStats.map(s => (s.successRate || 0).toFixed(1)),
+                itemStyle: { color: '#faad14' },
+                lineStyle: {
+                    width: 3,
+                    type: 'solid'
+                },
+                symbol: 'circle',
+                symbolSize: 8,
+                label: {
+                    show: true,
+                    formatter: '{c}%',
+                    position: 'top',
+                    color: '#faad14',
+                    fontWeight: 'bold'
+                }
             }
         ]
     };
