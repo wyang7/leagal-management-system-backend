@@ -430,6 +430,98 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
     }
 
     /**
+     * 计算案件覆盖度得分
+     * 1. 基于调解成功案件的案由类别数量
+     * 2. 基于案由分布的均匀性（相邻案由数量差异在20%以内为理想）
+     */
+    private BigDecimal calculateCoverageScore(List<MediatorProfileDTO.CaseTypeStat> caseTypeStats) {
+        if (caseTypeStats == null || caseTypeStats.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        // 只统计有成功调解记录的案由类型
+        List<MediatorProfileDTO.CaseTypeStat> validStats = caseTypeStats.stream()
+                .filter(s -> s.getSuccessCount() != null && s.getSuccessCount() > 0)
+                .sorted(Comparator.comparing(MediatorProfileDTO.CaseTypeStat::getSuccessCount).reversed())
+                .collect(Collectors.toList());
+
+        if (validStats.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        int categoryCount = validStats.size();
+
+        // 1. 案由类别数量得分（最多10种，超过10种按10种算）
+        // 基础分：每种类别10分，封顶100分
+        BigDecimal categoryScore = new BigDecimal(Math.min(categoryCount, 10))
+                .multiply(new BigDecimal("10"));
+
+        // 2. 分布均匀性得分
+        BigDecimal uniformityScore = calculateUniformityScore(validStats);
+
+        // 综合得分：类别数量得分占40%，均匀性得分占60%
+        BigDecimal finalScore = categoryScore.multiply(new BigDecimal("0.4"))
+                .add(uniformityScore.multiply(new BigDecimal("0.6")));
+
+        return finalScore.min(new BigDecimal("100")).max(BigDecimal.ZERO);
+    }
+
+    /**
+     * 计算案由分布均匀性得分
+     * 相邻案由类型的成功案件数量差异在20%以内为理想状态
+     * 差异越小得分越高，差异越大扣分越多
+     */
+    private BigDecimal calculateUniformityScore(List<MediatorProfileDTO.CaseTypeStat> sortedStats) {
+        if (sortedStats.size() <= 1) {
+            return new BigDecimal("100"); // 只有一种案由，视为完全均匀
+        }
+
+        BigDecimal totalPenalty = BigDecimal.ZERO;
+        BigDecimal totalBonus = BigDecimal.ZERO;
+        int comparisonCount = sortedStats.size() - 1;
+
+        for (int i = 0; i < comparisonCount; i++) {
+            int currentCount = sortedStats.get(i).getSuccessCount();
+            int nextCount = sortedStats.get(i + 1).getSuccessCount();
+
+            if (currentCount == 0) {
+                continue;
+            }
+
+            // 计算差异百分比
+            int diff = currentCount - nextCount;
+            BigDecimal diffRatio = new BigDecimal(diff)
+                    .multiply(new BigDecimal("100"))
+                    .divide(new BigDecimal(currentCount), 2, RoundingMode.HALF_UP);
+
+            // 判断差异是否在20%以内
+            BigDecimal threshold = new BigDecimal("20");
+            if (diffRatio.compareTo(threshold) <= 0) {
+                // 差异在20%以内，给予奖励
+                // 差异越小，奖励越多（差异为0时奖励最高）
+                BigDecimal bonus = threshold.subtract(diffRatio)
+                        .multiply(new BigDecimal("1.5")); // 每1%差异差距奖励1.5分
+                totalBonus = totalBonus.add(bonus);
+            } else {
+                // 差异超过20%，进行惩罚
+                // 差异越大，惩罚越重
+                BigDecimal excess = diffRatio.subtract(threshold);
+                BigDecimal penalty = excess.multiply(new BigDecimal("2")); // 每超过1%罚2分
+                totalPenalty = totalPenalty.add(penalty);
+            }
+        }
+
+        // 基础分100分，加上奖励，减去惩罚
+        // 奖励封顶50分，惩罚最多扣100分（不会低于0）
+        BigDecimal bonusCap = new BigDecimal("50");
+        BigDecimal actualBonus = totalBonus.min(bonusCap);
+        BigDecimal actualPenalty = totalPenalty.min(new BigDecimal("100"));
+
+        return new BigDecimal("100").add(actualBonus).subtract(actualPenalty)
+                .max(BigDecimal.ZERO).min(new BigDecimal("100"));
+    }
+
+    /**
      * 标的额区间内部类
      */
     private static class AmountRange {
