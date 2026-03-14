@@ -215,8 +215,15 @@ async function getCurrentUserId() {
 
 // 暴露到全局
 if (typeof window !== 'undefined') {
-    window.baseUrl = 'http://47.118.19.86:8090/api';
-    // window.baseUrl = 'http://localhost:8090/api';
+    // 根据当前域名自动判断环境
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        // 本地开发环境
+        window.baseUrl = 'http://localhost:8090/api';
+    } else {
+        // 线上环境（IP 或域名访问）
+        window.baseUrl = 'http://' + hostname + ':8090/api';
+    }
 }
 
 // ===================== 案件诉状文件相关API =====================
