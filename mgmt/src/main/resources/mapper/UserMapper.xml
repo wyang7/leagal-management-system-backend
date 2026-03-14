@@ -22,10 +22,10 @@
 
     <!-- 查询所有调解员 -->
     <select id="selectAllMediators" resultType="com.example.managementsystem.entity.User">
-        SELECT u.* FROM user u
-        WHERE u.role_id IN (
-            SELECT r.role_id FROM role r WHERE r.role_type = '调解员'
-        )
+        SELECT DISTINCT u.* FROM user u
+        INNER JOIN user_role ur ON u.user_id = ur.user_id
+        INNER JOIN role r ON ur.role_id = r.role_id
+        WHERE r.role_type = '调解员'
     </select>
 
 </mapper>
