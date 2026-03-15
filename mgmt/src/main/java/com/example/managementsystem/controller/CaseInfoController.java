@@ -679,6 +679,16 @@ public class CaseInfoController {
             }
             resp.put("number", number);
         }
+
+        // 查询诉状文件列表
+        try {
+            List<CaseComplaintFile> complaintFiles = caseComplaintFileService.getFilesByCaseId(id);
+            resp.put("complaintFiles", complaintFiles != null ? complaintFiles : Collections.emptyList());
+        } catch (Exception e) {
+            log.warn("查询案件诉状文件失败: {}", e.getMessage());
+            resp.put("complaintFiles", Collections.emptyList());
+        }
+
         return Result.success(resp);
     }
 

@@ -78,10 +78,14 @@ public class MediatorProfileDTO {
         private Integer caseCount;
         /** 成功数 */
         private Integer successCount;
+        /** 成功率 (0-100) */
+        private BigDecimal successRate;
         /** 平均标的额 */
         private BigDecimal avgAmount;
         /** 平均调解费 */
         private BigDecimal avgMediationFee;
+        /** 是否擅长案由（TOP5且成功率>40%） */
+        private Boolean isSpecialty;
     }
 
     /**

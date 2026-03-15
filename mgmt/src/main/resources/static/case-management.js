@@ -470,6 +470,15 @@ async function showCaseDetailModal(caseId) {
           request(`/case/detail/${caseId}`),
           request(`/case/history/${caseId}`).catch(()=>[])
         ]);
+
+        // 获取诉状文件数据
+        let complaintFiles = [];
+        try {
+            const complaintFilesResp = await request(`/case/complaint-file/list/${caseId}`);
+            complaintFiles = complaintFilesResp && complaintFilesResp.data ? complaintFilesResp.data : (Array.isArray(complaintFilesResp) ? complaintFilesResp : []);
+        } catch (e) {
+            console.warn('获取诉状文件失败:', e);
+        }
         const caseInfo=caseInfoResponse.case;
         if (!caseInfo) {
             modalContainer.innerHTML = `<div class=\"modal fade\" id=\"caseDetailModal\" tabindex=\"-1\"><div class=\"modal-dialog\"><div class=\"modal-content\"><div class=\"modal-header\"><h5 class=\"modal-title\">案件详情</h5><button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\"></button></div><div class=\"modal-body\">未获取到案件详情</div></div></div></div>`;
@@ -590,8 +599,40 @@ async function showCaseDetailModal(caseId) {
           <div class='col-md-6'><span class='text-muted'>关联案件包：</span>${caseInfo.taskName||'-'}</div>
           <div class='col-md-6'><span class='text-muted'>状态：</span><span class='badge bg-info text-dark'>${caseInfo.status||'-'}</span></div>
         </div>`;
+
+        // 诉状文件展示（带缩略图和点击放大功能）
+        let complaintFilesHtml = '';
+        if (complaintFiles && complaintFiles.length > 0) {
+            complaintFilesHtml = complaintFiles.map((file, idx) => {
+                const uploadTime = file.uploadTime ? new Date(file.uploadTime).toLocaleString() : '-';
+                const imgUrl = `/api/case/complaint-file/download/${file.id}`;
+                return `<div class='border rounded p-2 mb-2 d-flex align-items-start gap-3'>
+                    <div class='flex-shrink-0'>
+                        <img src='${imgUrl}'
+                             alt='${file.originalFileName || '诉状图片'}'
+                             class='complaint-thumbnail'
+                             style='width:100px;height:100px;object-fit:cover;cursor:pointer;border-radius:6px;border:1px solid #e1e5eb;'
+                             onclick='showComplaintImageModal("${imgUrl}", "${file.originalFileName || '诉状图片'}")'>
+                    </div>
+                    <div class='flex-grow-1'>
+                        <div><span class='text-muted'>序号：</span>${idx + 1}</div>
+                        <div><span class='text-muted'>文件名：</span>${file.originalFileName || '-'}</div>
+                        <div><span class='text-muted'>上传人：</span>${file.uploaderName || '-'}</div>
+                        <div><span class='text-muted'>上传时间：</span>${uploadTime}</div>
+                        ${file.remark ? `<div><span class='text-muted'>备注：</span>${file.remark}</div>` : ''}
+                    </div>
+                    <div class='flex-shrink-0'>
+                        <a href='${imgUrl}' target='_blank' class='btn btn-sm btn-outline-primary' title='在新窗口打开'>
+                            <i class='fa fa-external-link'></i> 查看原图
+                        </a>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            complaintFilesHtml = `<div class='text-muted'>暂无诉状文件</div>`;
+        }
         modalContainer.innerHTML = `
-        <div class=\"modal fade\" id=\"caseDetailModal\" tabindex=\"-1\" aria-hidden=\"true\">\n          <div class=\"modal-dialog modal-xl\">\n            <div class=\"modal-content\" style=\"border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);\">\n              <div class=\"modal-header\" style=\"background:linear-gradient(90deg,#4096ff,#69c0ff);color:#fff;border-bottom:none;\">\n                <h5 class=\"modal-title d-flex align-items-center\"><i class=\"fa fa-file-text-o me-2\"></i>案件详情</h5>\n                <button type=\"button\" class=\"btn-close btn-close-white\" data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>\n              </div>\n              <div class=\"modal-body p-0\" style=\"background:#f5f8fa;\">\n                <ul class=\"nav nav-tabs small px-3 pt-3\" style=\"border-bottom:1px solid #e1e5eb;\">\n                  <li class=\"nav-item\"><button class=\"nav-link active\" data-bs-toggle=\"tab\" data-bs-target=\"#mgmt-basic\" type=\"button\">基本详情</button></li>\n                  <li class=\"nav-item\"><button class=\"nav-link\" data-bs-toggle=\"tab\" data-bs-target=\"#mgmt-flow\" type=\"button\">流转信息</button></li>\n                  <li class=\"nav-item\"><button class=\"nav-link\" data-bs-toggle=\"tab\" data-bs-target=\"#mgmt-close\" type=\"button\">结案信息</button></li>\n                </ul>\n                <div class=\"tab-content p-3\" style=\"max-height:70vh;overflow-y:auto;\">\n                  <div id=\"mgmt-basic\" class=\"tab-pane fade show active\">\n                    <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-body\">${basicHtml}</div>\n                    </div>\n                  </div>\n                  <div id=\"mgmt-flow\" class=\"tab-pane fade\">\n                    <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">反馈 / 退回 / 延期</div>\n                      <div class=\"card-body\">${feedbackBlock}${returnBlock}${delayBlock}</div>\n                    </div>\n                    <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">历史流转记录</div>\n                      <div class=\"card-body\">${historyHtml}</div>\n                    </div>\n                  </div>\n                  <div id=\"mgmt-close\" class=\"tab-pane fade\">\n                    <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">完成 / 失败备注</div>\n                      <div class=\"card-body\">${completionBlock}${failedRemarkBlock}</div>\n                    </div>\n                    <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">结案扩展信息</div>\n                      <div class=\"card-body\">${settlementNumbersHtml}${extHtml}</div>\n                    </div>\n                  </div>\n                </div>\n              </div>\n              <div class=\"modal-footer\" style=\"border-top:1px solid #e1e5eb;background:#fff;border-radius:0 0 12px 12px;\">\n                <button type=\"button\" class=\"btn btn-outline-secondary\" data-bs-dismiss=\"modal\">关闭</button>\n              </div>\n            </div>\n          </div>\n        </div>`;
+        <div class=\"modal fade\" id=\"caseDetailModal\" tabindex=\"-1\" aria-hidden=\"true\">\n          <div class=\"modal-dialog modal-xl\">\n            <div class=\"modal-content\" style=\"border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);\">\n              <div class=\"modal-header\" style=\"background:linear-gradient(90deg,#4096ff,#69c0ff);color:#fff;border-bottom:none;\">\n                <h5 class=\"modal-title d-flex align-items-center\"><i class=\"fa fa-file-text-o me-2\"></i>案件详情</h5>\n                <button type=\"button\" class=\"btn-close btn-close-white\" data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>\n              </div>\n              <div class=\"modal-body p-0\" style=\"background:#f5f8fa;\">\n                <ul class=\"nav nav-tabs small px-3 pt-3\" style=\"border-bottom:1px solid #e1e5eb;\">\n                  <li class=\"nav-item\"><button class=\"nav-link active\" data-bs-toggle=\"tab\" data-bs-target=\"#mgmt-basic\" type=\"button\">基本详情</button></li>\n                  <li class=\"nav-item\"><button class=\"nav-link\" data-bs-toggle=\"tab\" data-bs-target=\"#mgmt-flow\" type=\"button\">流转信息</button></li>\n                  <li class=\"nav-item\"><button class=\"nav-link\" data-bs-toggle=\"tab\" data-bs-target=\"#mgmt-close\" type=\"button\">结案信息</button></li>\n                </ul>\n                <div class=\"tab-content p-3\" style=\"max-height:70vh;overflow-y:auto;\">\n                  <div id=\"mgmt-basic\" class=\"tab-pane fade show active\">\n                    <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-body\">${basicHtml}</div>\n                    </div>\n                    <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">诉状文件</div>\n                      <div class=\"card-body\">${complaintFilesHtml}</div>\n                    </div>\n                  </div>\n                  <div id=\"mgmt-flow\" class=\"tab-pane fade\">\n                    <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">反馈 / 退回 / 延期</div>\n                      <div class=\"card-body\">${feedbackBlock}${returnBlock}${delayBlock}</div>\n                    </div>\n                    <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">历史流转记录</div>\n                      <div class=\"card-body\">${historyHtml}</div>\n                    </div>\n                  </div>\n                  <div id=\"mgmt-close\" class=\"tab-pane fade\">\n                    <div class=\"card shadow-sm mb-3 border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">完成 / 失败备注</div>\n                      <div class=\"card-body\">${completionBlock}${failedRemarkBlock}</div>\n                    </div>\n                    <div class=\"card shadow-sm border-0\" style=\"border-radius:10px;\">\n                      <div class=\"card-header bg-white fw-bold\" style=\"border-radius:10px 10px 0 0;border-bottom:1px solid #eee;\">结案扩展信息</div>\n                      <div class=\"card-body\">${settlementNumbersHtml}${extHtml}</div>\n                    </div>\n                  </div>\n                </div>\n              </div>\n              <div class=\"modal-footer\" style=\"border-top:1px solid #e1e5eb;background:#fff;border-radius:0 0 12px 12px;\">\n                <button type=\"button\" class=\"btn btn-outline-secondary\" data-bs-dismiss=\"modal\">关闭</button>\n              </div>\n            </div>\n          </div>\n        </div>`;
         new bootstrap.Modal(document.getElementById('caseDetailModal')).show();
     } catch (error) {
         console.error('获取案件详情失败:', error);

@@ -133,19 +133,43 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
 
     /**
      * 计算综合得分（用于排名）
+     * 以总调解费为核心权重（50%），其他维度综合得分（50%）
      */
     private BigDecimal getCompositeScore(MediatorProfileDTO profile) {
         MediatorProfileDTO.RadarData radar = profile.getRadarData();
         if (radar == null) {
             return BigDecimal.ZERO;
         }
-        return radar.getSuccessRateScore()
+
+        // 1. 总调解费得分（50%权重）- 核心指标
+        // 使用对数计算，避免极端值影响，基准：1万元=50分，10万元=100分
+        BigDecimal totalFee = profile.getTotalMediationFee() != null ? profile.getTotalMediationFee() : BigDecimal.ZERO;
+        BigDecimal feeScore;
+        if (totalFee.compareTo(BigDecimal.ZERO) <= 0) {
+            feeScore = BigDecimal.ZERO;
+        } else {
+            // 使用对数公式：score = 50 + 25 * log10(fee/10000)，封顶100分
+            double logValue = Math.log10(totalFee.doubleValue() / 10000.0);
+            feeScore = new BigDecimal("50").add(new BigDecimal("25").multiply(new BigDecimal(logValue)));
+            if (feeScore.compareTo(new BigDecimal("100")) > 0) {
+                feeScore = new BigDecimal("100");
+            } else if (feeScore.compareTo(BigDecimal.ZERO) < 0) {
+                feeScore = BigDecimal.ZERO;
+            }
+        }
+
+        // 2. 其他维度综合得分（50%权重）
+        BigDecimal otherDimensionsScore = radar.getSuccessRateScore()
                 .add(radar.getEfficiencyScore())
                 .add(radar.getComplexityScore())
                 .add(radar.getCoverageScore())
-                .add(radar.getRevenueScore())
                 .add(radar.getFailureResistScore())
-                .divide(new BigDecimal("6"), 2, RoundingMode.HALF_UP);
+                .divide(new BigDecimal("5"), 2, RoundingMode.HALF_UP);
+
+        // 综合得分 = 调解费得分 * 0.5 + 其他维度得分 * 0.5
+        return feeScore.multiply(new BigDecimal("0.5"))
+                .add(otherDimensionsScore.multiply(new BigDecimal("0.5")))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -197,9 +221,17 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
             MediatorProfileDTO.CaseTypeStat stat = new MediatorProfileDTO.CaseTypeStat();
             stat.setCaseName(entry.getKey());
             stat.setCaseCount(caseList.size());
-            stat.setSuccessCount((int) caseList.stream()
+            int successCount = (int) caseList.stream()
                     .filter(c -> "结案".equals(c.getStatus()))
-                    .count());
+                    .count();
+            stat.setSuccessCount(successCount);
+
+            // 计算成功率
+            BigDecimal successRate = caseList.size() > 0
+                    ? new BigDecimal(successCount).multiply(new BigDecimal("100"))
+                    .divide(new BigDecimal(caseList.size()), 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            stat.setSuccessRate(successRate);
 
             // 平均标的额
             BigDecimal avgAmount = caseList.stream()
@@ -214,6 +246,17 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
 
         // 按案件数降序排序
         stats.sort(Comparator.comparing(MediatorProfileDTO.CaseTypeStat::getCaseCount).reversed());
+
+        // 标记擅长案由：TOP5且成功率>40%
+        final BigDecimal SPECIALTY_THRESHOLD = new BigDecimal("40");
+        for (int i = 0; i < stats.size(); i++) {
+            MediatorProfileDTO.CaseTypeStat stat = stats.get(i);
+            // TOP5 (索引0-4) 且成功率>40%
+            boolean isTop5 = i < 5;
+            boolean hasHighSuccessRate = stat.getSuccessRate() != null
+                    && stat.getSuccessRate().compareTo(SPECIALTY_THRESHOLD) > 0;
+            stat.setIsSpecialty(isTop5 && hasHighSuccessRate);
+        }
 
         return stats;
     }
@@ -308,37 +351,54 @@ public class MediatorProfileServiceImpl implements IMediatorProfileService {
         // 1. 调解成功率得分 (0-100)
         radar.setSuccessRateScore(profile.getSuccessRate());
 
-        // 2. 调解效率得分（平均天数越少得分越高，使用平滑曲线）
-        // 20天以内满分100，20-30天缓慢下降(95-100)，30-60天平滑下降，60天以上接近0
+        // 2. 调解效率得分（平均天数越少得分越高，以30天为正常周期基准）
+        // ≤30天：满分100（正常周期）
+        // 30-45天：轻微下降 100->90（+50%缓冲期）
+        // 45-60天：中等下降 90->75（+100%缓冲期）
+        // 60-90天：加速下降 75->40
+        // 90-120天：快速下降 40->10
+        // >120天：接近0
         BigDecimal avgDays = profile.getAvgResolutionDays();
         BigDecimal efficiencyScore = BigDecimal.ZERO;
         if (avgDays != null) {
-            if (avgDays.compareTo(new BigDecimal("20")) <= 0) {
-                // 20天以内：满分
+            if (avgDays.compareTo(new BigDecimal("30")) <= 0) {
+                // 30天以内（正常周期）：满分
                 efficiencyScore = new BigDecimal("100");
-            } else if (avgDays.compareTo(new BigDecimal("30")) <= 0) {
-                // 20-30天：缓慢下降 100->95
-                BigDecimal daysOver20 = avgDays.subtract(new BigDecimal("20"));
+            } else if (avgDays.compareTo(new BigDecimal("45")) <= 0) {
+                // 30-45天：轻微下降 100->90
+                BigDecimal daysOver30 = avgDays.subtract(new BigDecimal("30"));
+                // 每超过1天扣0.67分 (10分/15天)
                 efficiencyScore = new BigDecimal("100").subtract(
-                    daysOver20.multiply(new BigDecimal("0.5")));
+                    daysOver30.multiply(new BigDecimal("0.67")));
             } else if (avgDays.compareTo(new BigDecimal("60")) <= 0) {
-                // 30-60天：平滑指数下降 95->20
-                // 使用指数衰减公式：score = 95 * exp(-0.05 * (days - 30))
-                double daysOver30 = avgDays.doubleValue() - 30;
-                double score = 95 * Math.exp(-0.05 * daysOver30);
-                efficiencyScore = new BigDecimal(score).setScale(2, RoundingMode.HALF_UP);
+                // 45-60天：中等下降 90->75
+                BigDecimal daysOver45 = avgDays.subtract(new BigDecimal("45"));
+                // 每超过1天扣1分 (15分/15天)
+                efficiencyScore = new BigDecimal("90").subtract(
+                    daysOver45.multiply(new BigDecimal("1.0")));
             } else if (avgDays.compareTo(new BigDecimal("90")) <= 0) {
-                // 60-90天：缓慢下降至接近0
+                // 60-90天：加速下降 75->40
                 BigDecimal daysOver60 = avgDays.subtract(new BigDecimal("60"));
-                efficiencyScore = new BigDecimal("20").subtract(
-                    daysOver60.multiply(new BigDecimal("0.6")));
-                if (efficiencyScore.compareTo(BigDecimal.ZERO) < 0) {
-                    efficiencyScore = BigDecimal.ZERO;
-                }
+                // 每超过1天扣约1.17分 (35分/30天)
+                efficiencyScore = new BigDecimal("75").subtract(
+                    daysOver60.multiply(new BigDecimal("1.17")));
+            } else if (avgDays.compareTo(new BigDecimal("120")) <= 0) {
+                // 90-120天：快速下降 40->10
+                BigDecimal daysOver90 = avgDays.subtract(new BigDecimal("90"));
+                // 每超过1天扣1分 (30分/30天)
+                efficiencyScore = new BigDecimal("40").subtract(
+                    daysOver90.multiply(new BigDecimal("1.0")));
             } else {
-                // 90天以上：0分
-                efficiencyScore = BigDecimal.ZERO;
+                // 120天以上：接近0，最低给5分鼓励
+                efficiencyScore = new BigDecimal("5");
             }
+            // 确保分数在0-100之间
+            if (efficiencyScore.compareTo(BigDecimal.ZERO) < 0) {
+                efficiencyScore = BigDecimal.ZERO;
+            } else if (efficiencyScore.compareTo(new BigDecimal("100")) > 0) {
+                efficiencyScore = new BigDecimal("100");
+            }
+            efficiencyScore = efficiencyScore.setScale(2, RoundingMode.HALF_UP);
         }
         radar.setEfficiencyScore(efficiencyScore);
 

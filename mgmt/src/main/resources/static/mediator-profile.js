@@ -18,6 +18,11 @@ function loadMediatorProfilePage() {
                 </div>
             </div>
 
+            <!-- 统计概览卡片（置顶显示） -->
+            <div class="row mb-4" id="profileStatsCards">
+                <!-- 动态生成统计卡片 -->
+            </div>
+
             <!-- 筛选栏 -->
             <div class="row mb-4">
                 <div class="col-md-12">
@@ -52,11 +57,6 @@ function loadMediatorProfilePage() {
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- 统计概览卡片 -->
-            <div class="row mb-4" id="profileStatsCards">
-                <!-- 动态生成统计卡片 -->
             </div>
 
             <!-- 雷达图和详细统计 -->
@@ -518,7 +518,7 @@ function renderAmountRangeChart(amountRangeStats) {
     });
 }
 
-// 渲染案由统计图
+// 渲染案由统计图（带成功率和擅长案由标识）
 function renderCaseTypeChart(caseTypeStats) {
     if (!caseTypeStats || caseTypeStats.length === 0) return;
 
@@ -530,40 +530,135 @@ function renderCaseTypeChart(caseTypeStats) {
     // 只取前10个
     const top10 = caseTypeStats.slice(0, 10);
 
+    // 准备数据（注意：echarts yAxis 是从下往上显示的，所以需要 reverse）
+    const yData = top10.map(s => s.caseName).reverse();
+    const caseCountData = top10.map(s => s.caseCount).reverse();
+    const successRateData = top10.map(s => (s.successRate || 0).toFixed(1)).reverse();
+    const isSpecialtyData = top10.map(s => s.isSpecialty).reverse();
+
+    // 为擅长案由设置特殊颜色（金色渐变），其他用蓝色渐变
+    const barColors = isSpecialtyData.map(isSpecialty => {
+        if (isSpecialty) {
+            // 擅长案由：金色渐变
+            return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: '#ffd666' },
+                { offset: 0.5, color: '#faad14' },
+                { offset: 1, color: '#fa8c16' }
+            ]);
+        } else {
+            // 普通案由：蓝色渐变
+            return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: '#83bff6' },
+                { offset: 0.5, color: '#188df0' },
+                { offset: 1, color: '#188df0' }
+            ]);
+        }
+    });
+
     const option = {
         tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'shadow' }
+            axisPointer: { type: 'shadow' },
+            formatter: function(params) {
+                const idx = params[0].dataIndex;
+                const stat = top10[top10.length - 1 - idx]; // 因为 reverse 过
+                const specialtyTag = stat.isSpecialty ?
+                    '<br/><span style="color:#faad14;font-weight:bold;">⭐ 擅长案由</span>' : '';
+                return `<b>${stat.caseName}</b>${specialtyTag}<br/>` +
+                       `案件数：${stat.caseCount}<br/>` +
+                       `成功数：${stat.successCount || 0}<br/>` +
+                       `成功率：${(stat.successRate || 0).toFixed(1)}%`;
+            }
+        },
+        legend: {
+            data: ['案件数', '成功率', '擅长案由'],
+            bottom: 0
         },
         grid: {
             left: '3%',
-            right: '4%',
-            bottom: '3%',
+            right: '8%',
+            bottom: '12%',
             containLabel: true
         },
-        xAxis: {
-            type: 'value'
-        },
+        xAxis: [
+            {
+                type: 'value',
+                name: '案件数',
+                position: 'bottom'
+            },
+            {
+                type: 'value',
+                name: '成功率(%)',
+                position: 'top',
+                max: 100,
+                axisLabel: {
+                    formatter: '{value}%'
+                }
+            }
+        ],
         yAxis: {
             type: 'category',
-            data: top10.map(s => s.caseName).reverse(),
+            data: yData,
             axisLabel: {
                 width: 100,
-                overflow: 'truncate'
+                overflow: 'truncate',
+                formatter: function(value, idx) {
+                    // 在 y 轴标签上标记擅长案由
+                    const isSpecialty = isSpecialtyData[idx];
+                    return isSpecialty ? '⭐ ' + value : value;
+                }
             }
         },
-        series: [{
-            name: '案件数',
-            type: 'bar',
-            data: top10.map(s => s.caseCount).reverse(),
-            itemStyle: {
-                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                    { offset: 0, color: '#83bff6' },
-                    { offset: 0.5, color: '#188df0' },
-                    { offset: 1, color: '#188df0' }
-                ])
+        series: [
+            {
+                name: '案件数',
+                type: 'bar',
+                data: caseCountData.map((count, idx) => ({
+                    value: count,
+                    itemStyle: {
+                        color: barColors[idx],
+                        borderRadius: isSpecialtyData[idx] ? [0, 4, 4, 0] : [0, 0, 0, 0],
+                        borderWidth: isSpecialtyData[idx] ? 2 : 0,
+                        borderColor: isSpecialtyData[idx] ? '#fa8c16' : 'transparent'
+                    }
+                })),
+                label: {
+                    show: true,
+                    position: 'right',
+                    formatter: function(params) {
+                        const idx = params.dataIndex;
+                        const rate = successRateData[idx];
+                        const isSpecialty = isSpecialtyData[idx];
+                        return isSpecialty ? `{specialty|${params.value}件 ${rate}%}` : `${params.value}件 ${rate}%`;
+                    },
+                    rich: {
+                        specialty: {
+                            color: '#fa8c16',
+                            fontWeight: 'bold'
+                        }
+                    }
+                }
+            },
+            {
+                name: '成功率',
+                type: 'line',
+                xAxisIndex: 1,
+                data: successRateData,
+                symbol: 'circle',
+                symbolSize: 8,
+                lineStyle: {
+                    color: '#52c41a',
+                    width: 2,
+                    type: 'dashed'
+                },
+                itemStyle: {
+                    color: '#52c41a'
+                },
+                label: {
+                    show: false
+                }
             }
-        }]
+        ]
     };
 
     myChart.setOption(option);
@@ -654,7 +749,7 @@ function renderProfileTable(mediators) {
     if (!tbody || !mediators) return;
 
     tbody.innerHTML = mediators.map((m, index) => {
-        const compositeScore = calculateCompositeScore(m.radarData);
+        const compositeScore = calculateCompositeScore(m.radarData, m.totalMediationFee);
         return `
             <tr>
                 <td><span class="badge bg-${index < 3 ? 'warning' : 'light'} text-${index < 3 ? 'dark' : 'dark'}">${index + 1}</span></td>
@@ -683,18 +778,33 @@ function renderProfileTable(mediators) {
     }).join('');
 }
 
-// 计算综合得分
-function calculateCompositeScore(radarData) {
+// 计算综合得分（与后端逻辑保持一致）
+// 总调解费为核心权重（50%），其他维度综合得分（50%）
+function calculateCompositeScore(radarData, totalMediationFee) {
     if (!radarData) return 0;
-    const scores = [
+
+    // 1. 总调解费得分（50%权重）
+    const fee = totalMediationFee || 0;
+    let feeScore = 0;
+    if (fee > 0) {
+        // 使用对数公式：score = 50 + 25 * log10(fee/10000)
+        const logValue = Math.log10(fee / 10000);
+        feeScore = 50 + 25 * logValue;
+        feeScore = Math.max(0, Math.min(100, feeScore));
+    }
+
+    // 2. 其他维度综合得分（50%权重）- 不包括revenueScore，因为已经通过调解费体现
+    const otherScores = [
         radarData.successRateScore || 0,
         radarData.efficiencyScore || 0,
         radarData.complexityScore || 0,
         radarData.coverageScore || 0,
-        radarData.revenueScore || 0,
         radarData.failureResistScore || 0
     ];
-    return scores.reduce((a, b) => a + b, 0) / scores.length;
+    const otherDimensionsScore = otherScores.reduce((a, b) => a + b, 0) / otherScores.length;
+
+    // 综合得分 = 调解费得分 * 0.5 + 其他维度得分 * 0.5
+    return feeScore * 0.5 + otherDimensionsScore * 0.5;
 }
 
 // 查看调解员详情（表格行点击）
@@ -753,7 +863,7 @@ async function showRankingModal() {
                                     <tbody>
                                         ${data.map((m, index) => {
                                             const r = m.radarData || {};
-                                            const score = calculateCompositeScore(r);
+                                            const score = calculateCompositeScore(r, m.totalMediationFee);
                                             const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : (index + 1);
                                             return `
                                                 <tr class="${index < 3 ? 'table-warning' : ''}">

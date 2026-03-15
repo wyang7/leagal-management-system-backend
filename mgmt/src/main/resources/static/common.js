@@ -318,3 +318,59 @@ async function updateComplaintFileRemark(fileId, remark) {
     });
     return true;
 }
+
+/**
+ * 显示诉状文件大图弹窗
+ * @param {string} imgUrl 图片URL
+ * @param {string} title 图片标题
+ */
+function showComplaintImageModal(imgUrl, title) {
+    // 创建唯一的弹窗ID
+    const modalId = 'complaintImageModal_' + Date.now();
+
+    // 创建弹窗HTML
+    const modalHtml = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content" style="border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.2);">
+                    <div class="modal-header" style="border-bottom:1px solid #e1e5eb;">
+                        <h5 class="modal-title">${title || '诉状图片'}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center p-0" style="background:#f5f5f5;">
+                        <img src="${imgUrl}" alt="${title || '诉状图片'}" style="max-width:100%;max-height:70vh;object-fit:contain;">
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid #e1e5eb;">
+                        <a href="${imgUrl}" target="_blank" class="btn btn-outline-primary">
+                            <i class="fa fa-external-link"></i> 在新窗口打开
+                        </a>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 创建容器并添加到body
+    let container = document.getElementById('complaintImageModalContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'complaintImageModalContainer';
+        document.body.appendChild(container);
+    }
+
+    // 添加弹窗HTML
+    const modalWrapper = document.createElement('div');
+    modalWrapper.innerHTML = modalHtml;
+    container.appendChild(modalWrapper);
+
+    // 获取弹窗元素并显示
+    const modalEl = document.getElementById(modalId);
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    // 弹窗关闭后清理DOM
+    modalEl.addEventListener('hidden.bs.modal', function() {
+        modalWrapper.remove();
+    });
+}
